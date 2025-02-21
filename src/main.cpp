@@ -1,81 +1,53 @@
 
+#include "log.hpp"
+#include <chrono>
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
-#include <exception>
-#include <fmt/format.h>
-#include <source_location>
-#include <spdlog/common.h>
-#include <spdlog/spdlog.h>
-#include <stdexcept>
-
-static void trace()
-{
-    cpptrace::generate_trace().print();
-}
-
-void thrower()
-{
-    throw std::runtime_error {"234"};
-}
-
-namespace log
-{
-
-    template<class... Ts>
-    struct info /* NOLINT */
-    {
-        info(/* NOLINT*/
-             fmt::format_string<Ts...> fmt,
-             Ts&&... args,
-             const std::source_location& location = std::source_location::current())
-        {
-            spdlog::default_logger_raw()->log(
-                spdlog::source_loc {
-                    location.file_name(),
-                    static_cast<int>(location.line()),
-                    location.function_name()},
-                spdlog::level::info,
-                fmt,
-                std::forward<Ts&&>(args)...);
-        }
-    };
-    template<class... Ts> // NOLINTNEXTLINE
-    info(fmt::format_string<Ts...>, Ts&&...) -> info<Ts...>;
-    template<class... J> // NOLINTNEXTLINE
-    info(fmt::format_string<J...>, J&&..., std::source_location) -> info<J...>;
-} // namespace log
+#include <fmt/chrono.h>
+#include <spdlog/async.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 int main()
 {
+    spdlog::init_thread_pool(65536, 1);
+
+    std::vector<spdlog::sink_ptr> sinks {
+        std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
+        std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+            fmt::format(
+                "cinnabar_log {:%b %m-%d-%G %H-%M-%S} ", fmt::localtime(std::time(nullptr))),
+            true),
+    };
+
+    spdlog::set_default_logger(std::make_shared<spdlog::async_logger>(
+        "File and Stdout Logger",
+        std::make_move_iterator(sinks.begin()),
+        std::make_move_iterator(sinks.end()),
+        spdlog::thread_pool(),
+        spdlog::async_overflow_policy::block));
+
     spdlog::set_pattern("[%b %m/%d/%Y %H:%M:%S.%f] %^[%l @ %t]%$ [%@] %v");
-
-    spdlog::info("Welcome to spdlog!");
-    spdlog::error("Some error message with arg: {}", 1);
-
-    spdlog::warn("Easy padding in numbers like {:08d}", 12);
-    spdlog::critical("Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
-    spdlog::info("Support for floats {:03.2f}", 1.23456);
-    spdlog::info("Positional args are {1} {0}..", "too", "supported");
-    spdlog::info("{:<30}", "left aligned");
-
-    log::info("foo");
+    spdlog::set_level(spdlog::level::trace);
 
     CPPTRACE_TRYZ
     {
-        thrower();
+        assert::error(false, "true!");
     }
     CPPTRACE_CATCHZ(const std::exception& e)
     {
-        trace();
+        log::critical(
+            "Cinnabar has crashed! | {} {}\n{}",
+            e.what(),
+            typeid(e).name(),
+            cpptrace::from_current_exception().to_string(true));
     }
     CPPTRACE_CATCH_ALT(...)
     {
-        spdlog::info("{:<30}", "double");
-        cpptrace::from_current_exception().print();
+        log::critical(
+            "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
+            cpptrace::from_current_exception().to_string(true));
     }
 
-    spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-    spdlog::debug("This message should be displayed..");
-
-    // change log pattern
+    spdlog::shutdown();
 }
