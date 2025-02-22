@@ -1,6 +1,22 @@
 #pragma once
+
 #include <source_location>
 #include <spdlog/spdlog.h>
+
+using u8    = std::uint8_t;   // NOLINT
+using u16   = std::uint16_t;  // NOLINT
+using u32   = std::uint32_t;  // NOLINT
+using u64   = std::uint64_t;  // NOLINT
+using usize = std::size_t;    // NOLINT
+using i8    = std::int8_t;    // NOLINT
+using i16   = std::int16_t;   // NOLINT
+using i32   = std::int32_t;   // NOLINT
+using i64   = std::int64_t;   // NOLINT
+using isize = std::ptrdiff_t; // NOLINT
+using f32   = float;          // NOLINT
+using f64   = double;         // NOLINT
+using b8    = u8;             // NOLINT
+using b32   = u32;            // NOLINT
 
 namespace log
 {
@@ -69,7 +85,11 @@ namespace assert
                 }                                                                                  \
             }                                                                                      \
         }                                                                                          \
-    };
+    };                                                                                             \
+    template<class... Ts> /* NOLINTNEXTLINE*/                                                      \
+    LEVEL(bool, fmt::format_string<Ts...>, Ts&&...) -> LEVEL<Ts...>;                               \
+    template<class... J> /* NOLINTNEXTLINE*/                                                       \
+    LEVEL(bool, fmt::format_string<J...>, J&&..., std::source_location) -> LEVEL<J...>;
 
     MAKE_ASSERT(trace, trace, false);
     MAKE_ASSERT(debug, debug, false);
