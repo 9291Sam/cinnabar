@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 3.14)
-
-project(cinnabar)
+cmake_minimum_required(VERSION 3.28)
+project(cinnabar VERSION 0.0.0.1)
 
 include(CPM.cmake)
 
@@ -8,15 +7,77 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-add_executable(cinnabar src/main.cpp)
-
-
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
 CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
 CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
 CPMAddPackage("gh:glfw/glfw#3.4")
-
+CPMAddPackage("gh:g-truc/glm#1.0.1")
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
-target_link_libraries(cinnabar fmt::fmt spdlog::spdlog cpptrace::cpptrace Vulkan::shaderc_combined glfw)
+
+add_executable(cinnabar
+    src/gfx/render/vulkan/allocator.cpp
+    src/gfx/render/vulkan/buffer.cpp
+    src/gfx/render/vulkan/device.cpp
+    src/gfx/render/vulkan/frame_manager.cpp
+    src/gfx/render/vulkan/image.cpp
+    src/gfx/render/vulkan/instance.cpp
+    src/gfx/render/vulkan/swapchain.cpp
+
+    src/gfx/render/renderer.cpp
+    src/gfx/render/window.cpp
+
+    src/main.cpp
+)
+target_include_directories(cinnabar PRIVATE src)
+target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_PATCH=${PROJECT_VERSION_PATCH})
+target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_TWEAK=${PROJECT_VERSION_TWEAK})
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    target_compile_definitions(cinnabar PUBLIC CINNABAR_DEBUG_BUILD=1)
+else()
+    target_compile_definitions(cinnabar PUBLIC CINNABAR_DEBUG_BUILD=0)
+endif()
+target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_NO_CONSTRUCTORS=1)
+target_compile_definitions(cinnabar PRIVATE VK_NO_PROTOTYPES=1)
+
+target_link_libraries(cinnabar
+    fmt::fmt
+    spdlog::spdlog
+    cpptrace::cpptrace
+    VulkanMemoryAllocator
+    glfw
+    glm
+    Vulkan::shaderc_combined
+)
+
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_compile_options(cinnabar PUBLIC
+        -Weverything
+        -Wno-c++98-compat
+        -Wno-c++98-compat-pedantic
+        -Wno-c++20-compat
+        -Wno-pre-c++20-compat-pedantic
+        -Wno-covered-switch-default
+        -Wno-ctad-maybe-unsupported
+        -Wno-pre-c++17-compat
+        -Wno-braced-scalar-init
+        -Wno-unsafe-buffer-usage
+        -Wno-gnu-zero-line-directive
+        -Wno-missing-prototypes
+        -Wno-switch-enum
+        -Wno-undefined-func-template
+        -Wno-newline-eof
+        -Wno-padded
+        -Wno-poison-system-directories
+        -Wno-switch-default
+        -Wno-weak-vtables
+        -Wno-incompatible-pointer-types
+        -Wno-nan-infinity-disabled
+        -Wno-documentation-unknown-command
+    )
+endif()

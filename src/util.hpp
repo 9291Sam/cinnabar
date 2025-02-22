@@ -1,6 +1,7 @@
 #pragma once
 
 #include <source_location>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
 using u8    = std::uint8_t;   // NOLINT
@@ -95,8 +96,29 @@ namespace assert
     MAKE_ASSERT(debug, debug, false);
     MAKE_ASSERT(info, info, false);
     MAKE_ASSERT(warn, warn, false);
-    MAKE_ASSERT(error, err, true);
+    MAKE_ASSERT(error, err, false);
     MAKE_ASSERT(critical, critical, true);
 #undef MAKE_ASSERT
 
 } // namespace assert
+
+template<class... Ts>
+struct panic /* NOLINT */
+{
+    panic(/* NOLINT*/
+          fmt::format_string<Ts...> fmt,
+          Ts&&... args,
+          const std::source_location& location = std::source_location::current())
+    {
+        spdlog::default_logger_raw()->log(
+            spdlog::source_loc {
+                location.file_name(), static_cast<int>(location.line()), location.function_name()},
+            spdlog::level::critical,
+            fmt,
+            std::forward<Ts&&>(args)...);
+    }
+};
+template<class... Ts> /* NOLINTNEXTLINE*/
+panic(fmt::format_string<Ts...>, Ts&&...) -> panic<Ts...>;
+template<class... J> /* NOLINTNEXTLINE*/
+panic(fmt::format_string<J...>, J&&..., std::source_location) -> panic<J...>;

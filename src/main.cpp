@@ -1,5 +1,6 @@
-
+#include "gfx/render/window.hpp"
 #include "util.hpp"
+#include <GLFW/glfw3.h>
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <fmt/chrono.h>
@@ -11,7 +12,7 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <string_view>
+#include <spdlog/spdlog.h>
 
 int main()
 {
@@ -38,7 +39,10 @@ int main()
     CPPTRACE_TRYZ
     {
         shaderc::CompileOptions options {};
-        options.SetTargetSpirv(shaderc_spirv_version_1_0);
+        options.SetSourceLanguage(shaderc_source_language_glsl);
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+        options.SetTargetSpirv(shaderc_spirv_version_1_6);
+        options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
         std::string string = R"(
 #version 460
@@ -63,32 +67,34 @@ void main() {
 
         )";
 
-        shaderc::Compiler compiler {};
-        auto              result =
+        shaderc::Compiler                compiler {};
+        shaderc::CompilationResult<char> compileResult =
             compiler.CompileGlslToSpvAssembly(string, shaderc_compute_shader, "", options);
 
-        if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+        if (compileResult.GetCompilationStatus() != shaderc_compilation_status_success)
         {
             log::error(
                 "compile failed: {} {}",
-                static_cast<int>(result.GetCompilationStatus()),
-                result.GetErrorMessage());
+                static_cast<int>(compileResult.GetCompilationStatus()),
+                compileResult.GetErrorMessage());
         }
         else
         {
-            std::span<const char> data {result.cbegin(), result.cend()};
+            std::span<const char> data {compileResult.cbegin(), compileResult.cend()};
 
             std::array<char, 16> hexChars {
                 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
             std::string result {};
             result.reserve(data.size() * 6);
 
-            for (char c : data)
+            for (char d : data)
             {
+                const u32 c = static_cast<u8>(d);
+
                 result.push_back('0');
                 result.push_back('x');
-                result += hexChars[(c & 0xF0) >> 4];
-                result += hexChars[(c & 0x0F) >> 0];
+                result += hexChars[static_cast<u32>(c & 0xF0u) >> 4u];
+                result += hexChars[static_cast<u32>(c & 0x0Fu) >> 0u];
                 result.push_back(',');
                 result.push_back(' ');
             }
@@ -102,7 +108,12 @@ void main() {
             log::info("{}", result);
         }
 
-        log::info("cinnabar!");
+        while (!window.shouldClose())
+        {
+            log::info("cinnabar!");
+
+            window.endFrame();
+        }
     }
     CPPTRACE_CATCHZ(const std::exception& e)
     {
