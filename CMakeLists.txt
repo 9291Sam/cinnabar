@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.28)
 project(cinnabar VERSION 0.0.0.1)
 
-include(CPM.cmake)
+    include(CPM.cmake)
 
-set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -21,7 +21,7 @@ find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 add_executable(cinnabar
     # src/gfx/render/vulkan/allocator.cpp
     # src/gfx/render/vulkan/buffer.cpp
-    # src/gfx/render/vulkan/device.cpp
+    src/gfx/render/vulkan/device.cpp
     # src/gfx/render/vulkan/frame_manager.cpp
     # src/gfx/render/vulkan/image.cpp
     src/gfx/render/vulkan/instance.cpp

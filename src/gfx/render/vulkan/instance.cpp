@@ -1,6 +1,7 @@
 #include "instance.hpp"
 #include "gfx/render/window.hpp"
 #include "util.hpp"
+#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hpp_macros.hpp>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
@@ -160,5 +161,10 @@ namespace gfx::render::vulkan
 #endif // CINNABAR_DEBUG_BUILD
 
         log::trace("Created instance");
+    }
+
+    vk::Instance Instance::operator* () const noexcept
+    {
+        return *this->instance;
     }
 } // namespace gfx::render::vulkan

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "util.hpp"
+#include "util/logger.hpp"
+#include "util/threads.hpp"
+#include <magic_enum/magic_enum.hpp>
 #include <thread>
+#include <utility>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_format_traits.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     class Device
     {
@@ -21,22 +21,6 @@ namespace gfx::vulkan
             NumberOfQueueTypes = 3,
         };
 
-        static const char* getStringOfQueueType(QueueType t)
-        {
-            switch (t)
-            {
-            case QueueType::Graphics:
-                return "Graphics";
-            case QueueType::AsyncCompute:
-                return "AsyncCompute";
-            case QueueType::AsyncTransfer:
-                return "AsyncTransfer";
-            case QueueType::NumberOfQueueTypes:
-                [[fallthrough]];
-            default:
-                return "";
-            }
-        }
     public:
         Device(vk::Instance, vk::SurfaceKHR);
         ~Device() = default;
@@ -60,15 +44,15 @@ namespace gfx::vulkan
         void
         acquireQueue(QueueType queueType, std::invocable<vk::Queue> auto accessFunc) const noexcept
         {
-            const std::size_t idx = static_cast<std::size_t>(util::toUnderlying(queueType));
+            const std::size_t idx = static_cast<std::size_t>(std::to_underlying(queueType));
 
-            assert::fatal(
+            assert::critical(
                 idx < static_cast<std::size_t>(QueueType::NumberOfQueueTypes),
                 "Tried to lookup an invalid queue of type {}",
                 idx);
 
             const std::vector<util::Mutex<vk::Queue>>& qs =
-                this->queues.at(util::toUnderlying(queueType));
+                this->queues.at(std::to_underlying(queueType));
 
             while (true)
             {
@@ -86,9 +70,9 @@ namespace gfx::vulkan
                     }
                 }
 
-                util::logWarn(
+                log::warn(
                     "Failed to acquire a queue of type {}, retrying",
-                    getStringOfQueueType(queueType));
+                    magic_enum::enum_name(queueType));
 
                 std::this_thread::yield();
             }
@@ -111,4 +95,4 @@ namespace gfx::vulkan
         bool                   is_physical_device_amd;
         vk::UniqueDevice       device;
     };
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

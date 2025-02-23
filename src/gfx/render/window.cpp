@@ -114,7 +114,7 @@ namespace gfx::render
                 std::memory_order_release);
         }
 
-        log::info("Initalized window");
+        log::trace("Initalized window");
     }
 
     Window::~Window()

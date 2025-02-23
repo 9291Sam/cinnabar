@@ -9,7 +9,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     Device::Device(vk::Instance instance, vk::SurfaceKHR surface) // NOLINT
     {
@@ -65,7 +65,7 @@ namespace gfx::vulkan
                 const vk::Bool32 isSurfaceSupported =
                     this->physical_device.getSurfaceSupportKHR(i, surface);
 
-                assert::fatal(
+                assert::critical(
                     flags & vk::QueueFlagBits::eCompute && flags & vk::QueueFlagBits::eTransfer
                         && static_cast<bool>(isSurfaceSupported),
                     "Tried to instantiate a graphics queue with flags {}, {}",
@@ -79,7 +79,7 @@ namespace gfx::vulkan
             {
                 asyncComputeFamily = i;
 
-                assert::fatal(
+                assert::critical(
                     static_cast<bool>(flags & vk::QueueFlagBits::eTransfer),
                     "Tried to instantiate a compute queue with flags {}",
                     vk::to_string(flags));
@@ -141,7 +141,7 @@ namespace gfx::vulkan
         }
         else
         {
-            util::panic("No graphics queue available!");
+            panic("No graphics queue available!");
         }
 
         if (asyncComputeFamily.has_value())
@@ -226,7 +226,7 @@ namespace gfx::vulkan
         this->device = this->physical_device.createDeviceUnique(deviceCreateInfo);
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance, *this->device);
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             this->device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -245,7 +245,7 @@ namespace gfx::vulkan
         {
             vk::Queue q = this->device->getQueue(*graphicsFamily, idx);
 
-            if constexpr (util::isDebugBuild())
+            if constexpr (CINNABAR_DEBUG_BUILD)
             {
                 std::string name = std::format("Graphics Queue #{}", idx);
 
@@ -265,7 +265,7 @@ namespace gfx::vulkan
         {
             vk::Queue q = this->device->getQueue(*asyncComputeFamily, idx);
 
-            if constexpr (util::isDebugBuild())
+            if constexpr (CINNABAR_DEBUG_BUILD)
             {
                 std::string name = std::format("Async Compute Queue #{}", idx);
 
@@ -285,7 +285,7 @@ namespace gfx::vulkan
         {
             vk::Queue q = this->device->getQueue(*asyncTransferFamily, idx);
 
-            if constexpr (util::isDebugBuild())
+            if constexpr (CINNABAR_DEBUG_BUILD)
             {
                 std::string name = std::format("Async Transfer Queue #{}", idx);
 
@@ -312,12 +312,12 @@ namespace gfx::vulkan
 
     std::optional<u32> Device::getFamilyOfQueueType(QueueType t) const noexcept
     {
-        return this->queue_family_indexes.at(static_cast<std::size_t>(util::toUnderlying(t)));
+        return this->queue_family_indexes.at(static_cast<std::size_t>(std::to_underlying(t)));
     }
 
     u32 Device::getNumberOfQueues(QueueType t) const noexcept
     {
-        return this->queue_family_numbers.at(static_cast<std::size_t>(util::toUnderlying(t)));
+        return this->queue_family_numbers.at(static_cast<std::size_t>(std::to_underlying(t)));
     }
 
     bool Device::isIntegrated() const noexcept
@@ -339,4 +339,4 @@ namespace gfx::vulkan
     {
         return *this->device;
     }
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

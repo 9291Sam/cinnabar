@@ -1,7 +1,12 @@
+#include "gfx/render/vulkan/device.hpp"
+#include "gfx/render/vulkan/instance.hpp"
 #include "gfx/render/window.hpp"
 #include "util/logger.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
+#include <vuk/Config.hpp>
+#include <vuk/runtime/vk/VkRuntime.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 int main()
 {
@@ -9,7 +14,18 @@ int main()
 
     CPPTRACE_TRYZ
     {
-        gfx::render::Window w {{}, {.width = 1920, .height = 1080}, "Cinnabar"};
+        log::info(
+            "Cinnabar v{}.{}.{}.{}{}",
+            CINNABAR_VERSION_MAJOR,
+            CINNABAR_VERSION_MINOR,
+            CINNABAR_VERSION_PATCH,
+            CINNABAR_VERSION_TWEAK,
+            CINNABAR_DEBUG_BUILD ? " Debug Build" : "");
+
+        gfx::render::Window           w {{}, {.width = 1920, .height = 1080}, "Cinnabar"};
+        gfx::render::vulkan::Instance instance {};
+        vk::UniqueSurfaceKHR          surface {w.createSurface(*instance)};
+        gfx::render::vulkan::Device   device {*instance, *surface};
 
         int iters = 0;
 
