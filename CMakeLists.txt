@@ -13,20 +13,24 @@ CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
 CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
 CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
+CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
+CPMAddPackage("gh:9291Sam/vuk#8434e365897207840686761f1fd62a24601da8c9")
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
 add_executable(cinnabar
-    src/gfx/render/vulkan/allocator.cpp
-    src/gfx/render/vulkan/buffer.cpp
-    src/gfx/render/vulkan/device.cpp
-    src/gfx/render/vulkan/frame_manager.cpp
-    src/gfx/render/vulkan/image.cpp
+    # src/gfx/render/vulkan/allocator.cpp
+    # src/gfx/render/vulkan/buffer.cpp
+    # src/gfx/render/vulkan/device.cpp
+    # src/gfx/render/vulkan/frame_manager.cpp
+    # src/gfx/render/vulkan/image.cpp
     src/gfx/render/vulkan/instance.cpp
-    src/gfx/render/vulkan/swapchain.cpp
+    # src/gfx/render/vulkan/swapchain.cpp
 
-    src/gfx/render/renderer.cpp
+    # src/gfx/render/renderer.cpp
     src/gfx/render/window.cpp
+
+    src/util/logger.cpp
 
     src/main.cpp
 )
@@ -52,6 +56,8 @@ target_link_libraries(cinnabar
     glfw
     glm
     Vulkan::shaderc_combined
+    magic_enum::magic_enum
+    vuk
 )
 
 

@@ -1,6 +1,7 @@
 #include "window.hpp"
 #include "GLFW/glfw3.h"
 #include "util.hpp"
+#include "util/logger.hpp"
 #include "vulkan/vulkan_structs.hpp"
 #include <atomic>
 // #include <backends/imgui_impl_glfw.h>
@@ -8,6 +9,7 @@
 #include <cmath>
 #include <glm/fwd.hpp>
 // #include <imgui.h>
+#include <magic_enum/magic_enum.hpp>
 #include <thread>
 #include <utility>
 
@@ -69,7 +71,11 @@ namespace gfx::render
                 const Action a = static_cast<Action>(i);
                 // assert given keybinds are valid
 
-                assert::critical(keyInformationMap.contains(a), "Action {} was not populated", i);
+                assert::warn(
+                    keyInformationMap.contains(a),
+                    "Action {} #{} was not populated",
+                    magic_enum::enum_name(a),
+                    i);
             }
 
             for (const auto& [action, information] : keyInformationMap)

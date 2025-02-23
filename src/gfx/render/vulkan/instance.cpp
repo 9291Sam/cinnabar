@@ -1,5 +1,6 @@
 #include "instance.hpp"
 #include "gfx/render/window.hpp"
+#include "util.hpp"
 #include <vulkan/vulkan_hpp_macros.hpp>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
@@ -151,11 +152,12 @@ namespace gfx::render::vulkan
 
         vk::defaultDispatchLoaderDynamic.init(*this->instance);
 
-        if constexpr (CINNABAR_DEBUG_BUILD)
+#if CINNABAR_DEBUG_BUILD
         {
             this->debug_messenger =
                 this->instance->createDebugUtilsMessengerEXTUnique(debugMessengerCreateInfo);
         }
+#endif // CINNABAR_DEBUG_BUILD
 
         log::trace("Created instance");
     }

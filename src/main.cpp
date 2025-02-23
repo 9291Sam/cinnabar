@@ -1,43 +1,50 @@
 #include "gfx/render/window.hpp"
-#include "util.hpp"
-#include <GLFW/glfw3.h>
+#include "util/logger.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
-#include <fmt/chrono.h>
-#include <shaderc/env.h>
-#include <shaderc/shaderc.h>
-#include <shaderc/shaderc.hpp>
-#include <shaderc/status.h>
-#include <span>
-#include <spdlog/async.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 
 int main()
 {
-    spdlog::init_thread_pool(65536, 1);
-
-    std::vector<spdlog::sink_ptr> sinks {
-        std::make_shared<spdlog::sinks::stdout_color_sink_mt>(),
-        std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-            fmt::format(
-                "cinnabar_log {:%b %m-%d-%G %H-%M-%S} ", fmt::localtime(std::time(nullptr))),
-            true),
-    };
-
-    spdlog::set_default_logger(std::make_shared<spdlog::async_logger>(
-        "File and Stdout Logger",
-        std::make_move_iterator(sinks.begin()),
-        std::make_move_iterator(sinks.end()),
-        spdlog::thread_pool(),
-        spdlog::async_overflow_policy::block));
-
-    spdlog::set_pattern("[%b %m/%d/%Y %H:%M:%S.%f] %^[%l @ %t]%$ [%@] %v");
-    spdlog::set_level(spdlog::level::trace);
+    util::GlobalLoggerContext loggerContext {};
 
     CPPTRACE_TRYZ
     {
+        gfx::render::Window w {{}, {.width = 1920, .height = 1080}, "Cinnabar"};
+
+        int iters = 0;
+
+        while (!w.shouldClose())
+        {
+            log::info("FPS: {}", 1.0f / w.getDeltaTimeSeconds());
+
+            if (iters++ > 8)
+            {
+                break;
+            }
+
+            w.endFrame();
+        }
+    }
+    CPPTRACE_CATCHZ(const std::exception& e)
+    {
+        log::critical(
+            "Cinnabar has crashed! | {} {}\n{}",
+            e.what(),
+            typeid(e).name(),
+            cpptrace::from_current_exception().to_string(true));
+    }
+    CPPTRACE_CATCH_ALT(...)
+    {
+        log::critical(
+            "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
+            cpptrace::from_current_exception().to_string(true));
+    }
+
+    log::info("Cinnabar has shutdown successfully!");
+}
+
+/*
+
         shaderc::CompileOptions options {};
         options.SetSourceLanguage(shaderc_source_language_glsl);
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
@@ -108,29 +115,4 @@ void main() {
             log::info("{}", result);
         }
 
-        while (!window.shouldClose())
-        {
-            log::info("cinnabar!");
-
-            window.endFrame();
-        }
-    }
-    CPPTRACE_CATCHZ(const std::exception& e)
-    {
-        log::critical(
-            "Cinnabar has crashed! | {} {}\n{}",
-            e.what(),
-            typeid(e).name(),
-            cpptrace::from_current_exception().to_string(true));
-    }
-    CPPTRACE_CATCH_ALT(...)
-    {
-        log::critical(
-            "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
-            cpptrace::from_current_exception().to_string(true));
-    }
-
-    log::info("Cinnabar has shutdown successfully!");
-
-    spdlog::shutdown();
-}
+        */
