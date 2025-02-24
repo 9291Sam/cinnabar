@@ -57,7 +57,7 @@ namespace gfx::render
 
 // move the window to the corner so I can see my debug logs
 #ifdef _WIN32
-            if (util::isDebugBuild())
+            if (CINNABAR_DEBUG_BUILD)
             {
                 glfwSetWindowPos(this->window, 100, 100);
             }

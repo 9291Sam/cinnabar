@@ -15,7 +15,7 @@ namespace gfx::render::vulkan
         assert::critical(
             this->loader.success(), "Failed to load Vulkan, is it supported on your system?");
 
-        vk::defaultDispatchLoaderDynamic.init(this->loader);
+        vk::detail::defaultDispatchLoaderDynamic.init(this->loader);
 
         const vk::ApplicationInfo applicationInfo {
             .sType {vk::StructureType::eApplicationInfo},
@@ -151,7 +151,7 @@ namespace gfx::render::vulkan
 
         this->instance = vk::createInstanceUnique(instanceCreateInfo);
 
-        vk::defaultDispatchLoaderDynamic.init(*this->instance);
+        vk::detail::defaultDispatchLoaderDynamic.init(*this->instance);
 
 #if CINNABAR_DEBUG_BUILD
         {

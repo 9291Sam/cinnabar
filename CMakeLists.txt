@@ -14,7 +14,7 @@ CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
 CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
-CPMAddPackage("gh:9291Sam/vuk#8434e365897207840686761f1fd62a24601da8c9")
+CPMAddPackage("gh:9291Sam/vuk#c62e2605c1505cf4473340a3772d508deffb5896")
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
