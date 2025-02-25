@@ -1,11 +1,9 @@
 #pragma once
 
-#include "buffer.hpp"
 #include "device.hpp"
 #include <chrono>
 #include <cstddef>
 #include <functional>
-#include <util/misc.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -35,8 +33,7 @@ namespace gfx::vulkan
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
             std::optional<vk::Fence> previousFrameFence,
             // u32 is the swapchain image's index
-            std::function<void(vk::CommandBuffer, u32)>,
-            const BufferStager&);
+            std::function<void(vk::CommandBuffer, u32)>, );
 
         [[nodiscard]] std::shared_ptr<vk::UniqueFence> getFrameInFlightFence() const noexcept;
 

@@ -15,6 +15,7 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:9291Sam/vuk#c62e2605c1505cf4473340a3772d508deffb5896")
+CPMAddPackage("gh:charles-lunarg/vk-bootstrap#v1.4.307")
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
@@ -58,6 +59,7 @@ target_link_libraries(cinnabar
     Vulkan::shaderc_combined
     magic_enum::magic_enum
     vuk
+    vk-bootstrap
 )
 
 

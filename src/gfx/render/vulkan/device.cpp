@@ -184,30 +184,50 @@ namespace gfx::render::vulkan
 
         std::array requiredExtensions {
             vk::KHRDynamicRenderingExtensionName,
+            vk::KHRSynchronization2ExtensionName,
             vk::KHRSwapchainExtensionName,
+            vk::KHRPushDescriptorExtensionName,
 #ifdef __APPLE__
             "VK_KHR_portability_subset",
 #endif // __APPLE__,
         };
 
-        vk::PhysicalDeviceFeatures features {};
-        features.shaderInt16              = vk::True;
-        features.multiDrawIndirect        = vk::True;
-        features.fragmentStoresAndAtomics = vk::True;
-
         vk::PhysicalDeviceVulkan12Features features12 {};
-        features12.sType                  = vk::StructureType::ePhysicalDeviceVulkan12Features;
-        features12.pNext                  = nullptr;
-        features12.runtimeDescriptorArray = vk::True;
+        features12.sType             = vk::StructureType::ePhysicalDeviceVulkan12Features;
+        features12.pNext             = nullptr;
+        features12.timelineSemaphore = vk::True;
+        features12.descriptorBindingPartiallyBound           = vk::True;
+        features12.descriptorBindingUpdateUnusedWhilePending = vk::True;
+        features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
+        features12.runtimeDescriptorArray                    = vk::True;
+        features12.descriptorBindingVariableDescriptorCount  = vk::True;
+        features12.hostQueryReset                            = vk::True;
+        features12.bufferDeviceAddress                       = vk::True;
+        features12.shaderOutputLayer                         = vk::True;
+        features12.runtimeDescriptorArray                    = vk::True;
 
         vk::PhysicalDeviceVulkan11Features features11 {};
         features11.sType                    = vk::StructureType::ePhysicalDeviceVulkan11Features;
         features11.pNext                    = &features12;
         features11.storageBuffer16BitAccess = vk::True;
+        features11.shaderDrawParameters     = vk::True;
+
+        vk::PhysicalDeviceFeatures2 features102 {};
+        features102.sType                             = vk::StructureType::ePhysicalDeviceFeatures2;
+        features102.pNext                             = &features11;
+        features102.features.shaderInt64              = vk::True;
+        features102.features.shaderInt16              = vk::True;
+        features102.features.multiDrawIndirect        = vk::True;
+        features102.features.fragmentStoresAndAtomics = vk::True;
+
+        vk::PhysicalDeviceSynchronization2Features featuresSync2 {};
+        featuresSync2.sType            = vk::StructureType::ePhysicalDeviceSynchronization2Features;
+        featuresSync2.pNext            = &features102;
+        featuresSync2.synchronization2 = vk::True;
 
         const vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures {
             .sType {vk::StructureType::ePhysicalDeviceDynamicRenderingFeatures},
-            .pNext {&features11},
+            .pNext {&featuresSync2},
             .dynamicRendering {vk::True}};
 
         const vk::DeviceCreateInfo deviceCreateInfo {
@@ -220,8 +240,13 @@ namespace gfx::render::vulkan
             .ppEnabledLayerNames {nullptr},
             .enabledExtensionCount {static_cast<u32>(requiredExtensions.size())},
             .ppEnabledExtensionNames {requiredExtensions.data()},
-            .pEnabledFeatures {&features},
+            .pEnabledFeatures {nullptr},
         };
+
+        for (const char* e : requiredExtensions)
+        {
+            log::trace("Requesting device extension {}", e);
+        }
 
         this->device = this->physical_device.createDeviceUnique(deviceCreateInfo);
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance, *this->device);

@@ -1,17 +1,15 @@
 #include "swapchain.hpp"
 #include "device.hpp"
-#include "frame_manager.hpp"
 #include "gfx/render/renderer.hpp"
-#include "gfx/renderer.hpp"
 #include "util.hpp"
-#include "util/log.hpp"
+#include "util/logger.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     Swapchain::Swapchain(const Device& device, vk::SurfaceKHR surface, vk::Extent2D extent_)
         : extent {extent_}
@@ -19,12 +17,12 @@ namespace gfx::vulkan
         const std::vector<vk::SurfaceFormatKHR> availableSurfaceFormats =
             device.getPhysicalDevice().getSurfaceFormatsKHR(surface);
 
-        assert::fatal(
+        assert::critical(
             std::ranges::find(availableSurfaceFormats, ::gfx::Renderer::ColorFormat)
                 != availableSurfaceFormats.cend(),
             "Required surface format {} {} is not supported!",
-            vk::to_string(::gfx::render::Renderer::ColorFormat.format),
-            vk::to_string(::gfx::render::Renderer::ColorFormat.colorSpace));
+            vk::to_string(Renderer::ColorFormat.format),
+            vk::to_string(Renderer::ColorFormat.colorSpace));
 
         const std::array desiredPresentModes {
             vk::PresentModeKHR::eMailbox,
@@ -82,7 +80,7 @@ namespace gfx::vulkan
         this->swapchain = device->createSwapchainKHRUnique(swapchainCreateInfo);
         this->images    = device->getSwapchainImagesKHR(*this->swapchain);
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -123,7 +121,7 @@ namespace gfx::vulkan
             vk::UniqueImageView imageView =
                 device->createImageViewUnique(swapchainImageViewCreateInfo);
 
-            if constexpr (util::isDebugBuild())
+            if constexpr (CINNABAR_DEBUG_BUILD)
             {
                 std::string imageName = std::format("Swapchain Image #{}", idx);
                 std::string viewName  = std::format("View #{}", idx);
@@ -174,4 +172,4 @@ namespace gfx::vulkan
         return *this->swapchain;
     }
 
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

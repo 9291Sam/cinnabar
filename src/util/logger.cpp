@@ -1,4 +1,7 @@
 #include "logger.hpp"
+#include "util.hpp"
+#include "util/threads.hpp"
+#include <atomic>
 #include <fmt/chrono.h>
 #include <spdlog/async.h>
 #include <spdlog/pattern_formatter.h>
@@ -8,6 +11,45 @@
 
 namespace util
 {
+    namespace
+    {
+        class ThreadFlagFormatter : public spdlog::custom_flag_formatter
+        {
+        public:
+            ThreadFlagFormatter()
+                : next_thread_id {std::make_shared<std::atomic<u32>>(0)}
+            {}
+
+            void format(
+                const spdlog::details::log_msg& msg,
+                const std::tm&,
+                spdlog::memory_buf_t& dest) override
+            {
+                thread_local u32 thisThreadId = static_cast<u32>(-1);
+
+                if (thisThreadId == static_cast<u32>(-1))
+                {
+                    thisThreadId = this->next_thread_id->fetch_add(1, std::memory_order_relaxed);
+                }
+
+                char integerFormatDigits[std::numeric_limits<u32>::digits10 + 3];
+
+                const char* finishIter =
+                    std::format_to(&integerFormatDigits[0], "{}", thisThreadId);
+
+                dest.append(&integerFormatDigits[0], finishIter);
+            }
+
+            std::unique_ptr<custom_flag_formatter> clone() const override
+            {
+                return spdlog::details::make_unique<ThreadFlagFormatter>(*this);
+            }
+
+        private:
+            std::shared_ptr<std::atomic<u32>> next_thread_id;
+        };
+
+    } // namespace
     GlobalLoggerContext::GlobalLoggerContext()
     {
         spdlog::init_thread_pool(65536, 1);
@@ -60,8 +102,9 @@ namespace util
         };
 
         auto sourceLocationFormatter = std::make_unique<spdlog::pattern_formatter>();
-        sourceLocationFormatter->add_flag<SourceLocationFormatter>('@').set_pattern(
-            "[%b %m/%d/%Y %H:%M:%S.%f] %^[%l @ %t]%$ [%@] %v");
+        sourceLocationFormatter->add_flag<SourceLocationFormatter>('@');
+        sourceLocationFormatter->add_flag<ThreadFlagFormatter>('t');
+        sourceLocationFormatter->set_pattern("[%b %m/%d/%Y %H:%M:%S.%f] %^[%l @ %t]%$ [%@] %v");
 
         spdlog::set_formatter(std::move(sourceLocationFormatter));
 

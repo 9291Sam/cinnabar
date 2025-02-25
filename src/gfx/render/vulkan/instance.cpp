@@ -92,13 +92,13 @@ namespace gfx::render::vulkan
             log::trace("Requesting instance extension {}", requestedExtension);
         }
 
-        static auto debugMessengerCallback =
-            [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-               VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
-               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-               [[maybe_unused]] void*                      pUserData) -> vk::Bool32
+        static vk::PFN_DebugUtilsMessengerCallbackEXT debugMessengerCallback =
+            +[](vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                vk::DebugUtilsMessageTypeFlagsEXT /*messageType*/,
+                const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                [[maybe_unused]] void*                        pUserData) -> vk::Bool32
         {
-            switch (static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity))
+            switch (messageSeverity)
             {
             case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
                 log::trace("{}", pCallbackData->pMessage);
