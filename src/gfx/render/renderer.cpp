@@ -1,20 +1,19 @@
 #include "renderer.hpp"
-#include "gfx/vulkan/frame_manager.hpp"
-#include "gfx/vulkan/swapchain.hpp"
-#include "util/atomic.hpp"
 #include "util/threads.hpp"
 #include "vulkan/allocator.hpp"
 #include "vulkan/buffer.hpp"
 #include "vulkan/device.hpp"
 #include "vulkan/frame_manager.hpp"
 #include "vulkan/instance.hpp"
+#include "vulkan/swapchain.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <atomic>
+#include <map>
 #include <memory>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx
+namespace gfx::render
 {
 
     Renderer::Renderer()
@@ -26,7 +25,7 @@ namespace gfx
 #endif
 
         this->window = std::make_unique<Window>(
-            std::map<gfx::Window::Action, gfx::Window::ActionInformation> {
+            std::map<Window::Action, Window::ActionInformation> {
                 {Window::Action::PlayerMoveForward,
                  Window::ActionInformation {
                      .key {GLFW_KEY_W}, .method {Window::InteractionMethod::EveryFrame}}},
@@ -137,7 +136,8 @@ namespace gfx
 
         this->window->endFrame();
 
-        util::atomicAbaAdd(this->time_alive, this->window->getDeltaTimeSeconds());
+        this->time_alive += this->window->getDeltaTimeSeconds();
+
         this->frame_number.fetch_add(1);
 
         return resizeOcurred;
@@ -197,4 +197,4 @@ namespace gfx
     {
         return this->time_alive.load(std::memory_order_seq_cst);
     }
-} // namespace gfx
+} // namespace gfx::render

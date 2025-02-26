@@ -1,6 +1,5 @@
 #pragma once
 
-#include "util/logger.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -20,21 +19,31 @@ using f64   = double;         // NOLINT
 using b8    = u8;             // NOLINT
 using b32   = u32;            // NOLINT
 
-template<typename T>
-constexpr std::string_view getNameOfType()
+namespace util
 {
+    template<typename T>
+    constexpr std::string_view getNameOfType()
+    {
 #ifdef __clang__
-    std::string_view name = __PRETTY_FUNCTION__;
-    name.remove_prefix(name.find('=') + 2);
-    name.remove_suffix(1);
+        std::string_view name = __PRETTY_FUNCTION__;
+        name.remove_prefix(name.find('=') + 2);
+        name.remove_suffix(1);
 #elif defined(__GNUC__)
-    std::string_view name = __PRETTY_FUNCTION__;
-    name.remove_prefix(name.find('=') + 2);
-    name.remove_suffix(1);
+        std::string_view name = __PRETTY_FUNCTION__;
+        name.remove_prefix(name.find('=') + 2);
+        name.remove_suffix(1);
 #elif defined(_MSC_VER)
-    std::string_view name = __FUNCSIG__;
-    name.remove_prefix(name.find('<') + 1);
-    name.remove_suffix(7);
+        std::string_view name = __FUNCSIG__;
+        name.remove_prefix(name.find('<') + 1);
+        name.remove_suffix(7);
 #endif
-    return name;
-}
+        return name;
+    }
+
+    constexpr inline void hashCombine(std::size_t& seed_, std::size_t hash_) noexcept
+    {
+        hash_ += 0x9e3779b9 + (seed_ << 6) + (seed_ >> 2);
+        seed_ ^= hash_;
+    }
+
+} // namespace util

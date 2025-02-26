@@ -1,8 +1,8 @@
 #pragma once
 
-#include "util.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
+#include "util/util.hpp"
 #include <magic_enum/magic_enum.hpp>
 #include <thread>
 #include <utility>

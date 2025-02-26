@@ -1,8 +1,8 @@
 #include "frame_manager.hpp"
 #include "device.hpp"
-#include "gfx/vulkan/buffer.hpp"
-#include "gfx/vulkan/frame_manager.hpp"
-#include "util/log.hpp"
+#include "gfx/render/vulkan/buffer.hpp"
+#include "gfx/render/vulkan/frame_manager.hpp"
+#include "util/util.hpp"
 #include <expected>
 #include <glm/gtc/type_ptr.hpp>
 #include <optional>
@@ -12,7 +12,7 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
@@ -57,7 +57,7 @@ namespace gfx::vulkan
         this->frame_in_flight = std::make_shared<vk::UniqueFence>(
             this->device->getDevice().createFenceUnique(fenceCreateInfo));
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -116,7 +116,7 @@ namespace gfx::vulkan
         case vk::Result::eErrorOutOfDateKHR:
             return std::unexpected(Frame::ResizeNeeded {});
         default:
-            util::panic("acquireNextImage returned {}", vk::to_string(acquireImageResult));
+            panic("acquireNextImage returned {}", vk::to_string(acquireImageResult));
         }
 
         bool shouldResize = false;
@@ -199,7 +199,7 @@ namespace gfx::vulkan
                 };
 
                 const vk::Result presentResult =
-                    vk::Result {vk::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
+                    vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
                         queue,
                         // NOLINTNEXTLINE
                         reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
@@ -214,7 +214,7 @@ namespace gfx::vulkan
                     shouldResize = true;
                     break;
                 default:
-                    util::panic("acquireNextImage returned {}", vk::to_string(presentResult));
+                    panic("acquireNextImage returned {}", vk::to_string(presentResult));
                 }
             });
 
@@ -268,4 +268,4 @@ namespace gfx::vulkan
 
         return result;
     }
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

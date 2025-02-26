@@ -1,9 +1,10 @@
 #include "image.hpp"
 #include "allocator.hpp"
+#include "util/logger.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     Image2D::Image2D( // NOLINT: this->memory is initalized via vmaCreateImage
         const Allocator*        allocator_,
@@ -62,16 +63,16 @@ namespace gfx::vulkan
             &this->memory,
             nullptr)};
 
-        assert::fatal(
+        assert::critical(
             result == vk::Result::eSuccess,
             "Failed to allocate image memory {}",
             vk::to_string(result));
 
-        assert::fatal(outputImage != nullptr, "Returned image was nullptr!");
+        assert::critical(outputImage != nullptr, "Returned image was nullptr!");
 
         this->image = vk::Image {outputImage};
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -101,7 +102,7 @@ namespace gfx::vulkan
 
         this->view = device.createImageViewUnique(imageViewCreateInfo);
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             std::string viewName = std::format("{} View", name);
 
@@ -179,4 +180,4 @@ namespace gfx::vulkan
         }
     }
 
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

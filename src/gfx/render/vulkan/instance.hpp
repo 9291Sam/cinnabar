@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.hpp"
+#include "util/util.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_format_traits.hpp>

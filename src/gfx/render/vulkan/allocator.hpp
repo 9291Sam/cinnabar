@@ -1,8 +1,10 @@
 #pragma once
 
-#include "util.hpp"
+#include "util/threads.hpp"
+#include "util/util.hpp"
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -11,7 +13,7 @@
 
 VK_DEFINE_HANDLE(VmaAllocator)
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
 
     struct CacheableDescriptorSetLayoutCreateInfo
@@ -71,13 +73,13 @@ namespace gfx::vulkan
 
         bool operator== (const CacheableComputePipelineCreateInfo&) const = default;
     };
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan
 
 template<>
-struct std::hash<gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo>
+struct std::hash<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
 {
     std::size_t
-    operator() (const gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo& i) const noexcept
+    operator() (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i) const noexcept
     {
         std::size_t result = 1394897243;
 
@@ -93,9 +95,10 @@ struct std::hash<gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo>
 };
 
 template<>
-struct std::hash<gfx::vulkan::CacheablePipelineLayoutCreateInfo>
+struct std::hash<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
 {
-    std::size_t operator() (const gfx::vulkan::CacheablePipelineLayoutCreateInfo& i) const noexcept
+    std::size_t
+    operator() (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -114,10 +117,10 @@ struct std::hash<gfx::vulkan::CacheablePipelineLayoutCreateInfo>
 };
 
 template<>
-struct std::hash<gfx::vulkan::CacheablePipelineShaderStageCreateInfo>
+struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
 {
     std::size_t
-    operator() (const gfx::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
+    operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -132,17 +135,18 @@ struct std::hash<gfx::vulkan::CacheablePipelineShaderStageCreateInfo>
 };
 
 template<>
-struct std::hash<gfx::vulkan::CacheableGraphicsPipelineCreateInfo>
+struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
 {
     std::size_t
-    operator() (const gfx::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
+    operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
-        for (const gfx::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
+        for (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
         {
             util::hashCombine(
-                result, std::hash<gfx::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
+                result,
+                std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
         }
 
         for (const vk::VertexInputAttributeDescription& d : i.vertex_attributes)
@@ -175,9 +179,10 @@ struct std::hash<gfx::vulkan::CacheableGraphicsPipelineCreateInfo>
 };
 
 template<>
-struct std::hash<gfx::vulkan::CacheableComputePipelineCreateInfo>
+struct std::hash<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
 {
-    std::size_t operator() (const gfx::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
+    std::size_t
+    operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -193,7 +198,7 @@ struct std::hash<gfx::vulkan::CacheableComputePipelineCreateInfo>
     }
 };
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     class Instance;
     class Device;
@@ -272,4 +277,4 @@ namespace gfx::vulkan
             shader_module_cache;
     };
 
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

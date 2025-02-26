@@ -1,5 +1,5 @@
 #include "device.hpp"
-#include "util.hpp"
+#include "util/util.hpp"
 #include <algorithm>
 #include <optional>
 #include <vulkan/vulkan.hpp>

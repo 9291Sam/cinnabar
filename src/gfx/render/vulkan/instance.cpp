@@ -1,10 +1,19 @@
 #include "instance.hpp"
 #include "gfx/render/window.hpp"
-#include "util.hpp"
+#include "util/logger.hpp"
+#include "util/util.hpp"
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hpp_macros.hpp>
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
+
+#define VMA_IMPLEMENTATION           1
+#define VMA_STATIC_VULKAN_FUNCTIONS  0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+#include <vk_mem_alloc.h>
+#undef VMA_IMPLEMENTATION
+#undef VMA_STATIC_VULKAN_FUNCTIONS
+#undef VMA_DYNAMIC_VULKAN_FUNCTIONS
 
 namespace gfx::render::vulkan
 {
@@ -161,6 +170,11 @@ namespace gfx::render::vulkan
 #endif // CINNABAR_DEBUG_BUILD
 
         log::trace("Created instance");
+    }
+
+    u32 Instance::getVulkanVersion() const noexcept
+    {
+        return this->vulkan_api_version;
     }
 
     vk::Instance Instance::operator* () const noexcept

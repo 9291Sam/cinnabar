@@ -1,6 +1,6 @@
 #include "logger.hpp"
-#include "util.hpp"
 #include "util/threads.hpp"
+#include "util/util.hpp"
 #include <atomic>
 #include <fmt/chrono.h>
 #include <spdlog/async.h>
@@ -20,10 +20,8 @@ namespace util
                 : next_thread_id {std::make_shared<std::atomic<u32>>(0)}
             {}
 
-            void format(
-                const spdlog::details::log_msg& msg,
-                const std::tm&,
-                spdlog::memory_buf_t& dest) override
+            void format(const spdlog::details::log_msg&, const std::tm&, spdlog::memory_buf_t& dest)
+                override
             {
                 thread_local u32 thisThreadId = static_cast<u32>(-1);
 

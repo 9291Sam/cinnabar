@@ -10,7 +10,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     Allocator::Allocator(const Instance& instance, const Device* device_)
         : device {device_}
@@ -36,7 +36,7 @@ namespace gfx::vulkan
 
         const vk::Result result {::vmaCreateAllocator(&allocatorCreateInfo, &this->allocator)};
 
-        assert::fatal(
+        assert::critical(
             result == vk::Result::eSuccess,
             "Failed to create allocator | {}",
             vk::to_string(result));
@@ -76,7 +76,7 @@ namespace gfx::vulkan
         this->descriptor_pool =
             this->device->getDevice().createDescriptorPoolUnique(descriptorPoolCreateInfo);
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -112,10 +112,10 @@ namespace gfx::vulkan
     {
         this->descriptor_set_layout_cache.lock(
             [](std::unordered_map<
-                gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo,
+                gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo,
                 std::shared_ptr<vk::UniqueDescriptorSetLayout>>& cache)
             {
-                std::vector<gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo>
+                std::vector<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
                     createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
@@ -126,7 +126,7 @@ namespace gfx::vulkan
                     }
                 }
 
-                for (const gfx::vulkan::CacheableDescriptorSetLayoutCreateInfo& i :
+                for (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i :
                      createInfosToRemove)
                 {
                     cache.erase(i);
@@ -135,10 +135,11 @@ namespace gfx::vulkan
 
         this->pipeline_layout_cache.lock(
             [](std::unordered_map<
-                gfx::vulkan::CacheablePipelineLayoutCreateInfo,
+                gfx::render::vulkan::CacheablePipelineLayoutCreateInfo,
                 std::shared_ptr<vk::UniquePipelineLayout>>& cache)
             {
-                std::vector<gfx::vulkan::CacheablePipelineLayoutCreateInfo> createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
+                    createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -148,7 +149,8 @@ namespace gfx::vulkan
                     }
                 }
 
-                for (const gfx::vulkan::CacheablePipelineLayoutCreateInfo& i : createInfosToRemove)
+                for (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i :
+                     createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -177,10 +179,10 @@ namespace gfx::vulkan
 
         this->graphics_pipeline_cache.lock(
             [](std::unordered_map<
-                gfx::vulkan::CacheableGraphicsPipelineCreateInfo,
+                gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo,
                 std::shared_ptr<vk::UniquePipeline>>& cache)
             {
-                std::vector<gfx::vulkan::CacheableGraphicsPipelineCreateInfo>
+                std::vector<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
                     createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
@@ -191,7 +193,7 @@ namespace gfx::vulkan
                     }
                 }
 
-                for (const gfx::vulkan::CacheableGraphicsPipelineCreateInfo& i :
+                for (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i :
                      createInfosToRemove)
                 {
                     cache.erase(i);
@@ -200,10 +202,11 @@ namespace gfx::vulkan
 
         this->compute_pipeline_cache.lock(
             [](std::unordered_map<
-                gfx::vulkan::CacheableComputePipelineCreateInfo,
+                gfx::render::vulkan::CacheableComputePipelineCreateInfo,
                 std::shared_ptr<vk::UniquePipeline>>& cache)
             {
-                std::vector<gfx::vulkan::CacheableComputePipelineCreateInfo> createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
+                    createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -213,7 +216,8 @@ namespace gfx::vulkan
                     }
                 }
 
-                for (const gfx::vulkan::CacheableComputePipelineCreateInfo& i : createInfosToRemove)
+                for (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i :
+                     createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -253,7 +257,7 @@ namespace gfx::vulkan
         vk::DescriptorSet set =
             this->device->getDevice().allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
-        if constexpr (util::isDebugBuild())
+        if constexpr (CINNABAR_DEBUG_BUILD)
         {
             this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
@@ -298,7 +302,7 @@ namespace gfx::vulkan
                         this->device->getDevice().createDescriptorSetLayoutUnique(
                             descriptorSetLayoutCreateInfo);
 
-                    if constexpr (util::isDebugBuild())
+                    if constexpr (CINNABAR_DEBUG_BUILD)
                     {
                         this->device->getDevice().setDebugUtilsObjectNameEXT(
                             vk::DebugUtilsObjectNameInfoEXT {
@@ -355,7 +359,7 @@ namespace gfx::vulkan
                         this->device->getDevice().createPipelineLayoutUnique(
                             pipelineLayoutCreateInfo);
 
-                    if constexpr (util::isDebugBuild())
+                    if constexpr (CINNABAR_DEBUG_BUILD)
                     {
                         this->device->getDevice().setDebugUtilsObjectNameEXT(
                             vk::DebugUtilsObjectNameInfoEXT {
@@ -412,12 +416,12 @@ namespace gfx::vulkan
                     auto [result, pipeline] = this->device->getDevice().createComputePipelineUnique(
                         *this->pipeline_cache, computePipelineCreateInfo);
 
-                    assert::fatal(
+                    assert::critical(
                         result == vk::Result::eSuccess,
                         "Compute Pipeline Construction Failed! | {}",
                         vk::to_string(result));
 
-                    if constexpr (util::isDebugBuild())
+                    if constexpr (CINNABAR_DEBUG_BUILD)
                     {
                         this->device->getDevice().setDebugUtilsObjectNameEXT(
                             vk::DebugUtilsObjectNameInfoEXT {
@@ -479,7 +483,7 @@ namespace gfx::vulkan
                         });
                     }
 
-                    assert::fatal(
+                    assert::critical(
                         !denseStages.empty(), "All pipelines must have at least one shader!");
 
                     const vk::PipelineVertexInputStateCreateInfo
@@ -637,12 +641,12 @@ namespace gfx::vulkan
                         this->device->getDevice().createGraphicsPipelineUnique(
                             *this->pipeline_cache, pipelineCreateInfo);
 
-                    assert::fatal(
+                    assert::critical(
                         result == vk::Result::eSuccess,
                         "Graphics Pipeline Construction Failed! | {}",
                         vk::to_string(result));
 
-                    if constexpr (util::isDebugBuild())
+                    if constexpr (CINNABAR_DEBUG_BUILD)
                     {
                         this->device->getDevice().setDebugUtilsObjectNameEXT(
                             vk::DebugUtilsObjectNameInfoEXT {
@@ -691,7 +695,7 @@ namespace gfx::vulkan
                 }
                 else
                 {
-                    util::assertWarn( // this is also fine NOLINTNEXTLINE
+                    assert::warn( // this is also fine NOLINTNEXTLINE
                         reinterpret_cast<std::uintptr_t>(shaderCode.data()) % 4 == 0,
                         "shaderCode is underaligned!");
 
@@ -713,7 +717,7 @@ namespace gfx::vulkan
                     vk::UniqueShaderModule module =
                         this->device->getDevice().createShaderModuleUnique(shaderModuleCreateInfo);
 
-                    if constexpr (util::isDebugBuild())
+                    if constexpr (CINNABAR_DEBUG_BUILD)
                     {
                         this->device->getDevice().setDebugUtilsObjectNameEXT(
                             vk::DebugUtilsObjectNameInfoEXT {
@@ -745,7 +749,7 @@ namespace gfx::vulkan
             {
                 std::shared_ptr shouldBeLayout = cache.at(pipeline).first.lock();
 
-                assert::fatal(
+                assert::critical(
                     shouldBeLayout != nullptr,
                     "Tried to lookup pipeline layout of expired pipeline");
 
@@ -778,4 +782,4 @@ namespace gfx::vulkan
     {
         return *this->pipeline_cache;
     }
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

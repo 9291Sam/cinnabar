@@ -2,8 +2,9 @@
 
 #include "allocator.hpp"
 #include "device.hpp"
-#include "util.hpp"
-#include <ctti/nameof.hpp>
+#include "util/allocators/range_allocator.hpp"
+#include "util/logger.hpp"
+#include "util/util.hpp"
 #include <source_location>
 #include <type_traits>
 #include <vector>
@@ -15,7 +16,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     class Allocator;
     class Device;
@@ -53,9 +54,9 @@ namespace gfx::vulkan
             , allocation {nullptr}
             , elements {elements_}
         {
-            assert::fatal(!this->name.empty(), "Tried to create buffer with empty name!");
+            assert::critical(!this->name.empty(), "Tried to create buffer with empty name!");
 
-            assert::fatal(
+            assert::critical(
                 !(memoryPropertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent),
                 "Tried to create coherent buffer!");
 
@@ -63,7 +64,7 @@ namespace gfx::vulkan
                 && memoryPropertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal)
             {
                 memoryPropertyFlags &= ~vk::MemoryPropertyFlagBits::eDeviceLocal;
-                util::logWarn(
+                log::warn(
                     "Paving over excessive Device Local {}", vk::to_string(memoryPropertyFlags));
             }
 
@@ -101,7 +102,7 @@ namespace gfx::vulkan
                 &this->allocation,
                 nullptr)};
 
-            assert::fatal(
+            assert::critical(
                 result == vk::Result::eSuccess,
                 "Failed to allocate buffer {} | Size: {}",
                 vk::to_string(vk::Result {result}),
@@ -109,7 +110,7 @@ namespace gfx::vulkan
 
             this->buffer = outputBuffer;
 
-            if constexpr (util::isDebugBuild())
+            if constexpr (CINNABAR_DEBUG_BUILD)
             {
                 this->allocator->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
                     vk::DebugUtilsObjectNameInfoEXT {
@@ -192,7 +193,7 @@ namespace gfx::vulkan
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::vulkan::GpuOnlyBuffer<T> {
+            : gfx::render::vulkan::GpuOnlyBuffer<T> {
                   allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
         {}
         ~WriteOnlyBuffer()
@@ -228,7 +229,7 @@ namespace gfx::vulkan
             std::copy(
                 payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
 
-            const gfx::vulkan::FlushData flush {
+            const gfx::render::vulkan::FlushData flush {
                 .offset_elements {offset},
                 .size_elements {payload.size()},
             };
@@ -242,7 +243,7 @@ namespace gfx::vulkan
 
             std::fill(data.begin(), data.end(), value);
 
-            const gfx::vulkan::FlushData flush {
+            const gfx::render::vulkan::FlushData flush {
                 .offset_elements {0},
                 .size_elements {this->elements},
             };
@@ -306,7 +307,7 @@ namespace gfx::vulkan
                     sizes.data());
             }
 
-            assert::fatal(
+            assert::critical(
                 result == VK_SUCCESS,
                 "Buffer flush failed | {}",
                 vk::to_string(vk::Result {result}));
@@ -334,12 +335,12 @@ namespace gfx::vulkan
                 const VkResult result =
                     ::vmaMapMemory(**this->allocator, this->allocation, &outputMappedMemory);
 
-                assert::fatal(
+                assert::critical(
                     result == VK_SUCCESS,
                     "Failed to map buffer memory {}",
                     vk::to_string(vk::Result {result}));
 
-                assert::fatal(
+                assert::critical(
                     outputMappedMemory != nullptr,
                     "Mapped ptr was nullptr! | {}",
                     vk::to_string(vk::Result {result}));
@@ -365,13 +366,13 @@ namespace gfx::vulkan
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::vulkan::WriteOnlyBuffer<T> {
+            : gfx::render::vulkan::WriteOnlyBuffer<T> {
                   allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
         {
-            util::assertWarn(
+            assert::warn(
                 static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage),
                 "Creating CpuCachedBuffer<{}> without vk::BufferUsageFlagBits::eTransferDst",
-                ctti::ctti_nameof<T>({}).cppstring());
+                util::getNameOfType<T>({}));
 
             this->cpu_buffer.resize(this->elements);
         }
@@ -421,7 +422,7 @@ namespace gfx::vulkan
 
         std::span<T> modify(std::size_t offset, std::size_t size)
         {
-            assert::fatal(size > 0, "dont do this");
+            assert::critical(size > 0, "dont do this");
 
             this->flushes.push_back(
                 util::InclusiveRange {.start {offset}, .end {offset + size - 1}});
@@ -430,7 +431,7 @@ namespace gfx::vulkan
         }
         T& modify(std::size_t offset)
         {
-            assert::fatal(!this->cpu_buffer.empty(), "hmmm");
+            assert::critical(!this->cpu_buffer.empty(), "hmmm");
 
             return this->modify(offset, 1)[0];
         }
@@ -526,9 +527,9 @@ namespace gfx::vulkan
             u32                   size;
         };
 
-        mutable std::atomic<std::size_t>                allocated;
-        const Allocator*                                allocator;
-        mutable gfx::vulkan::WriteOnlyBuffer<std::byte> staging_buffer;
+        mutable std::atomic<std::size_t>                        allocated;
+        const Allocator*                                        allocator;
+        mutable gfx::render::vulkan::WriteOnlyBuffer<std::byte> staging_buffer;
 
         struct OverflowTransfer
         {
@@ -563,4 +564,4 @@ namespace gfx::vulkan
         }
     }
 
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

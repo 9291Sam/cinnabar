@@ -3,9 +3,15 @@ project(cinnabar VERSION 0.0.0.1)
 
     include(CPM.cmake)
 
-    set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
+set(Boost_USE_STATIC_LIBS ON) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME ON) 
+set(BOOST_ENABLE_CMAKE ON)
+set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
 
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
@@ -14,22 +20,25 @@ CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
 CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
-CPMAddPackage("gh:9291Sam/vuk#c62e2605c1505cf4473340a3772d508deffb5896")
-CPMAddPackage("gh:charles-lunarg/vk-bootstrap#v1.4.307")
+CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
+
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
 add_executable(cinnabar
-    # src/gfx/render/vulkan/allocator.cpp
-    # src/gfx/render/vulkan/buffer.cpp
+    src/gfx/render/vulkan/allocator.cpp
+    src/gfx/render/vulkan/buffer.cpp
     src/gfx/render/vulkan/device.cpp
-    # src/gfx/render/vulkan/frame_manager.cpp
-    # src/gfx/render/vulkan/image.cpp
+    src/gfx/render/vulkan/frame_manager.cpp
+    src/gfx/render/vulkan/image.cpp
     src/gfx/render/vulkan/instance.cpp
-    # src/gfx/render/vulkan/swapchain.cpp
+    src/gfx/render/vulkan/swapchain.cpp
 
-    # src/gfx/render/renderer.cpp
+    src/gfx/render/renderer.cpp
     src/gfx/render/window.cpp
+
+    src/util/allocators/index_allocator.cpp
+    src/util/allocators/range_allocator.cpp
 
     src/util/logger.cpp
 
@@ -58,8 +67,13 @@ target_link_libraries(cinnabar
     glm
     Vulkan::shaderc_combined
     magic_enum::magic_enum
-    vuk
-    vk-bootstrap
+    Boost::container
+    Boost::unordered
+    Boost::dynamic_bitset
+    Boost::core
+    Boost::type_traits
+    Boost::sort
+    Boost::pool
 )
 
 

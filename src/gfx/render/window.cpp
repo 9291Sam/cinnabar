@@ -1,7 +1,7 @@
 #include "window.hpp"
 #include "GLFW/glfw3.h"
-#include "util.hpp"
 #include "util/logger.hpp"
+#include "util/util.hpp"
 #include "vulkan/vulkan_structs.hpp"
 #include <atomic>
 // #include <backends/imgui_impl_glfw.h>

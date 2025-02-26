@@ -1,17 +1,15 @@
 #include "buffer.hpp"
 #include "allocator.hpp"
-#include "frame_manager.hpp"
-#include "util.hpp"
-#include "util/log.hpp"
-#include "util/offsetAllocator.hpp"
-#include "util/range_allocator.hpp"
+#include "device.hpp"
+#include "util/allocators/range_allocator.hpp"
+#include "util/util.hpp"
 #include <boost/container/small_vector.hpp>
 #include <limits>
 #include <source_location>
 #include <type_traits>
 #include <vulkan/vulkan_enums.hpp>
 
-namespace gfx::vulkan
+namespace gfx::render::vulkan
 {
     std::atomic<std::size_t> bufferBytesAllocated = 0; // NOLINT
 
@@ -35,13 +33,13 @@ namespace gfx::vulkan
         std::span<const std::byte> dataToWrite,
         std::source_location       location) const
     {
-        assert::fatal<std::size_t>(
+        assert::critical<std::size_t>(
             dataToWrite.size_bytes() < StagingBufferSize / 2,
             "Buffer::enqueueByteTransfer of size {} is too large",
             dataToWrite.size_bytes(),
             location);
 
-        util::assertWarn<std::size_t>(
+        assert::warn<std::size_t>(
             dataToWrite.size_bytes() > 0,
             "BufferStager::enqueueByteTransfer of size {} is too small",
             dataToWrite.size_bytes(),
@@ -137,7 +135,7 @@ namespace gfx::vulkan
         {
             if (transfer.size == 0)
             {
-                util::logWarn("zst transfer!");
+                log::warn("zst transfer!");
 
                 continue;
             }
@@ -156,7 +154,7 @@ namespace gfx::vulkan
         {
             if (bufferCopies.size() > 4096)
             {
-                util::logWarn("Excessive copies on buffer {}", bufferCopies.size());
+                log::warn("Excessive copies on buffer {}", bufferCopies.size());
             }
             commandBuffer.copyBuffer(*this->staging_buffer, outputBuffer, bufferCopies);
         }
@@ -178,7 +176,7 @@ namespace gfx::vulkan
 
             if (!overflows.empty())
             {
-                util::logWarn("{} buffer transfer overflows this frame!", overflows.size());
+                log::warn("{} buffer transfer overflows this frame!", overflows.size());
             }
 
             for (OverflowTransfer& t : overflows)
@@ -193,4 +191,4 @@ namespace gfx::vulkan
         return {this->allocated.load(), StagingBufferSize};
     }
 
-} // namespace gfx::vulkan
+} // namespace gfx::render::vulkan

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glm/vec2.hpp"
-#include "util.hpp"
+#include "util/util.hpp"
 #include <array>
 #include <atomic>
 #include <chrono>

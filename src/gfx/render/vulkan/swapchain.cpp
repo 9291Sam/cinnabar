@@ -1,8 +1,8 @@
 #include "swapchain.hpp"
 #include "device.hpp"
 #include "gfx/render/renderer.hpp"
-#include "util.hpp"
 #include "util/logger.hpp"
+#include "util/util.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -18,7 +18,7 @@ namespace gfx::render::vulkan
             device.getPhysicalDevice().getSurfaceFormatsKHR(surface);
 
         assert::critical(
-            std::ranges::find(availableSurfaceFormats, ::gfx::Renderer::ColorFormat)
+            std::ranges::find(availableSurfaceFormats, Renderer::ColorFormat)
                 != availableSurfaceFormats.cend(),
             "Required surface format {} {} is not supported!",
             vk::to_string(Renderer::ColorFormat.format),
@@ -62,8 +62,8 @@ namespace gfx::render::vulkan
             .flags {},
             .surface {surface},
             .minImageCount {numberOfSwapchainImages},
-            .imageFormat {gfx::Renderer::ColorFormat.format},
-            .imageColorSpace {gfx::Renderer::ColorFormat.colorSpace},
+            .imageFormat {Renderer::ColorFormat.format},
+            .imageColorSpace {Renderer::ColorFormat.colorSpace},
             .imageExtent {this->extent},
             .imageArrayLayers {1},
             .imageUsage {vk::ImageUsageFlagBits::eColorAttachment},
@@ -103,7 +103,7 @@ namespace gfx::render::vulkan
                 .flags {},
                 .image {i},
                 .viewType {vk::ImageViewType::e2D},
-                .format {gfx::Renderer::ColorFormat.format},
+                .format {Renderer::ColorFormat.format},
                 .components {vk::ComponentMapping {
                     .r {vk::ComponentSwizzle::eIdentity},
                     .g {vk::ComponentSwizzle::eIdentity},
@@ -172,4 +172,8 @@ namespace gfx::render::vulkan
         return *this->swapchain;
     }
 
+    vk::Format Swapchain::getFormat() const noexcept
+    {
+        return Renderer::ColorFormat.format;
+    }
 } // namespace gfx::render::vulkan
