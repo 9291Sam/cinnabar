@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan_format_traits.hpp>
-#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan.hpp>
 
 VK_DEFINE_HANDLE(VmaAllocation)
 VK_DEFINE_HANDLE(VmaAllocator)
@@ -34,9 +33,11 @@ namespace gfx::render::vulkan
         Image2D& operator= (const Image2D&) = delete;
         Image2D& operator= (Image2D&&) noexcept;
 
-        [[nodiscard]] vk::Image     operator* () const;
-        [[nodiscard]] vk::Format    getFormat() const;
-        [[nodiscard]] vk::Extent2D  getExtent() const;
+        [[nodiscard]] vk::Image    operator* () const;
+        [[nodiscard]] vk::Format   getFormat() const;
+        [[nodiscard]] vk::Extent2D getExtent() const;
+
+        /// Returns an image view over the entire image in the type it was created with
         [[nodiscard]] vk::ImageView getView() const;
 
     private:

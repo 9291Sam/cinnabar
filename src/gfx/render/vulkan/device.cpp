@@ -13,8 +13,7 @@ namespace gfx::render::vulkan
 {
     Device::Device(vk::Instance instance, vk::SurfaceKHR surface) // NOLINT
     {
-        const std::vector<vk::PhysicalDevice> availablePhysicalDevices =
-            instance.enumeratePhysicalDevices();
+        const std::vector<vk::PhysicalDevice> availablePhysicalDevices = instance.enumeratePhysicalDevices();
 
         const auto getRatingOfDevice = [](vk::PhysicalDevice d) -> std::size_t
         {
@@ -51,8 +50,7 @@ namespace gfx::render::vulkan
         {
             const vk::QueueFlags flags = queueFamilyProperties[i].queueFlags;
 
-            if (flags & vk::QueueFlagBits::eVideoDecodeKHR
-                || flags & vk::QueueFlagBits::eVideoEncodeKHR
+            if (flags & vk::QueueFlagBits::eVideoDecodeKHR || flags & vk::QueueFlagBits::eVideoEncodeKHR
                 || flags & vk::QueueFlagBits::eOpticalFlowNV)
             {
                 continue;
@@ -62,8 +60,7 @@ namespace gfx::render::vulkan
             {
                 graphicsFamily = i;
 
-                const vk::Bool32 isSurfaceSupported =
-                    this->physical_device.getSurfaceSupportKHR(i, surface);
+                const vk::Bool32 isSurfaceSupported = this->physical_device.getSurfaceSupportKHR(i, surface);
 
                 assert::critical(
                     flags & vk::QueueFlagBits::eCompute && flags & vk::QueueFlagBits::eTransfer
@@ -95,8 +92,7 @@ namespace gfx::render::vulkan
             }
         }
 
-        this->queue_family_indexes =
-            std::array {graphicsFamily, asyncComputeFamily, asyncTransferFamily};
+        this->queue_family_indexes = std::array {graphicsFamily, asyncComputeFamily, asyncTransferFamily};
 
         auto getStringOfFamily = [](std::optional<u32> f) -> std::string
         {
@@ -179,8 +175,8 @@ namespace gfx::render::vulkan
             numberOfAsyncComputeQueues,
             numberOfAsyncTransferQueues);
 
-        this->queue_family_numbers = std::array {
-            numberOfGraphicsQueues, numberOfAsyncComputeQueues, numberOfAsyncTransferQueues};
+        this->queue_family_numbers =
+            std::array {numberOfGraphicsQueues, numberOfAsyncComputeQueues, numberOfAsyncTransferQueues};
 
         std::array requiredExtensions {
             vk::KHRDynamicRenderingExtensionName,
@@ -193,9 +189,9 @@ namespace gfx::render::vulkan
         };
 
         vk::PhysicalDeviceVulkan12Features features12 {};
-        features12.sType             = vk::StructureType::ePhysicalDeviceVulkan12Features;
-        features12.pNext             = nullptr;
-        features12.timelineSemaphore = vk::True;
+        features12.sType                                     = vk::StructureType::ePhysicalDeviceVulkan12Features;
+        features12.pNext                                     = nullptr;
+        features12.timelineSemaphore                         = vk::True;
         features12.descriptorBindingPartiallyBound           = vk::True;
         features12.descriptorBindingUpdateUnusedWhilePending = vk::True;
         features12.shaderSampledImageArrayNonUniformIndexing = vk::True;
@@ -326,11 +322,9 @@ namespace gfx::render::vulkan
             asyncTransferQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
         }
 
-        this->queues[static_cast<std::size_t>(QueueType::Graphics)] = std::move(graphicsQueues);
-        this->queues[static_cast<std::size_t>(QueueType::AsyncCompute)] =
-            std::move(asyncComputeQueues);
-        this->queues[static_cast<std::size_t>(QueueType::AsyncTransfer)] =
-            std::move(asyncTransferQueues);
+        this->queues[static_cast<std::size_t>(QueueType::Graphics)]      = std::move(graphicsQueues);
+        this->queues[static_cast<std::size_t>(QueueType::AsyncCompute)]  = std::move(asyncComputeQueues);
+        this->queues[static_cast<std::size_t>(QueueType::AsyncTransfer)] = std::move(asyncTransferQueues);
 
         log::trace("Created device");
     }

@@ -13,6 +13,14 @@ set(Boost_USE_STATIC_RUNTIME ON)
 set(BOOST_ENABLE_CMAKE ON)
 set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
 
+set(SLANG_ENABLE_GFX OFF)
+set(SLANG_ENABLE_SLANGD OFF)
+set(SLANG_ENABLE_SLANGC OFF)
+set(SLANG_ENABLE_SLANGRT OFF)
+set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+set(SLANG_ENABLE_TESTS OFF)
+set(SLANG_ENABLE_EXAMPLES OFF)
+
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
 CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
@@ -21,6 +29,7 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
+CPMAddPackage("gh:shader-slang/slang#v2025.5.3")
 
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
@@ -74,6 +83,7 @@ target_link_libraries(cinnabar
     Boost::type_traits
     Boost::sort
     Boost::pool
+    slang
 )
 
 

@@ -18,8 +18,7 @@ namespace gfx::render::vulkan
             device.getPhysicalDevice().getSurfaceFormatsKHR(surface);
 
         assert::critical(
-            std::ranges::find(availableSurfaceFormats, Renderer::ColorFormat)
-                != availableSurfaceFormats.cend(),
+            std::ranges::find(availableSurfaceFormats, Renderer::ColorFormat) != availableSurfaceFormats.cend(),
             "Required surface format {} {} is not supported!",
             vk::to_string(Renderer::ColorFormat.format),
             vk::to_string(Renderer::ColorFormat.colorSpace));
@@ -37,8 +36,7 @@ namespace gfx::render::vulkan
 
         for (vk::PresentModeKHR desiredPresentMode : desiredPresentModes)
         {
-            if (std::ranges::find(availablePresentModes, desiredPresentMode)
-                != availablePresentModes.cend())
+            if (std::ranges::find(availablePresentModes, desiredPresentMode) != availablePresentModes.cend())
             {
                 selectedPresentMode = desiredPresentMode;
                 break;
@@ -53,8 +51,8 @@ namespace gfx::render::vulkan
 
         const vk::SurfaceCapabilitiesKHR surfaceCapabilities =
             device.getPhysicalDevice().getSurfaceCapabilitiesKHR(surface);
-        const u32 numberOfSwapchainImages = std::min(
-            {std::max({4U, surfaceCapabilities.minImageCount}), surfaceCapabilities.maxImageCount});
+        const u32 numberOfSwapchainImages =
+            std::min({std::max({4U, surfaceCapabilities.minImageCount}), surfaceCapabilities.maxImageCount});
 
         const vk::SwapchainCreateInfoKHR swapchainCreateInfo {
             .sType {vk::StructureType::eSwapchainCreateInfoKHR},
@@ -118,8 +116,7 @@ namespace gfx::render::vulkan
                     .layerCount {1}}},
             };
 
-            vk::UniqueImageView imageView =
-                device->createImageViewUnique(swapchainImageViewCreateInfo);
+            vk::UniqueImageView imageView = device->createImageViewUnique(swapchainImageViewCreateInfo);
 
             if constexpr (CINNABAR_DEBUG_BUILD)
             {
