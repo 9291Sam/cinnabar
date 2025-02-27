@@ -364,4 +364,9 @@ namespace gfx::render::vulkan
     {
         return *this->device;
     }
+
+    const vk::Device* Device::operator->() const noexcept
+    {
+        return &*this->device;
+    }
 } // namespace gfx::render::vulkan

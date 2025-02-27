@@ -36,10 +36,7 @@ namespace gfx::render::vulkan
         [[nodiscard]] bool               isIntegrated() const noexcept;
         [[nodiscard]] vk::Device         getDevice() const noexcept;
         [[nodiscard]] bool               isAmd() const noexcept;
-        [[nodiscard]] const vk::Device*  operator->() const noexcept
-        {
-            return &*this->device;
-        }
+        [[nodiscard]] const vk::Device*  operator->() const noexcept;
 
         void
         acquireQueue(QueueType queueType, std::invocable<vk::Queue> auto accessFunc) const noexcept

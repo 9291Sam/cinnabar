@@ -149,7 +149,7 @@ namespace gfx::render::vulkan
             idx += 1;
         }
 
-        log::trace("Created swapchain");
+        log::trace("Created swapchain with {} images", this->images.size());
     }
 
     std::span<const vk::ImageView> Swapchain::getViews() const noexcept

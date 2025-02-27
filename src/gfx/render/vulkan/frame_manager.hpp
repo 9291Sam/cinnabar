@@ -12,8 +12,8 @@ namespace gfx::render::vulkan
 {
     class Device;
 
-    constexpr std::size_t FramesInFlight = 3;
-    constexpr std::size_t TimeoutNs =
+    static constexpr std::size_t FramesInFlight = 3;
+    static constexpr std::size_t TimeoutNs =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<std::size_t> {5})
             .count();
 

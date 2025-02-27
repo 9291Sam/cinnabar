@@ -7,6 +7,7 @@
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
 
+// NOLINTBEGIN
 #define VMA_IMPLEMENTATION           1
 #define VMA_STATIC_VULKAN_FUNCTIONS  0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
@@ -14,6 +15,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
 #undef VMA_IMPLEMENTATION
 #undef VMA_STATIC_VULKAN_FUNCTIONS
 #undef VMA_DYNAMIC_VULKAN_FUNCTIONS
+// NOLINTEND
 
 namespace gfx::render::vulkan
 {
@@ -24,6 +26,8 @@ namespace gfx::render::vulkan
         assert::critical(
             this->loader.success(), "Failed to load Vulkan, is it supported on your system?");
 
+        // Initialize vulkan hpp's global state from the loader
+        // This lets you access only vkCreateInstance and a few layer functions
         vk::detail::defaultDispatchLoaderDynamic.init(this->loader);
 
         const vk::ApplicationInfo applicationInfo {
@@ -103,9 +107,9 @@ namespace gfx::render::vulkan
 
         static vk::PFN_DebugUtilsMessengerCallbackEXT debugMessengerCallback =
             +[](vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                vk::DebugUtilsMessageTypeFlagsEXT /*messageType*/,
+                vk::DebugUtilsMessageTypeFlagsEXT,
                 const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                [[maybe_unused]] void*                        pUserData) -> vk::Bool32
+                void*) -> vk::Bool32
         {
             switch (messageSeverity)
             {

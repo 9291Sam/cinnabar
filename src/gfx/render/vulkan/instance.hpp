@@ -2,13 +2,13 @@
 
 #include "util/util.hpp"
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_format_traits.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_hpp_macros.hpp>
 
 namespace gfx::render::vulkan
 {
+    /// Wrapper around a vulkan instance and the things required to be able to
+    /// load an instance (loading a dynamic library from the OS)
+    ///
+    /// Also automatically loads in the debug layers on debug builds
     class Instance
     {
     public:
@@ -20,8 +20,8 @@ namespace gfx::render::vulkan
         Instance& operator= (const Instance&) = delete;
         Instance& operator= (Instance&&)      = delete;
 
-        [[nodiscard]] u32 getVulkanVersion() const noexcept;
-
+        /// Lowers to the appropriate symbol that loads a function pointer from a dynamic library
+        /// this is `dlsym` or `GetProcAddress`
         template<class T>
             requires std::is_pointer_v<T> && std::is_function_v<std::remove_pointer_t<T>>
         [[nodiscard]] T getProcAddress(const char* function) const noexcept
@@ -30,6 +30,10 @@ namespace gfx::render::vulkan
         }
 
         vk::Instance operator* () const noexcept;
+
+        /// Returns a version in the format described by
+        /// https://docs.vulkan.org/spec/latest/chapters/extensions.html#VK_MAKE_API_VERSION
+        [[nodiscard]] u32 getVulkanVersion() const noexcept;
 
     private:
         vk::detail::DynamicLoader loader;

@@ -31,9 +31,29 @@ int main()
                           gfx::render::vulkan::Swapchain& swapchain,
                           std::size_t                     frameIndex)
             {
-                vk::RenderingInfo r {};
-                commandBuffer.beginRendering(&r);
-                commandBuffer.endRendering();
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eColorAttachmentWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eColorAttachmentRead},
+                        .oldLayout {vk::ImageLayout::eColorAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::ePresentSrcKHR},
+                        .srcQueueFamilyIndex {0},
+                        .dstQueueFamilyIndex {0},
+                        .image {swapchain.getImages()[swapchainImage]},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eColor},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
             };
 
             renderer.recordOnThread(rec);
