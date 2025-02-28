@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 project(cinnabar VERSION 0.0.0.1)
 
+
+
 include(CPM.cmake)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -13,22 +15,6 @@ set(Boost_USE_STATIC_RUNTIME ON)
 set(BOOST_ENABLE_CMAKE ON)
 set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
 
-set(SLANG_ENABLE_GFX OFF)
-set(SLANG_ENABLE_SLANGD OFF)
-set(SLANG_ENABLE_SLANGC OFF)
-set(SLANG_ENABLE_SLANGRT OFF)
-set(SLANG_ENABLE_SLANG_GLSLANG OFF)
-set(SLANG_ENABLE_TESTS OFF)
-set(SLANG_ENABLE_EXAMPLES OFF)
-set(SLANG_ENABLE_LLVM_FLAVOR DISABLE CACHE BOOL "" FORCE)
-set(SLANG_ENABLE_REPLAYER OFF)
-set(SLANG_ENABLE_DXIL OFF)
-set(SLANG_USE_SYSTEM_VULKAN_HEADERS ON)
-set(SLANG_ENABLE_OPTIX OFF)
-set(SLANG_ENABLE_CUDA OFF)
-set(SLANG_ENABLE_RELEASE_LTO OFF)
-set(SLANG_LIB_TYPE STATIC)
-
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
 CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
@@ -37,7 +23,6 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
-CPMAddPackage("gh:shader-slang/slang#v2025.6.1")
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
@@ -60,6 +45,7 @@ add_executable(cinnabar
 
     src/main.cpp
 )
+
 target_include_directories(cinnabar PRIVATE src)
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MINOR=${PROJECT_VERSION_MINOR})
@@ -81,7 +67,7 @@ target_link_libraries(cinnabar
     VulkanMemoryAllocator
     glfw
     glm
-    Vulkan::Vulkan
+    Vulkan::shaderc_combined
     magic_enum::magic_enum
     Boost::container
     Boost::unordered
@@ -90,11 +76,11 @@ target_link_libraries(cinnabar
     Boost::type_traits
     Boost::sort
     Boost::pool
-    slang
 )
 
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
     target_compile_options(cinnabar PUBLIC
         -Weverything
         -Wno-c++98-compat
@@ -122,16 +108,16 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
     )
 
     if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    # Add debug symbols that lldb can actually read
-    target_compile_options(cinnabar PUBLIC -glldb)
-    target_compile_options(cinnabar PUBLIC -gdwarf-4)
-    target_compile_options(cinnabar PUBLIC -g3)
+        # Add debug symbols that lldb can actually read
+        target_compile_options(cinnabar PUBLIC -glldb)
+        target_compile_options(cinnabar PUBLIC -gdwarf-4)
+        target_compile_options(cinnabar PUBLIC -g3)
 
-    # target_compile_options(cinnabar PUBLIC -fsanitize=thread)
-    # target_link_options(cinnabar PUBLIC -fsanitize=thread)
+        # target_compile_options(cinnabar PUBLIC -fsanitize=thread)
+        # target_link_options(cinnabar PUBLIC -fsanitize=thread)
 
-    target_compile_options(cinnabar PUBLIC -fsanitize=address)
-    target_link_options(cinnabar PUBLIC -fsanitize=address)
-endif ()
+        # target_compile_options(cinnabar PUBLIC -fsanitize=address)
+        # target_link_options(cinnabar PUBLIC -fsanitize=address)
+    endif ()
 
 endif()
