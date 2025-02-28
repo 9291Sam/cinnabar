@@ -29,8 +29,6 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
-CPMAddPackage("gh:shader-slang/slang#v2025.5.3")
-
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
@@ -83,7 +81,6 @@ target_link_libraries(cinnabar
     Boost::type_traits
     Boost::sort
     Boost::pool
-    slang
 )
 
 
@@ -111,5 +108,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-incompatible-pointer-types
         -Wno-nan-infinity-disabled
         -Wno-documentation-unknown-command
+        -Wno-unsafe-buffer-usage
     )
 endif()
