@@ -26,6 +26,7 @@ set(SLANG_ENABLE_DXIL OFF)
 set(SLANG_USE_SYSTEM_VULKAN_HEADERS ON)
 set(SLANG_ENABLE_OPTIX OFF)
 set(SLANG_ENABLE_CUDA OFF)
+set(SLANG_ENABLE_RELEASE_LTO OFF)
 set(SLANG_LIB_TYPE STATIC)
 
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
@@ -119,4 +120,18 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-documentation-unknown-command
         -Wno-unsafe-buffer-usage
     )
+
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    # Add debug symbols that lldb can actually read
+    target_compile_options(cinnabar PUBLIC -glldb)
+    target_compile_options(cinnabar PUBLIC -gdwarf-4)
+    target_compile_options(cinnabar PUBLIC -g3)
+
+    # target_compile_options(cinnabar PUBLIC -fsanitize=thread)
+    # target_link_options(cinnabar PUBLIC -fsanitize=thread)
+
+    target_compile_options(cinnabar PUBLIC -fsanitize=address)
+    target_link_options(cinnabar PUBLIC -fsanitize=address)
+endif ()
+
 endif()
