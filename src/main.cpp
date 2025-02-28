@@ -680,15 +680,15 @@ int main()
                         .pStencilAttachment {nullptr},
                     };
 
-                    // commandBuffer.setViewport(0, {renderViewport});
-                    // commandBuffer.setScissor(0, {scissor});
+                    commandBuffer.setViewport(0, {renderViewport});
+                    commandBuffer.setScissor(0, {scissor});
 
-                    // commandBuffer.beginRendering(simpleColorRenderingInfo);
+                    commandBuffer.beginRendering(simpleColorRenderingInfo);
 
                     // commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
                     // commandBuffer.draw(3, 1, 0, 0);
 
-                    // commandBuffer.endRendering();
+                    commandBuffer.endRendering();
                 }
 
                 commandBuffer.pipelineBarrier(
