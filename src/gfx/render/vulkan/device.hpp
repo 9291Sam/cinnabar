@@ -38,8 +38,7 @@ namespace gfx::render::vulkan
         [[nodiscard]] bool               isAmd() const noexcept;
         [[nodiscard]] const vk::Device*  operator->() const noexcept;
 
-        void
-        acquireQueue(QueueType queueType, std::invocable<vk::Queue> auto accessFunc) const noexcept
+        void acquireQueue(QueueType queueType, std::invocable<vk::Queue> auto accessFunc) const noexcept
         {
             const std::size_t idx = static_cast<std::size_t>(std::to_underlying(queueType));
 
@@ -48,8 +47,7 @@ namespace gfx::render::vulkan
                 "Tried to lookup an invalid queue of type {}",
                 idx);
 
-            const std::vector<util::Mutex<vk::Queue>>& qs =
-                this->queues.at(std::to_underlying(queueType));
+            const std::vector<util::Mutex<vk::Queue>>& qs = this->queues.at(std::to_underlying(queueType));
 
             while (true)
             {
@@ -67,25 +65,18 @@ namespace gfx::render::vulkan
                     }
                 }
 
-                log::warn(
-                    "Failed to acquire a queue of type {}, retrying",
-                    magic_enum::enum_name(queueType));
+                log::warn("Failed to acquire a queue of type {}, retrying", magic_enum::enum_name(queueType));
 
                 std::this_thread::yield();
             }
         }
 
     private:
-        std::array<
-            std::vector<util::Mutex<vk::Queue>>,
-            static_cast<std::size_t>(QueueType::NumberOfQueueTypes)>
-            queues;
+        std::array<std::vector<util::Mutex<vk::Queue>>, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)> queues;
 
-        std::array<std::optional<u32>, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)>
-            queue_family_indexes;
+        std::array<std::optional<u32>, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)> queue_family_indexes;
 
-        std::array<u32, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)>
-            queue_family_numbers;
+        std::array<u32, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)> queue_family_numbers;
 
         vk::PhysicalDevice     physical_device;
         vk::PhysicalDeviceType physical_device_type;

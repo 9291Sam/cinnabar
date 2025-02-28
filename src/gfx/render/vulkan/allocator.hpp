@@ -78,8 +78,7 @@ namespace gfx::render::vulkan
 template<>
 struct std::hash<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
 {
-    std::size_t
-    operator() (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i) const noexcept
+    std::size_t operator() (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i) const noexcept
     {
         std::size_t result = 1394897243;
 
@@ -97,8 +96,7 @@ struct std::hash<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
 template<>
 struct std::hash<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
 {
-    std::size_t
-    operator() (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i) const noexcept
+    std::size_t operator() (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -107,8 +105,7 @@ struct std::hash<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
             util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**d)));
         }
 
-        util::hashCombine(
-            result, std::hash<std::optional<vk::PushConstantRange>> {}(i.push_constants));
+        util::hashCombine(result, std::hash<std::optional<vk::PushConstantRange>> {}(i.push_constants));
 
         util::hashCombine(result, std::hash<std::string> {}(i.name));
 
@@ -119,8 +116,7 @@ struct std::hash<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
 template<>
 struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
 {
-    std::size_t
-    operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
+    std::size_t operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -137,16 +133,13 @@ struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
 template<>
 struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
 {
-    std::size_t
-    operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
+    std::size_t operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
         for (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
         {
-            util::hashCombine(
-                result,
-                std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
+            util::hashCombine(result, std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
         }
 
         for (const vk::VertexInputAttributeDescription& d : i.vertex_attributes)
@@ -181,8 +174,7 @@ struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
 template<>
 struct std::hash<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
 {
-    std::size_t
-    operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
+    std::size_t operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
     {
         std::size_t result = 5783547893548971;
 
@@ -227,17 +219,14 @@ namespace gfx::render::vulkan
         [[nodiscard]] std::shared_ptr<vk::UniqueDescriptorSetLayout>
             cacheDescriptorSetLayout(CacheableDescriptorSetLayoutCreateInfo) const;
         [[nodiscard]] std::shared_ptr<vk::UniquePipelineLayout>
-            cachePipelineLayout(CacheablePipelineLayoutCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniquePipeline>
-            cachePipeline(CacheableGraphicsPipelineCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniquePipeline>
-            cachePipeline(CacheableComputePipelineCreateInfo) const;
+                                                          cachePipelineLayout(CacheablePipelineLayoutCreateInfo) const;
+        [[nodiscard]] std::shared_ptr<vk::UniquePipeline> cachePipeline(CacheableGraphicsPipelineCreateInfo) const;
+        [[nodiscard]] std::shared_ptr<vk::UniquePipeline> cachePipeline(CacheableComputePipelineCreateInfo) const;
         [[nodiscard]] std::shared_ptr<vk::UniqueShaderModule>
         cacheShaderModule(std::span<const std::byte>, std::string debugName) const;
 
-        [[nodiscard]] std::shared_ptr<vk::UniquePipelineLayout>
-                                            lookupPipelineLayout(vk::Pipeline) const;
-        [[nodiscard]] vk::PipelineBindPoint lookupPipelineBindPoint(vk::Pipeline) const;
+        [[nodiscard]] std::shared_ptr<vk::UniquePipelineLayout> lookupPipelineLayout(vk::Pipeline) const;
+        [[nodiscard]] vk::PipelineBindPoint                     lookupPipelineBindPoint(vk::Pipeline) const;
 
         const Device*      getDevice() const;
         vk::DescriptorPool getRawPool() const;
@@ -248,33 +237,24 @@ namespace gfx::render::vulkan
         VmaAllocator             allocator;
         vk::UniqueDescriptorPool descriptor_pool;
         vk::UniquePipelineCache  pipeline_cache;
-        util::Mutex<std::unordered_map<
-            CacheableDescriptorSetLayoutCreateInfo,
-            std::shared_ptr<vk::UniqueDescriptorSetLayout>>>
+        util::Mutex<
+            std::unordered_map<CacheableDescriptorSetLayoutCreateInfo, std::shared_ptr<vk::UniqueDescriptorSetLayout>>>
             descriptor_set_layout_cache;
 
-        util::Mutex<std::unordered_map<
-            CacheablePipelineLayoutCreateInfo,
-            std::shared_ptr<vk::UniquePipelineLayout>>>
+        util::Mutex<std::unordered_map<CacheablePipelineLayoutCreateInfo, std::shared_ptr<vk::UniquePipelineLayout>>>
             pipeline_layout_cache;
 
-        util::Mutex<std::unordered_map<
-            vk::Pipeline,
-            std::pair<std::weak_ptr<vk::UniquePipelineLayout>, vk::PipelineBindPoint>>>
+        util::Mutex<
+            std::unordered_map<vk::Pipeline, std::pair<std::weak_ptr<vk::UniquePipelineLayout>, vk::PipelineBindPoint>>>
             pipeline_layout_and_bind_lookup;
 
-        util::Mutex<std::unordered_map<
-            CacheableGraphicsPipelineCreateInfo,
-            std::shared_ptr<vk::UniquePipeline>>>
+        util::Mutex<std::unordered_map<CacheableGraphicsPipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
             graphics_pipeline_cache;
 
-        util::Mutex<std::unordered_map<
-            CacheableComputePipelineCreateInfo,
-            std::shared_ptr<vk::UniquePipeline>>>
+        util::Mutex<std::unordered_map<CacheableComputePipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
             compute_pipeline_cache;
 
-        util::Mutex<std::unordered_map<std::string, std::shared_ptr<vk::UniqueShaderModule>>>
-            shader_module_cache;
+        util::Mutex<std::unordered_map<std::string, std::shared_ptr<vk::UniqueShaderModule>>> shader_module_cache;
     };
 
 } // namespace gfx::render::vulkan

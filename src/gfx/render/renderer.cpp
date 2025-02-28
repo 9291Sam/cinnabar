@@ -27,29 +27,23 @@ namespace gfx::render
         this->window = std::make_unique<Window>(
             std::map<Window::Action, Window::ActionInformation> {
                 {Window::Action::PlayerMoveForward,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_W}, .method {Window::InteractionMethod::EveryFrame}}},
+                 Window::ActionInformation {.key {GLFW_KEY_W}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerMoveBackward,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_S}, .method {Window::InteractionMethod::EveryFrame}}},
+                 Window::ActionInformation {.key {GLFW_KEY_S}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerMoveLeft,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_A}, .method {Window::InteractionMethod::EveryFrame}}},
+                 Window::ActionInformation {.key {GLFW_KEY_A}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerMoveRight,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_D}, .method {Window::InteractionMethod::EveryFrame}}},
+                 Window::ActionInformation {.key {GLFW_KEY_D}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerMoveUp,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_SPACE}, .method {Window::InteractionMethod::EveryFrame}}},
+                 Window::ActionInformation {.key {GLFW_KEY_SPACE}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerMoveDown,
                  Window::ActionInformation {
-                     .key {GLFW_KEY_LEFT_CONTROL},
-                     .method {Window::InteractionMethod::EveryFrame}}},
+                     .key {GLFW_KEY_LEFT_CONTROL}, .method {Window::InteractionMethod::EveryFrame}}},
 
                 {Window::Action::PlayerSprint,
                  Window::ActionInformation {
@@ -57,20 +51,16 @@ namespace gfx::render
 
                 {Window::Action::ToggleConsole,
                  Window::ActionInformation {
-                     .key {GLFW_KEY_GRAVE_ACCENT},
-                     .method {Window::InteractionMethod::SinglePress}}},
+                     .key {GLFW_KEY_GRAVE_ACCENT}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::ResetPlayPosition,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_R}, .method {Window::InteractionMethod::SinglePress}}},
+                 Window::ActionInformation {.key {GLFW_KEY_R}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::SpawnFlyer,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_F}, .method {Window::InteractionMethod::SinglePress}}},
+                 Window::ActionInformation {.key {GLFW_KEY_F}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::CloseWindow,
-                 Window::ActionInformation {
-                     .key {GLFW_KEY_ESCAPE}, .method {Window::InteractionMethod::SinglePress}}},
+                 Window::ActionInformation {.key {GLFW_KEY_ESCAPE}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::ToggleCursorAttachment,
                  Window::ActionInformation {
@@ -78,15 +68,15 @@ namespace gfx::render
 
             },
             vk::Extent2D {1920, 1080}, // NOLINT
-            "lavender");
+            "cinnabar");
         this->instance  = std::make_unique<vulkan::Instance>();
         this->surface   = this->window->createSurface(**this->instance);
         this->device    = std::make_unique<vulkan::Device>(**this->instance, *this->surface);
         this->allocator = std::make_unique<vulkan::Allocator>(*this->instance, &*this->device);
         this->stager    = std::make_unique<vulkan::BufferStager>(&*this->allocator);
 
-        this->critical_section = util::Mutex {
-            Renderer::makeCriticalSection(*this->device, *this->surface, *this->window)};
+        this->critical_section =
+            util::Mutex {Renderer::makeCriticalSection(*this->device, *this->surface, *this->window)};
 
         log::trace("Created renderer");
     }
@@ -97,8 +87,7 @@ namespace gfx::render
     }
 
     bool Renderer::recordOnThread(
-        std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)> recordFunc)
-        const
+        std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)> recordFunc) const
     {
         bool resizeOcurred = false;
 
@@ -107,15 +96,10 @@ namespace gfx::render
             {
                 const std::expected<void, vulkan::Frame::ResizeNeeded> drawFrameResult =
                     lockedCriticalSection->frame_manager->recordAndDisplay(
-                        [&](std::size_t       flyingFrameIdx,
-                            vk::CommandBuffer commandBuffer,
-                            u32               swapchainImageIdx)
+                        [&](std::size_t flyingFrameIdx, vk::CommandBuffer commandBuffer, u32 swapchainImageIdx)
                         {
                             recordFunc(
-                                commandBuffer,
-                                swapchainImageIdx,
-                                *lockedCriticalSection->swapchain,
-                                flyingFrameIdx);
+                                commandBuffer, swapchainImageIdx, *lockedCriticalSection->swapchain, flyingFrameIdx);
                         },
                         *this->stager);
 
@@ -125,8 +109,7 @@ namespace gfx::render
 
                     lockedCriticalSection.reset();
 
-                    lockedCriticalSection =
-                        Renderer::makeCriticalSection(*this->device, *this->surface, *this->window);
+                    lockedCriticalSection = Renderer::makeCriticalSection(*this->device, *this->surface, *this->window);
 
                     resizeOcurred = true;
                 }
@@ -148,8 +131,8 @@ namespace gfx::render
         return this->window->shouldClose();
     }
 
-    std::unique_ptr<Renderer::RenderingCriticalSection> Renderer::makeCriticalSection(
-        const vulkan::Device& device, vk::SurfaceKHR surface, const Window& window)
+    std::unique_ptr<Renderer::RenderingCriticalSection>
+    Renderer::makeCriticalSection(const vulkan::Device& device, vk::SurfaceKHR surface, const Window& window)
     {
         std::unique_ptr<vulkan::Swapchain> swapchain =
             std::make_unique<vulkan::Swapchain>(device, surface, window.getFramebufferSize());

@@ -31,8 +31,7 @@ namespace gfx::render::vulkan
             .flags {},
             .imageType {VK_IMAGE_TYPE_2D},
             .format {static_cast<VkFormat>(format)},
-            .extent {VkExtent3D {
-                .width {this->extent.width}, .height {this->extent.height}, .depth {1}}},
+            .extent {VkExtent3D {.width {this->extent.width}, .height {this->extent.height}, .depth {1}}},
             .mipLevels {1},
             .arrayLayers {1},
             .samples {VK_SAMPLE_COUNT_1_BIT},
@@ -56,17 +55,9 @@ namespace gfx::render::vulkan
         VkImage outputImage = nullptr;
 
         const vk::Result result {::vmaCreateImage(
-            this->allocator,
-            &imageCreateInfo,
-            &imageAllocationCreateInfo,
-            &outputImage,
-            &this->memory,
-            nullptr)};
+            this->allocator, &imageCreateInfo, &imageAllocationCreateInfo, &outputImage, &this->memory, nullptr)};
 
-        assert::critical(
-            result == vk::Result::eSuccess,
-            "Failed to allocate image memory {}",
-            vk::to_string(result));
+        assert::critical(result == vk::Result::eSuccess, "Failed to allocate image memory {}", vk::to_string(result));
 
         assert::critical(outputImage != nullptr, "Returned image was nullptr!");
 

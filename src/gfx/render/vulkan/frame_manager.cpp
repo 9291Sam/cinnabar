@@ -31,31 +31,23 @@ namespace gfx::render::vulkan
         const vk::CommandPoolCreateInfo commandPoolCreateInfo {
             .sType {vk::StructureType::eCommandPoolCreateInfo},
             .pNext {nullptr},
-            .flags {
-                vk::CommandPoolCreateFlagBits::eTransient
-                | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+            .flags {vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
             .queueFamilyIndex {device_ // NOLINT
                                    .getFamilyOfQueueType(Device::QueueType::Graphics)
                                    .value()},
         };
 
-        const std::string commandPoolName = std::format("Frame #{} Command Pool", number);
-        const std::string imageAvailableName =
-            std::format("Frame #{} Image Available Semaphore", number);
-        const std::string renderFinishedName =
-            std::format("Frame #{} Render Finished Semaphore", number);
-        const std::string frameInFlightName =
-            std::format("Frame #{} Frame In Flight Fence", number);
+        const std::string commandPoolName    = std::format("Frame #{} Command Pool", number);
+        const std::string imageAvailableName = std::format("Frame #{} Image Available Semaphore", number);
+        const std::string renderFinishedName = std::format("Frame #{} Render Finished Semaphore", number);
+        const std::string frameInFlightName  = std::format("Frame #{} Frame In Flight Fence", number);
 
-        this->command_pool =
-            this->device->getDevice().createCommandPoolUnique(commandPoolCreateInfo);
+        this->command_pool = this->device->getDevice().createCommandPoolUnique(commandPoolCreateInfo);
 
-        this->image_available =
-            this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
-        this->render_finished =
-            this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
-        this->frame_in_flight = std::make_shared<vk::UniqueFence>(
-            this->device->getDevice().createFenceUnique(fenceCreateInfo));
+        this->image_available = this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
+        this->render_finished = this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
+        this->frame_in_flight =
+            std::make_shared<vk::UniqueFence>(this->device->getDevice().createFenceUnique(fenceCreateInfo));
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
@@ -104,8 +96,7 @@ namespace gfx::render::vulkan
         const BufferStager&                         stager)
     {
         const auto [acquireImageResult, maybeNextImageIdx] =
-            this->device->getDevice().acquireNextImageKHR(
-                this->swapchain, TimeoutNs, *this->image_available, nullptr);
+            this->device->getDevice().acquireNextImageKHR(this->swapchain, TimeoutNs, *this->image_available, nullptr);
 
         switch (acquireImageResult) // NOLINT
         {
@@ -144,9 +135,7 @@ namespace gfx::render::vulkan
                 };
 
                 this->command_buffer =
-                    std::move(this->device->getDevice()
-                                  .allocateCommandBuffersUnique(commandBufferAllocateInfo)
-                                  .at(0));
+                    std::move(this->device->getDevice().allocateCommandBuffersUnique(commandBufferAllocateInfo).at(0));
 
                 const vk::CommandBufferBeginInfo commandBufferBeginInfo {
                     .sType {vk::StructureType::eCommandBufferBeginInfo},
@@ -164,8 +153,7 @@ namespace gfx::render::vulkan
                 withCommandBuffer(*this->command_buffer, maybeNextImageIdx);
 
                 this->command_buffer->end();
-                const vk::PipelineStageFlags dstStageWaitFlags =
-                    vk::PipelineStageFlagBits::eColorAttachmentOutput;
+                const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
                 const vk::SubmitInfo queueSubmitInfo {
                     .sType {vk::StructureType::eSubmitInfo},
@@ -183,8 +171,7 @@ namespace gfx::render::vulkan
 
                 if (previousFrameFence.has_value())
                 {
-                    std::ignore = this->device->getDevice().waitForFences(
-                        *previousFrameFence, vk::True, TimeoutNs);
+                    std::ignore = this->device->getDevice().waitForFences(*previousFrameFence, vk::True, TimeoutNs);
                 }
 
                 const vk::PresentInfoKHR presentInfo {
@@ -198,11 +185,10 @@ namespace gfx::render::vulkan
                     .pResults {nullptr},
                 };
 
-                const vk::Result presentResult =
-                    vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
-                        queue,
-                        // NOLINTNEXTLINE
-                        reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
+                const vk::Result presentResult = vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
+                    queue,
+                    // NOLINTNEXTLINE
+                    reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
 
                 switch (presentResult) // NOLINT
                 {
@@ -245,8 +231,7 @@ namespace gfx::render::vulkan
     FrameManager::~FrameManager() noexcept = default;
 
     std::expected<void, Frame::ResizeNeeded> FrameManager::recordAndDisplay(
-        std::function<void(std::size_t, vk::CommandBuffer, u32)> recordFunc,
-        const BufferStager&                                      stager)
+        std::function<void(std::size_t, vk::CommandBuffer, u32)> recordFunc, const BufferStager& stager)
     {
         this->flying_frame_index += 1;
         this->flying_frame_index %= FramesInFlight;

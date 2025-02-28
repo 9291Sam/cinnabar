@@ -36,33 +36,20 @@ namespace gfx::render::vulkan
 
         const vk::Result result {::vmaCreateAllocator(&allocatorCreateInfo, &this->allocator)};
 
-        assert::critical(
-            result == vk::Result::eSuccess,
-            "Failed to create allocator | {}",
-            vk::to_string(result));
+        assert::critical(result == vk::Result::eSuccess, "Failed to create allocator | {}", vk::to_string(result));
 
         const std::array availableDescriptors {
             vk::DescriptorPoolSize {.type {vk::DescriptorType::eSampler}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eCombinedImageSampler}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eSampledImage}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eStorageImage}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eUniformTexelBuffer}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eStorageTexelBuffer}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eUniformBuffer}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eStorageBuffer}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eUniformBufferDynamic}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eStorageBufferDynamic}, .descriptorCount {1024}},
-            vk::DescriptorPoolSize {
-                .type {vk::DescriptorType::eInputAttachment}, .descriptorCount {1024}}};
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eCombinedImageSampler}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eSampledImage}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eStorageImage}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eUniformTexelBuffer}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eStorageTexelBuffer}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eUniformBuffer}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eStorageBuffer}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eUniformBufferDynamic}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eStorageBufferDynamic}, .descriptorCount {1024}},
+            vk::DescriptorPoolSize {.type {vk::DescriptorType::eInputAttachment}, .descriptorCount {1024}}};
 
         const vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo {
             .sType {vk::StructureType::eDescriptorPoolCreateInfo},
@@ -73,8 +60,7 @@ namespace gfx::render::vulkan
             .pPoolSizes {availableDescriptors.data()},
         };
 
-        this->descriptor_pool =
-            this->device->getDevice().createDescriptorPoolUnique(descriptorPoolCreateInfo);
+        this->descriptor_pool = this->device->getDevice().createDescriptorPoolUnique(descriptorPoolCreateInfo);
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
@@ -87,13 +73,12 @@ namespace gfx::render::vulkan
             });
         }
 
-        this->pipeline_cache =
-            this->device->getDevice().createPipelineCacheUnique(vk::PipelineCacheCreateInfo {
-                .sType {vk::StructureType::ePipelineCacheCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .initialDataSize {0},
-                .pInitialData {nullptr}});
+        this->pipeline_cache = this->device->getDevice().createPipelineCacheUnique(vk::PipelineCacheCreateInfo {
+            .sType {vk::StructureType::ePipelineCacheCreateInfo},
+            .pNext {nullptr},
+            .flags {},
+            .initialDataSize {0},
+            .pInitialData {nullptr}});
 
         log::trace("Created allocator");
     }
@@ -115,8 +100,7 @@ namespace gfx::render::vulkan
                 gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo,
                 std::shared_ptr<vk::UniqueDescriptorSetLayout>>& cache)
             {
-                std::vector<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
-                    createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo> createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -126,8 +110,7 @@ namespace gfx::render::vulkan
                     }
                 }
 
-                for (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i :
-                     createInfosToRemove)
+                for (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i : createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -138,8 +121,7 @@ namespace gfx::render::vulkan
                 gfx::render::vulkan::CacheablePipelineLayoutCreateInfo,
                 std::shared_ptr<vk::UniquePipelineLayout>>& cache)
             {
-                std::vector<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
-                    createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo> createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -149,8 +131,7 @@ namespace gfx::render::vulkan
                     }
                 }
 
-                for (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i :
-                     createInfosToRemove)
+                for (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i : createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -182,8 +163,7 @@ namespace gfx::render::vulkan
                 gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo,
                 std::shared_ptr<vk::UniquePipeline>>& cache)
             {
-                std::vector<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
-                    createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo> createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -193,8 +173,7 @@ namespace gfx::render::vulkan
                     }
                 }
 
-                for (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i :
-                     createInfosToRemove)
+                for (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i : createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -205,8 +184,7 @@ namespace gfx::render::vulkan
                 gfx::render::vulkan::CacheableComputePipelineCreateInfo,
                 std::shared_ptr<vk::UniquePipeline>>& cache)
             {
-                std::vector<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
-                    createInfosToRemove {};
+                std::vector<gfx::render::vulkan::CacheableComputePipelineCreateInfo> createInfosToRemove {};
 
                 for (const auto& [info, ptr] : cache)
                 {
@@ -216,8 +194,7 @@ namespace gfx::render::vulkan
                     }
                 }
 
-                for (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i :
-                     createInfosToRemove)
+                for (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i : createInfosToRemove)
                 {
                     cache.erase(i);
                 }
@@ -243,8 +220,8 @@ namespace gfx::render::vulkan
             });
     }
 
-    vk::DescriptorSet Allocator::allocateDescriptorSet(
-        vk::DescriptorSetLayout layout, const std::string& debugName) const
+    vk::DescriptorSet
+    Allocator::allocateDescriptorSet(vk::DescriptorSetLayout layout, const std::string& debugName) const
     {
         const vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo {
             .sType {vk::StructureType::eDescriptorSetAllocateInfo},
@@ -254,8 +231,7 @@ namespace gfx::render::vulkan
             .pSetLayouts {&layout},
         };
 
-        vk::DescriptorSet set =
-            this->device->getDevice().allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
+        vk::DescriptorSet set = this->device->getDevice().allocateDescriptorSets(descriptorSetAllocateInfo).at(0);
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
@@ -299,19 +275,17 @@ namespace gfx::render::vulkan
                     };
 
                     vk::UniqueDescriptorSetLayout layout =
-                        this->device->getDevice().createDescriptorSetLayoutUnique(
-                            descriptorSetLayoutCreateInfo);
+                        this->device->getDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo);
 
                     if constexpr (CINNABAR_DEBUG_BUILD)
                     {
-                        this->device->getDevice().setDebugUtilsObjectNameEXT(
-                            vk::DebugUtilsObjectNameInfoEXT {
-                                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                                .pNext {nullptr},
-                                .objectType {vk::ObjectType::eDescriptorSetLayout},
-                                .objectHandle {std::bit_cast<u64>(*layout)},
-                                .pObjectName {info.name.c_str()},
-                            });
+                        this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                            .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                            .pNext {nullptr},
+                            .objectType {vk::ObjectType::eDescriptorSetLayout},
+                            .objectHandle {std::bit_cast<u64>(*layout)},
+                            .pObjectName {info.name.c_str()},
+                        });
                     }
 
                     std::shared_ptr<vk::UniqueDescriptorSetLayout> // NOLINT
@@ -351,24 +325,21 @@ namespace gfx::render::vulkan
                         .setLayoutCount {static_cast<u32>(denseLayouts.size())},
                         .pSetLayouts {denseLayouts.data()},
                         .pushConstantRangeCount {info.push_constants.has_value() ? 1U : 0U},
-                        .pPushConstantRanges {
-                            info.push_constants.has_value() ? &*info.push_constants : nullptr},
+                        .pPushConstantRanges {info.push_constants.has_value() ? &*info.push_constants : nullptr},
                     };
 
                     vk::UniquePipelineLayout layout =
-                        this->device->getDevice().createPipelineLayoutUnique(
-                            pipelineLayoutCreateInfo);
+                        this->device->getDevice().createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
                     if constexpr (CINNABAR_DEBUG_BUILD)
                     {
-                        this->device->getDevice().setDebugUtilsObjectNameEXT(
-                            vk::DebugUtilsObjectNameInfoEXT {
-                                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                                .pNext {nullptr},
-                                .objectType {vk::ObjectType::ePipelineLayout},
-                                .objectHandle {std::bit_cast<u64>(*layout)},
-                                .pObjectName {info.name.c_str()},
-                            });
+                        this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                            .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                            .pNext {nullptr},
+                            .objectType {vk::ObjectType::ePipelineLayout},
+                            .objectHandle {std::bit_cast<u64>(*layout)},
+                            .pObjectName {info.name.c_str()},
+                        });
                     }
 
                     std::shared_ptr<vk::UniquePipelineLayout> // NOLINT
@@ -381,8 +352,7 @@ namespace gfx::render::vulkan
             });
     }
 
-    std::shared_ptr<vk::UniquePipeline>
-    Allocator::cachePipeline(CacheableComputePipelineCreateInfo info) const
+    std::shared_ptr<vk::UniquePipeline> Allocator::cachePipeline(CacheableComputePipelineCreateInfo info) const
     {
         return this->compute_pipeline_cache.lock(
             [&](auto& cache)
@@ -423,14 +393,13 @@ namespace gfx::render::vulkan
 
                     if constexpr (CINNABAR_DEBUG_BUILD)
                     {
-                        this->device->getDevice().setDebugUtilsObjectNameEXT(
-                            vk::DebugUtilsObjectNameInfoEXT {
-                                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                                .pNext {nullptr},
-                                .objectType {vk::ObjectType::ePipeline},
-                                .objectHandle {std::bit_cast<u64>(*pipeline)},
-                                .pObjectName {info.name.c_str()},
-                            });
+                        this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                            .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                            .pNext {nullptr},
+                            .objectType {vk::ObjectType::ePipeline},
+                            .objectHandle {std::bit_cast<u64>(*pipeline)},
+                            .pObjectName {info.name.c_str()},
+                        });
                     }
 
                     std::shared_ptr<vk::UniquePipeline> // NOLINT
@@ -439,12 +408,9 @@ namespace gfx::render::vulkan
                     this->pipeline_layout_and_bind_lookup.lock(
                         [&](std::unordered_map<
                             vk::Pipeline,
-                            std::pair<
-                                std::weak_ptr<vk::UniquePipelineLayout>,
-                                vk::PipelineBindPoint>>& lookup)
+                            std::pair<std::weak_ptr<vk::UniquePipelineLayout>, vk::PipelineBindPoint>>& lookup)
                         {
-                            lookup[**sharedPipeline] = {
-                                info.layout, vk::PipelineBindPoint::eCompute};
+                            lookup[**sharedPipeline] = {info.layout, vk::PipelineBindPoint::eCompute};
                         });
 
                     cache[info] = sharedPipeline;
@@ -454,8 +420,7 @@ namespace gfx::render::vulkan
             });
     }
 
-    std::shared_ptr<vk::UniquePipeline>
-    Allocator::cachePipeline(CacheableGraphicsPipelineCreateInfo info) const
+    std::shared_ptr<vk::UniquePipeline> Allocator::cachePipeline(CacheableGraphicsPipelineCreateInfo info) const
     {
         return this->graphics_pipeline_cache.lock(
             [&](auto& cache)
@@ -483,30 +448,25 @@ namespace gfx::render::vulkan
                         });
                     }
 
-                    assert::critical(
-                        !denseStages.empty(), "All pipelines must have at least one shader!");
+                    assert::critical(!denseStages.empty(), "All pipelines must have at least one shader!");
 
-                    const vk::PipelineVertexInputStateCreateInfo
-                        pipelineVertexInputStateCreateInfo {
-                            .sType {vk::StructureType::ePipelineVertexInputStateCreateInfo},
-                            .pNext {nullptr},
-                            .flags {},
-                            .vertexBindingDescriptionCount {
-                                static_cast<u32>(info.vertex_bindings.size())},
-                            .pVertexBindingDescriptions {info.vertex_bindings.data()},
-                            .vertexAttributeDescriptionCount {
-                                static_cast<u32>(info.vertex_attributes.size())},
-                            .pVertexAttributeDescriptions {info.vertex_attributes.data()},
-                        };
+                    const vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {
+                        .sType {vk::StructureType::ePipelineVertexInputStateCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .vertexBindingDescriptionCount {static_cast<u32>(info.vertex_bindings.size())},
+                        .pVertexBindingDescriptions {info.vertex_bindings.data()},
+                        .vertexAttributeDescriptionCount {static_cast<u32>(info.vertex_attributes.size())},
+                        .pVertexAttributeDescriptions {info.vertex_attributes.data()},
+                    };
 
-                    const vk::PipelineInputAssemblyStateCreateInfo
-                        pipelineInputAssemblyStateCreateInfo {
-                            .sType {vk::StructureType::ePipelineInputAssemblyStateCreateInfo},
-                            .pNext {nullptr},
-                            .flags {},
-                            .topology {info.topology},
-                            .primitiveRestartEnable {false},
-                        };
+                    const vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {
+                        .sType {vk::StructureType::ePipelineInputAssemblyStateCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .topology {info.topology},
+                        .primitiveRestartEnable {false},
+                    };
 
                     const vk::Viewport nullDynamicViewport {};
                     const vk::Rect2D   nullDynamicScissor {};
@@ -521,51 +481,48 @@ namespace gfx::render::vulkan
                         .pScissors {&nullDynamicScissor},
                     };
 
-                    const vk::PipelineRasterizationStateCreateInfo
-                        pipelineRasterizationStateCreateInfo {
-                            .sType {vk::StructureType::ePipelineRasterizationStateCreateInfo},
-                            .pNext {nullptr},
-                            .flags {},
-                            .depthClampEnable {vk::False},
-                            .rasterizerDiscardEnable {info.discard_enable},
-                            .polygonMode {info.polygon_mode},
-                            .cullMode {info.cull_mode},
-                            .frontFace {info.front_face},
-                            .depthBiasEnable {vk::False},
-                            .depthBiasConstantFactor {0.0},
-                            .depthBiasClamp {0.0},
-                            .depthBiasSlopeFactor {0.0},
-                            .lineWidth {1.0},
-                        };
+                    const vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {
+                        .sType {vk::StructureType::ePipelineRasterizationStateCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .depthClampEnable {vk::False},
+                        .rasterizerDiscardEnable {info.discard_enable},
+                        .polygonMode {info.polygon_mode},
+                        .cullMode {info.cull_mode},
+                        .frontFace {info.front_face},
+                        .depthBiasEnable {vk::False},
+                        .depthBiasConstantFactor {0.0},
+                        .depthBiasClamp {0.0},
+                        .depthBiasSlopeFactor {0.0},
+                        .lineWidth {1.0},
+                    };
 
-                    const vk::PipelineMultisampleStateCreateInfo
-                        pipelineMultisampleStateCreateInfo {
-                            .sType {vk::StructureType::ePipelineMultisampleStateCreateInfo},
-                            .pNext {nullptr},
-                            .flags {},
-                            .rasterizationSamples {vk::SampleCountFlagBits::e1},
-                            .sampleShadingEnable {vk::False},
-                            .minSampleShading {1.0},
-                            .pSampleMask {nullptr},
-                            .alphaToCoverageEnable {vk::False},
-                            .alphaToOneEnable {vk::False},
-                        };
+                    const vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {
+                        .sType {vk::StructureType::ePipelineMultisampleStateCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .rasterizationSamples {vk::SampleCountFlagBits::e1},
+                        .sampleShadingEnable {vk::False},
+                        .minSampleShading {1.0},
+                        .pSampleMask {nullptr},
+                        .alphaToCoverageEnable {vk::False},
+                        .alphaToOneEnable {vk::False},
+                    };
 
-                    const vk::PipelineDepthStencilStateCreateInfo
-                        pipelineDepthStencilStateCreateInfo {
-                            .sType {vk::StructureType::ePipelineDepthStencilStateCreateInfo},
-                            .pNext {nullptr},
-                            .flags {},
-                            .depthTestEnable {info.depth_test_enable},
-                            .depthWriteEnable {info.depth_write_enable},
-                            .depthCompareOp {info.depth_compare_op},
-                            .depthBoundsTestEnable {vk::False}, // TODO: expose?
-                            .stencilTestEnable {vk::False},
-                            .front {},
-                            .back {},
-                            .minDepthBounds {0.0}, // TODO: expose?
-                            .maxDepthBounds {1.0}, // TODO: expose?
-                        };
+                    const vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {
+                        .sType {vk::StructureType::ePipelineDepthStencilStateCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .depthTestEnable {info.depth_test_enable},
+                        .depthWriteEnable {info.depth_write_enable},
+                        .depthCompareOp {info.depth_compare_op},
+                        .depthBoundsTestEnable {vk::False}, // TODO: expose?
+                        .stencilTestEnable {vk::False},
+                        .front {},
+                        .back {},
+                        .minDepthBounds {0.0}, // TODO: expose?
+                        .maxDepthBounds {1.0}, // TODO: expose?
+                    };
 
                     const vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {
                         .blendEnable {info.blend_enable},
@@ -608,8 +565,7 @@ namespace gfx::render::vulkan
                         .sType {vk::StructureType::ePipelineRenderingCreateInfo},
                         .pNext {nullptr},
                         .viewMask {0},
-                        .colorAttachmentCount {
-                            info.color_format == vk::Format::eUndefined ? 0u : 1u},
+                        .colorAttachmentCount {info.color_format == vk::Format::eUndefined ? 0u : 1u},
                         .pColorAttachmentFormats {&info.color_format},
                         .depthAttachmentFormat {info.depth_format},
                         .stencilAttachmentFormat {},
@@ -637,9 +593,8 @@ namespace gfx::render::vulkan
                         .basePipelineIndex {0},
                     };
 
-                    auto [result, pipeline] =
-                        this->device->getDevice().createGraphicsPipelineUnique(
-                            *this->pipeline_cache, pipelineCreateInfo);
+                    auto [result, pipeline] = this->device->getDevice().createGraphicsPipelineUnique(
+                        *this->pipeline_cache, pipelineCreateInfo);
 
                     assert::critical(
                         result == vk::Result::eSuccess,
@@ -648,14 +603,13 @@ namespace gfx::render::vulkan
 
                     if constexpr (CINNABAR_DEBUG_BUILD)
                     {
-                        this->device->getDevice().setDebugUtilsObjectNameEXT(
-                            vk::DebugUtilsObjectNameInfoEXT {
-                                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                                .pNext {nullptr},
-                                .objectType {vk::ObjectType::ePipeline},
-                                .objectHandle {std::bit_cast<u64>(*pipeline)},
-                                .pObjectName {info.name.c_str()},
-                            });
+                        this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                            .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                            .pNext {nullptr},
+                            .objectType {vk::ObjectType::ePipeline},
+                            .objectHandle {std::bit_cast<u64>(*pipeline)},
+                            .pObjectName {info.name.c_str()},
+                        });
                     }
 
                     std::shared_ptr<vk::UniquePipeline> // NOLINT
@@ -664,12 +618,9 @@ namespace gfx::render::vulkan
                     this->pipeline_layout_and_bind_lookup.lock(
                         [&](std::unordered_map<
                             vk::Pipeline,
-                            std::pair<
-                                std::weak_ptr<vk::UniquePipelineLayout>,
-                                vk::PipelineBindPoint>>& lookup)
+                            std::pair<std::weak_ptr<vk::UniquePipelineLayout>, vk::PipelineBindPoint>>& lookup)
                         {
-                            lookup[**sharedPipeline] = {
-                                info.layout, vk::PipelineBindPoint::eGraphics};
+                            lookup[**sharedPipeline] = {info.layout, vk::PipelineBindPoint::eGraphics};
                         });
 
                     cache[info] = sharedPipeline;
@@ -719,14 +670,13 @@ namespace gfx::render::vulkan
 
                     if constexpr (CINNABAR_DEBUG_BUILD)
                     {
-                        this->device->getDevice().setDebugUtilsObjectNameEXT(
-                            vk::DebugUtilsObjectNameInfoEXT {
-                                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                                .pNext {nullptr},
-                                .objectType {vk::ObjectType::eShaderModule},
-                                .objectHandle {std::bit_cast<u64>(*module)},
-                                .pObjectName {debugName.c_str()},
-                            });
+                        this->device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                            .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                            .pNext {nullptr},
+                            .objectType {vk::ObjectType::eShaderModule},
+                            .objectHandle {std::bit_cast<u64>(*module)},
+                            .pObjectName {debugName.c_str()},
+                        });
                     }
 
                     std::shared_ptr<vk::UniqueShaderModule> // NOLINT
@@ -739,8 +689,7 @@ namespace gfx::render::vulkan
             });
     }
 
-    std::shared_ptr<vk::UniquePipelineLayout>
-    Allocator::lookupPipelineLayout(vk::Pipeline pipeline) const
+    std::shared_ptr<vk::UniquePipelineLayout> Allocator::lookupPipelineLayout(vk::Pipeline pipeline) const
     {
         return this->pipeline_layout_and_bind_lookup.lock(
             [&](std::unordered_map<
@@ -749,9 +698,7 @@ namespace gfx::render::vulkan
             {
                 std::shared_ptr shouldBeLayout = cache.at(pipeline).first.lock();
 
-                assert::critical(
-                    shouldBeLayout != nullptr,
-                    "Tried to lookup pipeline layout of expired pipeline");
+                assert::critical(shouldBeLayout != nullptr, "Tried to lookup pipeline layout of expired pipeline");
 
                 return shouldBeLayout;
             });

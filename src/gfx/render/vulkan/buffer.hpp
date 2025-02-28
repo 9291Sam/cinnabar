@@ -57,15 +57,13 @@ namespace gfx::render::vulkan
             assert::critical(!this->name.empty(), "Tried to create buffer with empty name!");
 
             assert::critical(
-                !(memoryPropertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent),
-                "Tried to create coherent buffer!");
+                !(memoryPropertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent), "Tried to create coherent buffer!");
 
             if (allocator_->getDevice()->isIntegrated() && allocator_->getDevice()->isAmd()
                 && memoryPropertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal)
             {
                 memoryPropertyFlags &= ~vk::MemoryPropertyFlagBits::eDeviceLocal;
-                log::warn(
-                    "Paving over excessive Device Local {}", vk::to_string(memoryPropertyFlags));
+                log::warn("Paving over excessive Device Local {}", vk::to_string(memoryPropertyFlags));
             }
 
             const VkBufferCreateInfo bufferCreateInfo {
@@ -112,14 +110,13 @@ namespace gfx::render::vulkan
 
             if constexpr (CINNABAR_DEBUG_BUILD)
             {
-                this->allocator->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
-                    vk::DebugUtilsObjectNameInfoEXT {
-                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                        .pNext {nullptr},
-                        .objectType {vk::ObjectType::eBuffer},
-                        .objectHandle {std::bit_cast<u64>(this->buffer)},
-                        .pObjectName {this->name.c_str()},
-                    });
+                this->allocator->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eBuffer},
+                    .objectHandle {std::bit_cast<u64>(this->buffer)},
+                    .pObjectName {this->name.c_str()},
+                });
             }
 
             bufferBytesAllocated += (this->elements * sizeof(T));
@@ -226,8 +223,7 @@ namespace gfx::render::vulkan
         void uploadImmediate(u32 offset, std::span<const T> payload)
             requires std::is_copy_constructible_v<T>
         {
-            std::copy(
-                payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
+            std::copy(payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
 
             const gfx::render::vulkan::FlushData flush {
                 .offset_elements {offset},
@@ -307,10 +303,7 @@ namespace gfx::render::vulkan
                     sizes.data());
             }
 
-            assert::critical(
-                result == VK_SUCCESS,
-                "Buffer flush failed | {}",
-                vk::to_string(vk::Result {result}));
+            assert::critical(result == VK_SUCCESS, "Buffer flush failed | {}", vk::to_string(vk::Result {result}));
         }
 
     private:
@@ -332,21 +325,15 @@ namespace gfx::render::vulkan
             {
                 void* outputMappedMemory = nullptr;
 
-                const VkResult result =
-                    ::vmaMapMemory(**this->allocator, this->allocation, &outputMappedMemory);
+                const VkResult result = ::vmaMapMemory(**this->allocator, this->allocation, &outputMappedMemory);
 
                 assert::critical(
-                    result == VK_SUCCESS,
-                    "Failed to map buffer memory {}",
-                    vk::to_string(vk::Result {result}));
+                    result == VK_SUCCESS, "Failed to map buffer memory {}", vk::to_string(vk::Result {result}));
 
                 assert::critical(
-                    outputMappedMemory != nullptr,
-                    "Mapped ptr was nullptr! | {}",
-                    vk::to_string(vk::Result {result}));
+                    outputMappedMemory != nullptr, "Mapped ptr was nullptr! | {}", vk::to_string(vk::Result {result}));
 
-                this->mapped_memory.store(
-                    static_cast<T*>(outputMappedMemory), std::memory_order_seq_cst);
+                this->mapped_memory.store(static_cast<T*>(outputMappedMemory), std::memory_order_seq_cst);
             }
 
             return this->mapped_memory;
@@ -410,8 +397,7 @@ namespace gfx::render::vulkan
 
         void write(std::size_t offset, std::span<const T> data)
         {
-            this->flushes.push_back(
-                util::InclusiveRange {.start {offset}, .end {offset + data.size() - 1}});
+            this->flushes.push_back(util::InclusiveRange {.start {offset}, .end {offset + data.size() - 1}});
 
             std::memcpy(&this->cpu_buffer[offset], data.data(), data.size_bytes());
         }
@@ -424,8 +410,7 @@ namespace gfx::render::vulkan
         {
             assert::critical(size > 0, "dont do this");
 
-            this->flushes.push_back(
-                util::InclusiveRange {.start {offset}, .end {offset + size - 1}});
+            this->flushes.push_back(util::InclusiveRange {.start {offset}, .end {offset + size - 1}});
 
             return std::span<T> {&this->cpu_buffer[offset], size};
         }
@@ -436,8 +421,7 @@ namespace gfx::render::vulkan
             return this->modify(offset, 1)[0];
         }
 
-        void flushViaStager(
-            const BufferStager& stager, std::source_location = std::source_location::current());
+        void flushViaStager(const BufferStager& stager, std::source_location = std::source_location::current());
         void flushCachedChangesImmediate()
         {
             std::vector<FlushData> localFlushes = this->mergeFlushes();
@@ -471,8 +455,7 @@ namespace gfx::render::vulkan
 
             for (const auto& r : mergedRanges)
             {
-                newFlushes.push_back(
-                    FlushData {.offset_elements {r.start}, .size_elements {r.size()}});
+                newFlushes.push_back(FlushData {.offset_elements {r.start}, .size_elements {r.size()}});
             }
 
             return newFlushes;
@@ -509,15 +492,13 @@ namespace gfx::render::vulkan
                 location);
         }
 
-        void
-        flushTransfers(vk::CommandBuffer, std::shared_ptr<vk::UniqueFence> flushFinishFence) const;
+        void flushTransfers(vk::CommandBuffer, std::shared_ptr<vk::UniqueFence> flushFinishFence) const;
 
         std::pair<std::size_t, std::size_t> getUsage() const;
 
     private:
 
-        void enqueueByteTransfer(
-            vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
+        void enqueueByteTransfer(vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
 
         struct BufferTransfer
         {
@@ -543,14 +524,12 @@ namespace gfx::render::vulkan
 
         util::Mutex<util::RangeAllocator>        transfer_allocator;
         util::Mutex<std::vector<BufferTransfer>> transfers;
-        util::Mutex<
-            std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>>
+        util::Mutex<std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>>
             transfers_to_free;
     };
 
     template<class T>
-    void
-    CpuCachedBuffer<T>::flushViaStager(const BufferStager& stager, std::source_location location)
+    void CpuCachedBuffer<T>::flushViaStager(const BufferStager& stager, std::source_location location)
     {
         std::vector<FlushData> mergedFlushes = this->mergeFlushes();
 

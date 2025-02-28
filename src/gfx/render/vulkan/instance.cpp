@@ -23,8 +23,7 @@ namespace gfx::render::vulkan
     Instance::Instance()
         : vulkan_api_version(vk::ApiVersion13)
     {
-        assert::critical(
-            this->loader.success(), "Failed to load Vulkan, is it supported on your system?");
+        assert::critical(this->loader.success(), "Failed to load Vulkan, is it supported on your system?");
 
         // Initialize vulkan hpp's global state from the loader
         // This lets you access only vkCreateInstance and a few layer functions
@@ -33,23 +32,16 @@ namespace gfx::render::vulkan
         const vk::ApplicationInfo applicationInfo {
             .sType {vk::StructureType::eApplicationInfo},
             .pNext {nullptr},
-            .pApplicationName {"lavender"},
+            .pApplicationName {"cinnabar"},
             .applicationVersion {vk::makeApiVersion(
-                CINNABAR_VERSION_TWEAK,
-                CINNABAR_VERSION_MAJOR,
-                CINNABAR_VERSION_MINOR,
-                CINNABAR_VERSION_PATCH)},
-            .pEngineName {"lavender"},
+                CINNABAR_VERSION_TWEAK, CINNABAR_VERSION_MAJOR, CINNABAR_VERSION_MINOR, CINNABAR_VERSION_PATCH)},
+            .pEngineName {"cinnabar"},
             .engineVersion {vk::makeApiVersion(
-                CINNABAR_VERSION_TWEAK,
-                CINNABAR_VERSION_MAJOR,
-                CINNABAR_VERSION_MINOR,
-                CINNABAR_VERSION_PATCH)},
+                CINNABAR_VERSION_TWEAK, CINNABAR_VERSION_MAJOR, CINNABAR_VERSION_MINOR, CINNABAR_VERSION_PATCH)},
             .apiVersion {this->vulkan_api_version},
         };
 
-        const std::vector<vk::LayerProperties> availableLayers =
-            vk::enumerateInstanceLayerProperties();
+        const std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
 
         std::vector<const char*> layers {};
         if constexpr (CINNABAR_DEBUG_BUILD)
@@ -86,8 +78,7 @@ namespace gfx::render::vulkan
             extensions.push_back(vk::EXTDebugUtilsExtensionName);
         }
 
-        const std::vector<vk::ExtensionProperties> availableExtensions =
-            vk::enumerateInstanceExtensionProperties();
+        const std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
 
         for (const char* requestedExtension : extensions)
         {
@@ -137,12 +128,10 @@ namespace gfx::render::vulkan
             .pNext {nullptr},
             .flags {},
             .messageSeverity {
-                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-                | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning},
+                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning},
             .messageType {
                 vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-                | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-                | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+                | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
                 | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation},
             .pfnUserCallback {debugMessengerCallback},
             .pUserData {nullptr},
@@ -168,8 +157,7 @@ namespace gfx::render::vulkan
 
 #if CINNABAR_DEBUG_BUILD
         {
-            this->debug_messenger =
-                this->instance->createDebugUtilsMessengerEXTUnique(debugMessengerCreateInfo);
+            this->debug_messenger = this->instance->createDebugUtilsMessengerEXTUnique(debugMessengerCreateInfo);
         }
 #endif // CINNABAR_DEBUG_BUILD
 

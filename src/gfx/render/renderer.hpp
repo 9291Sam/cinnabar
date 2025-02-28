@@ -23,8 +23,8 @@ namespace gfx::render
     class Renderer
     {
     public:
-        static constexpr vk::SurfaceFormatKHR ColorFormat = vk::SurfaceFormatKHR {
-            .format {vk::Format::eB8G8R8A8Srgb}, .colorSpace {vk::ColorSpaceKHR::eSrgbNonlinear}};
+        static constexpr vk::SurfaceFormatKHR ColorFormat =
+            vk::SurfaceFormatKHR {.format {vk::Format::eB8G8R8A8Srgb}, .colorSpace {vk::ColorSpaceKHR::eSrgbNonlinear}};
         static constexpr vk::Format DepthFormat = vk::Format::eD32Sfloat;
     public:
         Renderer();
@@ -37,8 +37,7 @@ namespace gfx::render
 
         // Returns true if a resize occurred
         // Command buffer, swapchain idx, swapchain, frame idx
-        bool recordOnThread(
-            std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)>) const;
+        bool recordOnThread(std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;
 
         [[nodiscard]] const vulkan::Instance*     getInstance() const noexcept;

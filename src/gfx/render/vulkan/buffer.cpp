@@ -28,10 +28,7 @@ namespace gfx::render::vulkan
     {}
 
     void BufferStager::enqueueByteTransfer(
-        vk::Buffer                 buffer,
-        u32                        offset,
-        std::span<const std::byte> dataToWrite,
-        std::source_location       location) const
+        vk::Buffer buffer, u32 offset, std::span<const std::byte> dataToWrite, std::source_location location) const
     {
         assert::critical<std::size_t>(
             dataToWrite.size_bytes() < StagingBufferSize / 2,
@@ -60,9 +57,7 @@ namespace gfx::render::vulkan
 
             // static_assert(std::is_trivially_copyable_v<std::byte>);
             std::memcpy(
-                stagingBufferData.data() + maybeAllocation->offset,
-                dataToWrite.data(),
-                dataToWrite.size_bytes());
+                stagingBufferData.data() + maybeAllocation->offset, dataToWrite.data(), dataToWrite.size_bytes());
 
             this->transfers.lock(
                 [&](std::vector<BufferTransfer>& t)
@@ -96,15 +91,13 @@ namespace gfx::render::vulkan
     {
         // Free all allocations that have already completed.
         this->transfers_to_free.lock(
-            [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>&
-                    toFreeMap)
+            [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>& toFreeMap)
             {
                 std::vector<std::shared_ptr<vk::UniqueFence>> toRemove {};
 
                 for (const auto& [fence, allocations] : toFreeMap)
                 {
-                    if (this->allocator->getDevice()->getDevice().getFenceStatus(**fence)
-                        == vk::Result::eSuccess)
+                    if (this->allocator->getDevice()->getDevice().getFenceStatus(**fence) == vk::Result::eSuccess)
                     {
                         toRemove.push_back(fence);
 
@@ -145,9 +138,8 @@ namespace gfx::render::vulkan
                 .size {transfer.size},
             });
 
-            stagingFlushes.push_back(FlushData {
-                .offset_elements {transfer.staging_allocation.offset},
-                .size_elements {transfer.size}});
+            stagingFlushes.push_back(
+                FlushData {.offset_elements {transfer.staging_allocation.offset}, .size_elements {transfer.size}});
         }
 
         for (const auto& [outputBuffer, bufferCopies] : copies)
@@ -162,8 +154,7 @@ namespace gfx::render::vulkan
         this->staging_buffer.flush(stagingFlushes);
 
         this->transfers_to_free.lock(
-            [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>&
-                    toFreeMap)
+            [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>& toFreeMap)
             {
                 toFreeMap[flushFinishFence].insert(
                     toFreeMap[flushFinishFence].begin(),

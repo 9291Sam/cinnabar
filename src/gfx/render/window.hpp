@@ -17,9 +17,7 @@ namespace gfx::render
         class DebugMenu;
     } // namespace recordables
 
-    /// Handles creation of the window
-    /// Exposes surface to the renderer
-    /// Handles user input
+    /// Window managing class, also handles exposing a drawable surface and user input to the window
     class Window
     {
     public:
@@ -31,7 +29,7 @@ namespace gfx::render
 
         using GlfwKeyType = int;
 
-        enum class Action : u8 // bike shedding
+        enum class Action : u8
         {
             PlayerMoveForward      = 0,
             PlayerMoveBackward     = 1,
@@ -50,13 +48,10 @@ namespace gfx::render
 
         enum class InteractionMethod : u8
         {
-            /// Only fires for one frame, no matter how long you hold the button
-            /// down for. Useful for a toggle switch,
-            /// i.e opening the developer console
-            /// opening an inventory menu
+            /// Only fires for the first time it's checked, no matter how long you hold the button down for. Useful for
+            /// a toggle switch, i.e opening the developer console or opening an inventory menu
             SinglePress,
-            /// Fires every frame, as long as the button is pressed
-            /// Useful for movement keys
+            /// Fires every frame, as long as the button is pressed Useful for movement keys
             EveryFrame,
         };
 
@@ -67,8 +62,7 @@ namespace gfx::render
         };
     public:
 
-        Window(
-            const std::map<Action, ActionInformation>&, vk::Extent2D windowSize, const char* name);
+        Window(const std::map<Action, ActionInformation>&, vk::Extent2D windowSize, const char* name);
         ~Window();
 
         Window(const Window&)             = delete;
@@ -82,7 +76,7 @@ namespace gfx::render
         [[nodiscard]] float        getDeltaTimeSeconds() const;
         [[nodiscard]] vk::Extent2D getFramebufferSize() const;
 
-        // None of these functions are threadsafe
+        // Neither of these functions are threadsafe
         [[nodiscard]] vk::UniqueSurfaceKHR createSurface(vk::Instance);
         [[nodiscard]] bool                 shouldClose();
 

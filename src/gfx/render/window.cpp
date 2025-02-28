@@ -15,10 +15,7 @@
 
 namespace gfx::render
 {
-    Window::Window(
-        const std::map<Action, ActionInformation>& keyInformationMap,
-        vk::Extent2D                               size,
-        const char*                                name)
+    Window::Window(const std::map<Action, ActionInformation>& keyInformationMap, vk::Extent2D size, const char* name)
         : window {nullptr}
         , framebuffer_size {size}
         , key_to_actions_map {}     // NOLINT
@@ -46,12 +43,8 @@ namespace gfx::render
 
         // Spawn Window
         {
-            this->window = glfwCreateWindow(
-                static_cast<int>(size.width),
-                static_cast<int>(size.height),
-                name,
-                nullptr,
-                nullptr);
+            this->window =
+                glfwCreateWindow(static_cast<int>(size.width), static_cast<int>(size.height), name, nullptr, nullptr);
 
             assert::critical(this->window != nullptr, "Failed to create GLFW window!");
 
@@ -72,10 +65,7 @@ namespace gfx::render
                 // assert given keybinds are valid
 
                 assert::warn(
-                    keyInformationMap.contains(a),
-                    "Action {} #{} was not populated",
-                    magic_enum::enum_name(a),
-                    i);
+                    keyInformationMap.contains(a), "Action {} #{} was not populated", magic_enum::enum_name(a), i);
             }
 
             for (const auto& [action, information] : keyInformationMap)
@@ -92,8 +82,7 @@ namespace gfx::render
 
             std::ignore = glfwSetKeyCallback(this->window, Window::keypressCallback);
 
-            std::ignore =
-                glfwSetFramebufferSizeCallback(this->window, Window::frameBufferResizeCallback);
+            std::ignore = glfwSetFramebufferSizeCallback(this->window, Window::frameBufferResizeCallback);
 
             std::ignore = glfwSetScrollCallback(this->window, Window::mouseScrollCallback);
 
@@ -128,9 +117,8 @@ namespace gfx::render
         if (this->is_cursor_attached.load(std::memory_order_acquire)
             && this->mouse_ignore_frames.load(std::memory_order_acquire) == 0)
         {
-            const vk::Extent2D framebufferSizePixels =
-                this->framebuffer_size.load(std::memory_order_acquire);
-            const Delta mouseDeltaPixels = this->mouse_delta_pixels.load(std::memory_order_acquire);
+            const vk::Extent2D framebufferSizePixels = this->framebuffer_size.load(std::memory_order_acquire);
+            const Delta        mouseDeltaPixels      = this->mouse_delta_pixels.load(std::memory_order_acquire);
 
             return Delta {
                 .x {mouseDeltaPixels.x / static_cast<float>(framebufferSizePixels.width)},
@@ -184,13 +172,11 @@ namespace gfx::render
     {
         VkSurfaceKHR maybeSurface = nullptr;
 
-        const VkResult result = glfwCreateWindowSurface(
-            static_cast<VkInstance>(instance), this->window, nullptr, &maybeSurface);
+        const VkResult result =
+            glfwCreateWindowSurface(static_cast<VkInstance>(instance), this->window, nullptr, &maybeSurface);
 
         assert::critical(
-            result == VK_SUCCESS,
-            "Failed to create window surface | {}",
-            vk::to_string(vk::Result {result}));
+            result == VK_SUCCESS, "Failed to create window surface | {}", vk::to_string(vk::Result {result}));
 
         assert::critical(static_cast<bool>(maybeSurface), "Returned surface was a nullptr!");
 
@@ -277,20 +263,15 @@ namespace gfx::render
         {
             std::pair<double, double> currentMousePositionDoubles {NAN, NAN};
 
-            glfwGetCursorPos(
-                this->window,
-                &currentMousePositionDoubles.first,
-                &currentMousePositionDoubles.second);
+            glfwGetCursorPos(this->window, &currentMousePositionDoubles.first, &currentMousePositionDoubles.second);
 
             const Delta currentMousePosition {
                 static_cast<float>(currentMousePositionDoubles.first),
                 static_cast<float>(currentMousePositionDoubles.second)};
-            const Delta previousMousePosition {
-                this->previous_mouse_position.load(std::memory_order_acquire)};
+            const Delta previousMousePosition {this->previous_mouse_position.load(std::memory_order_acquire)};
 
             this->mouse_delta_pixels.store(
-                {currentMousePosition.x - previousMousePosition.x,
-                 currentMousePosition.y - previousMousePosition.y},
+                {currentMousePosition.x - previousMousePosition.x, currentMousePosition.y - previousMousePosition.y},
                 std::memory_order_release);
 
             this->previous_mouse_position.store(currentMousePosition, std::memory_order_release);
@@ -312,8 +293,7 @@ namespace gfx::render
         // Delta time processing
         const auto currentTime = std::chrono::steady_clock::now();
 
-        this->last_frame_duration.store(
-            currentTime - this->last_frame_end_time, std::memory_order_release);
+        this->last_frame_duration.store(currentTime - this->last_frame_end_time, std::memory_order_release);
 
         this->last_frame_end_time = currentTime;
     }
@@ -325,8 +305,7 @@ namespace gfx::render
         int                  inputAction, // NOLINT
         [[maybe_unused]] int mods)        // NOLINT
     {
-        gfx::render::Window* const window =
-            static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::render::Window* const window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         if (!window->key_to_actions_map.contains(key))
         {
@@ -363,22 +342,18 @@ namespace gfx::render
 
     void Window::frameBufferResizeCallback(GLFWwindow* glfwWindow, int newWidth, int newHeight)
     {
-        gfx::render::Window* window =
-            static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         window->framebuffer_size.store(
-            vk::Extent2D {
-                .width {static_cast<u32>(newWidth)}, .height {static_cast<u32>(newHeight)}},
+            vk::Extent2D {.width {static_cast<u32>(newWidth)}, .height {static_cast<u32>(newHeight)}},
             std::memory_order_release);
     }
 
     void Window::mouseScrollCallback(GLFWwindow* glfwWindow, double x, double y)
     {
-        gfx::render::Window* const window =
-            static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::render::Window* const window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
-        window->absolute_scroll_position.store(
-            window->absolute_scroll_position.load() + glm::dvec2 {x, y});
+        window->absolute_scroll_position.store(window->absolute_scroll_position.load() + glm::dvec2 {x, y});
     }
 
     void Window::mouseButtonCallback(
@@ -387,11 +362,9 @@ namespace gfx::render
         int                  action,    // NOLINT
         [[maybe_unused]] int modifiers) // NOLINT
     {
-        gfx::render::Window* window =
-            static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
-        std::atomic<bool>& buttonToModify =
-            window->mouse_buttons_pressed_state.at(static_cast<std::size_t>(button));
+        std::atomic<bool>& buttonToModify = window->mouse_buttons_pressed_state.at(static_cast<std::size_t>(button));
 
         switch (action)
         {
@@ -425,8 +398,7 @@ namespace gfx::render
 
     void Window::windowFocusCallback(GLFWwindow* glfwWindow, int isFocused)
     {
-        gfx::render::Window* window =
-            static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         if (static_cast<bool>(isFocused))
         {
