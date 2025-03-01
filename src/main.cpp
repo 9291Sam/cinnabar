@@ -39,22 +39,83 @@ void main() {
 })";
 
 static const char* fragmentShader = R"(
+// #version 460
+
+// layout(location = 0) in vec3 fragColor;
+// layout(location = 0) out vec4 outColor;
+
+// void main() {
+//     outColor = vec4(fragColor, 1.0);
+// }
+// #version 460
+
+// #extension GL_EXT_nonuniform_qualifier : enable
+
+// layout(location = 0) in vec3 fragColor; // Use fragColor as UV coordinates
+// layout(location = 0) out vec4 outColor;
+
+// // Descriptor set 0, binding 0: an array of sampled textures (bindless)
+// layout(set = 0, binding = 0) uniform sampler2D textures[];
+
+// void main() {
+//     vec2 uv = fragColor.xy; // Use xy components as UV coordinates
+
+//     // Select textures dynamically
+//     int textureIndex1 = 0; 
+//     int textureIndex2 = 1;
+
+//     // Fetch colors from the two textures using non-uniform indexing
+//     vec4 color1 = texture(textures[textureIndex1], uv);
+//     vec4 color2 = texture(textures[textureIndex2], uv);
+
+//     // Blend the two textures (you can modify the blending logic)
+//     outColor = mix(color1, color2, 0.5);
+// }
+
 #version 460
+
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 0) out vec4 outColor;
 
+// Bindless storage buffer arrays (same binding for different types)
+layout(set = 0, binding = 0) readonly buffer BufferA {
+    float data[];
+} buffersA[]; // Array of descriptors at the same binding
+
+layout(set = 0, binding = 0) readonly buffer BufferB {
+    int data[];
+} buffersB[]; // Array of descriptors at the same binding
+
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    int index = int(fragColor.x * 255) % 256; // Generate an index from UVs
+
+    // Select buffers dynamically
+    int bufferIndexA = 0; // Choose a specific buffer from buffersA[]
+    int bufferIndexB = 1; // Choose a specific buffer from buffersB[]
+
+    // Read values from storage buffers using non-uniform indexing
+    float valueA = buffersA[bufferIndexA].data[index];
+    int valueB = buffersB[bufferIndexB].data[index];
+
+    // Normalize valueB for color usage
+    float normalizedB = clamp(valueB / 255.0, 0.0, 1.0);
+
+    // Compute final output color
+    outColor = vec4(valueA, normalizedB, 1.0 - normalizedB, 1.0);
 }
+
+
+
 )";
 
 std::unordered_map<vk::ShaderStageFlagBits, std::vector<u32>> loadShaders()
 {
     shaderc::CompileOptions options {};
     options.SetSourceLanguage(shaderc_source_language_glsl);
-    options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-    options.SetTargetSpirv(shaderc_spirv_version_1_6);
+    options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+    options.SetTargetSpirv(shaderc_spirv_version_1_5);
     options.SetOptimizationLevel(shaderc_optimization_level_performance);
     options.SetGenerateDebugInfo();
 
@@ -65,7 +126,10 @@ std::unordered_map<vk::ShaderStageFlagBits, std::vector<u32>> loadShaders()
         compiler.CompileGlslToSpv(fragmentShader, shaderc_fragment_shader, "", options);
 
     assert::critical(vertexShaderResult.GetCompilationStatus() == shaderc_compilation_status_success, "oops v");
-    assert::critical(fragmentShaderResult.GetCompilationStatus() == shaderc_compilation_status_success, "oops f");
+    if (fragmentShaderResult.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        assert::critical(false, "{}", fragmentShaderResult.GetErrorMessage());
+    }
 
     std::vector<u32> vertexData {std::from_range, vertexShaderResult};
     std::vector<u32> fragmentData {std::from_range, fragmentShaderResult};
@@ -188,12 +252,42 @@ int main()
             bool operator== (const CacheableGraphicsPipelineCreateInfo&) const = default;
         };
 
+        // Define descriptor set layout binding for storage buffers
+        VkDescriptorSetLayoutBinding bufferBinding {};
+        bufferBinding.binding            = 0; // Single binding for all buffers
+        bufferBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        bufferBinding.descriptorCount    = 1024; // Large enough for bindless access
+        bufferBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bufferBinding.pImmutableSamplers = nullptr;
+
+        // Enable descriptor indexing extensions
+        VkDescriptorBindingFlags bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT
+                                              | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT
+                                              | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo {};
+        bindingFlagsInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        bindingFlagsInfo.bindingCount  = 1;
+        bindingFlagsInfo.pBindingFlags = &bindingFlags;
+
+        // Create descriptor set layout
+        VkDescriptorSetLayoutCreateInfo setLayoutInfo {};
+        setLayoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        setLayoutInfo.bindingCount = 1;
+        setLayoutInfo.pBindings    = &bufferBinding;
+        setLayoutInfo.pNext        = &bindingFlagsInfo;
+        setLayoutInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+
+        vk::UniqueDescriptorSetLayout descriptorSetLayout =
+            renderer.getDevice()->getDevice().createDescriptorSetLayoutUnique(
+                std::bit_cast<vk::DescriptorSetLayoutCreateInfo>(setLayoutInfo));
+
         const vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {
             .sType {vk::StructureType::ePipelineLayoutCreateInfo},
             .pNext {nullptr},
             .flags {},
-            .setLayoutCount {0},
-            .pSetLayouts {nullptr},
+            .setLayoutCount {1},
+            .pSetLayouts {&*descriptorSetLayout},
             .pushConstantRangeCount {0},
             .pPushConstantRanges {nullptr},
         };

@@ -216,9 +216,34 @@ namespace gfx::render::vulkan
         features102.features.multiDrawIndirect        = vk::True;
         features102.features.fragmentStoresAndAtomics = vk::True;
 
+        vk::PhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures {
+            .sType {vk::StructureType::ePhysicalDeviceDescriptorIndexingFeatures},
+            .pNext {&features102},
+            .shaderInputAttachmentArrayDynamicIndexing {vk::False},
+            .shaderUniformTexelBufferArrayDynamicIndexing {vk::False},
+            .shaderStorageTexelBufferArrayDynamicIndexing {vk::False},
+            .shaderUniformBufferArrayNonUniformIndexing {vk::False},
+            .shaderSampledImageArrayNonUniformIndexing {vk::False},
+            .shaderStorageBufferArrayNonUniformIndexing {vk::False},
+            .shaderStorageImageArrayNonUniformIndexing {vk::False},
+            .shaderInputAttachmentArrayNonUniformIndexing {vk::False},
+            .shaderUniformTexelBufferArrayNonUniformIndexing {vk::False},
+            .shaderStorageTexelBufferArrayNonUniformIndexing {vk::False},
+            .descriptorBindingUniformBufferUpdateAfterBind {vk::False},
+            .descriptorBindingSampledImageUpdateAfterBind {vk::False},
+            .descriptorBindingStorageImageUpdateAfterBind {vk::False},
+            .descriptorBindingStorageBufferUpdateAfterBind {vk::True},
+            .descriptorBindingUniformTexelBufferUpdateAfterBind {vk::False},
+            .descriptorBindingStorageTexelBufferUpdateAfterBind {vk::False},
+            .descriptorBindingUpdateUnusedWhilePending {vk::False},
+            .descriptorBindingPartiallyBound {vk::False},
+            .descriptorBindingVariableDescriptorCount {vk::False},
+            .runtimeDescriptorArray {vk::False},
+        };
+
         vk::PhysicalDeviceSynchronization2Features featuresSync2 {};
         featuresSync2.sType            = vk::StructureType::ePhysicalDeviceSynchronization2Features;
-        featuresSync2.pNext            = &features102;
+        featuresSync2.pNext            = &descriptorIndexingFeatures;
         featuresSync2.synchronization2 = vk::True;
 
         const vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures {

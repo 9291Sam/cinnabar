@@ -2,6 +2,7 @@
 #include "gfx/render/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hpp_macros.hpp>
 
@@ -21,8 +22,11 @@ namespace gfx::render::vulkan
 {
 
     Instance::Instance()
-        : vulkan_api_version(vk::ApiVersion13)
+        : vulkan_api_version(vk::ApiVersion12)
     {
+        assert::critical(
+            this->vulkan_api_version >= vk::ApiVersion12,
+            "MoltenVK is Bugged, it will gladly load 1.3+ but it only works with 1.2");
         assert::critical(this->loader.success(), "Failed to load Vulkan, is it supported on your system?");
 
         // Initialize vulkan hpp's global state from the loader
