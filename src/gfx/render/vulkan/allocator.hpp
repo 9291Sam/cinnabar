@@ -210,7 +210,7 @@ namespace gfx::render::vulkan
 
         [[nodiscard]] VmaAllocator operator* () const;
 
-        void trimCaches() const;
+        void trimCachesAndUpdateGlobalDescriptorSet() const;
 
         [[nodiscard]] vk::DescriptorSet
              allocateDescriptorSet(vk::DescriptorSetLayout, const std::string& debugName) const;
