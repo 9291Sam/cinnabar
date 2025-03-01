@@ -194,8 +194,11 @@ namespace gfx::render::vulkan
         features12.timelineSemaphore                             = vk::True;
         features12.descriptorBindingPartiallyBound               = vk::True;
         features12.descriptorBindingUpdateUnusedWhilePending     = vk::True;
+        features12.descriptorBindingSampledImageUpdateAfterBind  = vk::True;
         features12.shaderSampledImageArrayNonUniformIndexing     = vk::True;
         features12.runtimeDescriptorArray                        = vk::True;
+        features12.descriptorBindingStorageImageUpdateAfterBind  = vk::True;
+        features12.descriptorBindingUniformBufferUpdateAfterBind = vk::True;
         features12.descriptorBindingVariableDescriptorCount      = vk::True;
         features12.hostQueryReset                                = vk::True;
         features12.bufferDeviceAddress                           = vk::True;

@@ -1,10 +1,12 @@
 #include "renderer.hpp"
+#include "gfx/render/vulkan/descriptor_manager.hpp"
 #include "util/threads.hpp"
 #include "vulkan/allocator.hpp"
 #include "vulkan/buffer.hpp"
 #include "vulkan/device.hpp"
 #include "vulkan/frame_manager.hpp"
 #include "vulkan/instance.hpp"
+#include "vulkan/pipeline_manager.hpp"
 #include "vulkan/swapchain.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
@@ -69,11 +71,14 @@ namespace gfx::render
             },
             vk::Extent2D {1920, 1080}, // NOLINT
             "cinnabar");
-        this->instance  = std::make_unique<vulkan::Instance>();
-        this->surface   = this->window->createSurface(**this->instance);
-        this->device    = std::make_unique<vulkan::Device>(**this->instance, *this->surface);
-        this->allocator = std::make_unique<vulkan::Allocator>(*this->instance, &*this->device);
-        this->stager    = std::make_unique<vulkan::BufferStager>(&*this->allocator);
+        this->instance           = std::make_unique<vulkan::Instance>();
+        this->surface            = this->window->createSurface(**this->instance);
+        this->device             = std::make_unique<vulkan::Device>(**this->instance, *this->surface);
+        this->allocator          = std::make_unique<vulkan::Allocator>(*this->instance, &*this->device);
+        this->stager             = std::make_unique<vulkan::BufferStager>(&*this->allocator);
+        this->descriptor_manager = std::make_unique<vulkan::DescriptorManager>(*this->device);
+        this->pipeline_manager   = std::make_unique<vulkan::PipelineManager>(
+            *this->device, this->descriptor_manager->getGlobalPipelineLayout());
 
         this->critical_section =
             util::Mutex {Renderer::makeCriticalSection(*this->device, *this->surface, *this->window)};
@@ -115,7 +120,8 @@ namespace gfx::render
                 }
             });
 
-        this->allocator->trimCaches();
+// this->allocator->trimCaches();
+#warning fix
 
         this->window->endFrame();
 
@@ -159,6 +165,16 @@ namespace gfx::render
     const vulkan::Allocator* Renderer::getAllocator() const noexcept
     {
         return &*this->allocator;
+    }
+
+    const vulkan::PipelineManager* Renderer::getPipelineManager() const noexcept
+    {
+        return &*this->pipeline_manager;
+    }
+
+    const vulkan::DescriptorManager* Renderer::getDescriptorManager() const noexcept
+    {
+        return &*this->descriptor_manager;
     }
 
     const vulkan::BufferStager& Renderer::getStager() const noexcept

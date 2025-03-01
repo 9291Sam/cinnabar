@@ -13,182 +13,122 @@
 
 VK_DEFINE_HANDLE(VmaAllocator)
 
-namespace gfx::render::vulkan
-{
+//     struct CacheablePipelineShaderStageCreateInfo
+//     {
+//         vk::ShaderStageFlagBits                 stage;
+//         std::shared_ptr<vk::UniqueShaderModule> shader;
+//         std::string                             entry_point;
 
-    struct CacheableDescriptorSetLayoutCreateInfo
-    {
-        std::vector<vk::DescriptorSetLayoutBinding> bindings;
-        std::string                                 name;
+//         bool operator== (const CacheablePipelineShaderStageCreateInfo&) const = default;
+//     };
 
-        bool operator== (const CacheableDescriptorSetLayoutCreateInfo&) const = default;
-    };
+//     struct CacheableGraphicsPipelineCreateInfo
+//     {
+//         std::shared_ptr<vk::UniqueShaderModule> vertex_shader;
+//         std::shared_ptr<vk::UniqueShaderModule> fragment_shader;
+//         vk::PrimitiveTopology                   topology;
+//         bool                                    discard_enable;
+//         vk::PolygonMode                         polygon_mode;
+//         vk::CullModeFlags                       cull_mode;
+//         vk::FrontFace                           front_face;
+//         bool                                    depth_test_enable;
+//         bool                                    depth_write_enable;
+//         vk::CompareOp                           depth_compare_op;
+//         vk::Format                              color_format;
+//         vk::Format                              depth_format;
+//         bool                                    blend_enable;
+//         std::string                             name;
 
-    struct CacheablePipelineLayoutCreateInfo
-    {
-        std::vector<std::shared_ptr<vk::UniqueDescriptorSetLayout>> descriptors;
-        std::optional<vk::PushConstantRange>                        push_constants;
-        std::string                                                 name;
+//         bool operator== (const CacheableGraphicsPipelineCreateInfo&) const = default;
+//     };
 
-        bool operator== (const CacheablePipelineLayoutCreateInfo&) const = default;
-    };
+//     // struct CacheableComputePipelineCreateInfo
+//     // {
+//     //     std::string                               entry_point;
+//     //     std::shared_ptr<vk::UniqueShaderModule>   shader;
+//     //     std::shared_ptr<vk::UniquePipelineLayout> layout;
+//     //     std::string                               name;
 
-    struct CacheablePipelineShaderStageCreateInfo
-    {
-        vk::ShaderStageFlagBits                 stage;
-        std::shared_ptr<vk::UniqueShaderModule> shader;
-        std::string                             entry_point;
+//     //     bool operator== (const CacheableComputePipelineCreateInfo&) const = default;
+//     // };
+// } // namespace gfx::render::vulkan
 
-        bool operator== (const CacheablePipelineShaderStageCreateInfo&) const = default;
-    };
+// template<>
+// struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
+// {
+//     std::size_t operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
+//     {
+//         std::size_t result = 5783547893548971;
 
-    struct CacheableGraphicsPipelineCreateInfo
-    {
-        std::vector<CacheablePipelineShaderStageCreateInfo> stages;
-        std::vector<vk::VertexInputAttributeDescription>    vertex_attributes;
-        std::vector<vk::VertexInputBindingDescription>      vertex_bindings;
-        vk::PrimitiveTopology                               topology;
-        bool                                                discard_enable;
-        vk::PolygonMode                                     polygon_mode;
-        vk::CullModeFlags                                   cull_mode;
-        vk::FrontFace                                       front_face;
-        bool                                                depth_test_enable;
-        bool                                                depth_write_enable;
-        vk::CompareOp                                       depth_compare_op;
-        vk::Format                                          color_format;
-        vk::Format                                          depth_format;
-        bool                                                blend_enable;
-        std::shared_ptr<vk::UniquePipelineLayout>           layout;
-        std::string                                         name;
+//         util::hashCombine(result, std::hash<std::string> {}(i.entry_point));
 
-        bool operator== (const CacheableGraphicsPipelineCreateInfo&) const = default;
-    };
+//         util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.shader)));
 
-    struct CacheableComputePipelineCreateInfo
-    {
-        std::string                               entry_point;
-        std::shared_ptr<vk::UniqueShaderModule>   shader;
-        std::shared_ptr<vk::UniquePipelineLayout> layout;
-        std::string                               name;
+//         util::hashCombine(result, std::hash<vk::ShaderStageFlagBits> {}(i.stage));
 
-        bool operator== (const CacheableComputePipelineCreateInfo&) const = default;
-    };
-} // namespace gfx::render::vulkan
+//         return result;
+//     }
+// };
 
-template<>
-struct std::hash<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo>
-{
-    std::size_t operator() (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i) const noexcept
-    {
-        std::size_t result = 1394897243;
+// template<>
+// struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
+// {
+//     std::size_t operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
+//     {
+//         std::size_t result = 5783547893548971;
 
-        for (const vk::DescriptorSetLayoutBinding& b : i.bindings)
-        {
-            util::hashCombine(result, std::hash<vk::DescriptorSetLayoutBinding> {}(b));
-        }
+//         for (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
+//         {
+//             util::hashCombine(result, std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
+//         }
 
-        util::hashCombine(result, std::hash<std::string> {}(i.name));
+//         for (const vk::VertexInputAttributeDescription& d : i.vertex_attributes)
+//         {
+//             util::hashCombine(result, std::hash<vk::VertexInputAttributeDescription> {}(d));
+//         }
 
-        return result;
-    }
-};
+//         for (const vk::VertexInputBindingDescription& d : i.vertex_bindings)
+//         {
+//             util::hashCombine(result, std::hash<vk::VertexInputBindingDescription> {}(d));
+//         }
 
-template<>
-struct std::hash<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo>
-{
-    std::size_t operator() (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i) const noexcept
-    {
-        std::size_t result = 5783547893548971;
+//         util::hashCombine(result, std::hash<vk::PrimitiveTopology> {}(i.topology));
+//         util::hashCombine(result, std::hash<bool> {}(i.discard_enable));
+//         util::hashCombine(result, std::hash<vk::PolygonMode> {}(i.polygon_mode));
+//         util::hashCombine(result, std::hash<vk::CullModeFlags> {}(i.cull_mode));
+//         util::hashCombine(result, std::hash<vk::FrontFace> {}(i.front_face));
+//         util::hashCombine(result, std::hash<bool> {}(i.depth_test_enable));
+//         util::hashCombine(result, std::hash<bool> {}(i.depth_write_enable));
+//         util::hashCombine(result, std::hash<vk::CompareOp> {}(i.depth_compare_op));
+//         util::hashCombine(result, std::hash<vk::Format> {}(i.color_format));
+//         util::hashCombine(result, std::hash<vk::Format> {}(i.depth_format));
+//         util::hashCombine(result, std::hash<bool> {}(i.blend_enable));
+//         util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.layout)));
 
-        for (const std::shared_ptr<vk::UniqueDescriptorSetLayout>& d : i.descriptors)
-        {
-            util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**d)));
-        }
+//         util::hashCombine(result, std::hash<std::string> {}(i.name));
 
-        util::hashCombine(result, std::hash<std::optional<vk::PushConstantRange>> {}(i.push_constants));
+//         return result;
+//     }
+// };
 
-        util::hashCombine(result, std::hash<std::string> {}(i.name));
+// template<>
+// struct std::hash<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
+// {
+//     std::size_t operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
+//     {
+//         std::size_t result = 5783547893548971;
 
-        return result;
-    }
-};
+//         util::hashCombine(result, std::hash<std::string> {}(i.entry_point));
 
-template<>
-struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
-{
-    std::size_t operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
-    {
-        std::size_t result = 5783547893548971;
+//         util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.layout)));
 
-        util::hashCombine(result, std::hash<std::string> {}(i.entry_point));
+//         util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.shader)));
 
-        util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.shader)));
+//         util::hashCombine(result, std::hash<std::string> {}(i.name));
 
-        util::hashCombine(result, std::hash<vk::ShaderStageFlagBits> {}(i.stage));
-
-        return result;
-    }
-};
-
-template<>
-struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
-{
-    std::size_t operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
-    {
-        std::size_t result = 5783547893548971;
-
-        for (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
-        {
-            util::hashCombine(result, std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
-        }
-
-        for (const vk::VertexInputAttributeDescription& d : i.vertex_attributes)
-        {
-            util::hashCombine(result, std::hash<vk::VertexInputAttributeDescription> {}(d));
-        }
-
-        for (const vk::VertexInputBindingDescription& d : i.vertex_bindings)
-        {
-            util::hashCombine(result, std::hash<vk::VertexInputBindingDescription> {}(d));
-        }
-
-        util::hashCombine(result, std::hash<vk::PrimitiveTopology> {}(i.topology));
-        util::hashCombine(result, std::hash<bool> {}(i.discard_enable));
-        util::hashCombine(result, std::hash<vk::PolygonMode> {}(i.polygon_mode));
-        util::hashCombine(result, std::hash<vk::CullModeFlags> {}(i.cull_mode));
-        util::hashCombine(result, std::hash<vk::FrontFace> {}(i.front_face));
-        util::hashCombine(result, std::hash<bool> {}(i.depth_test_enable));
-        util::hashCombine(result, std::hash<bool> {}(i.depth_write_enable));
-        util::hashCombine(result, std::hash<vk::CompareOp> {}(i.depth_compare_op));
-        util::hashCombine(result, std::hash<vk::Format> {}(i.color_format));
-        util::hashCombine(result, std::hash<vk::Format> {}(i.depth_format));
-        util::hashCombine(result, std::hash<bool> {}(i.blend_enable));
-        util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.layout)));
-
-        util::hashCombine(result, std::hash<std::string> {}(i.name));
-
-        return result;
-    }
-};
-
-template<>
-struct std::hash<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
-{
-    std::size_t operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
-    {
-        std::size_t result = 5783547893548971;
-
-        util::hashCombine(result, std::hash<std::string> {}(i.entry_point));
-
-        util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.layout)));
-
-        util::hashCombine(result, static_cast<std::size_t>(std::bit_cast<u64>(**i.shader)));
-
-        util::hashCombine(result, std::hash<std::string> {}(i.name));
-
-        return result;
-    }
-};
+//         return result;
+//     }
+// };
 
 namespace gfx::render::vulkan
 {
@@ -210,51 +150,33 @@ namespace gfx::render::vulkan
 
         [[nodiscard]] VmaAllocator operator* () const;
 
-        void trimCaches() const;
-
-        [[nodiscard]] vk::DescriptorSet
-             allocateDescriptorSet(vk::DescriptorSetLayout, const std::string& debugName) const;
-        void earlyDeallocateDescriptorSet(vk::DescriptorSet) const;
-
-        [[nodiscard]] std::shared_ptr<vk::UniqueDescriptorSetLayout>
-            cacheDescriptorSetLayout(CacheableDescriptorSetLayoutCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniquePipelineLayout>
-                                                          cachePipelineLayout(CacheablePipelineLayoutCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniquePipeline> cachePipeline(CacheableGraphicsPipelineCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniquePipeline> cachePipeline(CacheableComputePipelineCreateInfo) const;
-        [[nodiscard]] std::shared_ptr<vk::UniqueShaderModule>
-        cacheShaderModule(std::span<const std::byte>, std::string debugName) const;
-
-        [[nodiscard]] std::shared_ptr<vk::UniquePipelineLayout> lookupPipelineLayout(vk::Pipeline) const;
-        [[nodiscard]] vk::PipelineBindPoint                     lookupPipelineBindPoint(vk::Pipeline) const;
-
         const Device*      getDevice() const;
         vk::DescriptorPool getRawPool() const;
         vk::PipelineCache  getRawCache() const;
 
     private:
-        const Device*            device;
-        VmaAllocator             allocator;
-        vk::UniqueDescriptorPool descriptor_pool;
-        vk::UniquePipelineCache  pipeline_cache;
-        util::Mutex<
-            std::unordered_map<CacheableDescriptorSetLayoutCreateInfo, std::shared_ptr<vk::UniqueDescriptorSetLayout>>>
-            descriptor_set_layout_cache;
+        const Device* device;
+        VmaAllocator  allocator;
+        // vk::UniqueDescriptorPool descriptor_pool;
+        // vk::UniquePipelineCache pipeline_cache;
+        // util::Mutex<
+        //     std::unordered_map<CacheableDescriptorSetLayoutCreateInfo,
+        //     std::shared_ptr<vk::UniqueDescriptorSetLayout>>> descriptor_set_layout_cache;
 
-        util::Mutex<std::unordered_map<CacheablePipelineLayoutCreateInfo, std::shared_ptr<vk::UniquePipelineLayout>>>
-            pipeline_layout_cache;
+        // util::Mutex<std::unordered_map<CacheablePipelineLayoutCreateInfo, std::shared_ptr<vk::UniquePipelineLayout>>>
+        //     pipeline_layout_cache;
 
-        util::Mutex<
-            std::unordered_map<vk::Pipeline, std::pair<std::weak_ptr<vk::UniquePipelineLayout>, vk::PipelineBindPoint>>>
-            pipeline_layout_and_bind_lookup;
+        // util::Mutex<
+        //     std::unordered_map<vk::Pipeline, std::pair<std::weak_ptr<vk::UniquePipelineLayout>,
+        //     vk::PipelineBindPoint>>> pipeline_layout_and_bind_lookup;
 
-        util::Mutex<std::unordered_map<CacheableGraphicsPipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
-            graphics_pipeline_cache;
+        // util::Mutex<std::unordered_map<CacheableGraphicsPipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
+        //     graphics_pipeline_cache;
 
-        util::Mutex<std::unordered_map<CacheableComputePipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
-            compute_pipeline_cache;
+        // util::Mutex<std::unordered_map<CacheableComputePipelineCreateInfo, std::shared_ptr<vk::UniquePipeline>>>
+        //     compute_pipeline_cache;
 
-        util::Mutex<std::unordered_map<std::string, std::shared_ptr<vk::UniqueShaderModule>>> shader_module_cache;
+        // util::Mutex<std::unordered_map<std::string, std::shared_ptr<vk::UniqueShaderModule>>> shader_module_cache;
     };
 
 } // namespace gfx::render::vulkan

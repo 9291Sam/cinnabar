@@ -1,7 +1,7 @@
 #pragma once
 
 #include "util/util.hpp"
-#include "vulkan/buffer.hpp"
+#include "vulkan/buffer.hpp" // TODO: get rid of this include
 #include <functional>
 #include <memory>
 #include <util/threads.hpp>
@@ -18,6 +18,8 @@ namespace gfx::render
         class Allocator;
         class FrameManager;
         class Swapchain;
+        class PipelineManager;
+        class DescriptorManager;
     } // namespace vulkan
 
     class Renderer
@@ -40,13 +42,16 @@ namespace gfx::render
         bool recordOnThread(std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;
 
-        [[nodiscard]] const vulkan::Instance*     getInstance() const noexcept;
-        [[nodiscard]] const vulkan::Device*       getDevice() const noexcept;
-        [[nodiscard]] const vulkan::Allocator*    getAllocator() const noexcept;
-        [[nodiscard]] const Window*               getWindow() const noexcept;
-        [[nodiscard]] const vulkan::BufferStager& getStager() const noexcept;
-        [[nodiscard]] u32                         getFrameNumber() const noexcept;
-        [[nodiscard]] float                       getTimeAlive() const noexcept;
+        // TODO: replace all of these functions with ones that pass through to the underlying thing to make an RHI
+        [[nodiscard]] const vulkan::Instance*          getInstance() const noexcept;
+        [[nodiscard]] const vulkan::Device*            getDevice() const noexcept;
+        [[nodiscard]] const vulkan::Allocator*         getAllocator() const noexcept;
+        [[nodiscard]] const vulkan::DescriptorManager* getDescriptorManager() const noexcept;
+        [[nodiscard]] const vulkan::PipelineManager*   getPipelineManager() const noexcept;
+        [[nodiscard]] const Window*                    getWindow() const noexcept;
+        [[nodiscard]] const vulkan::BufferStager&      getStager() const noexcept;
+        [[nodiscard]] u32                              getFrameNumber() const noexcept;
+        [[nodiscard]] float                            getTimeAlive() const noexcept;
 
     private:
         struct RenderingCriticalSection
@@ -60,11 +65,13 @@ namespace gfx::render
 
         std::unique_ptr<Window> window;
 
-        std::unique_ptr<vulkan::Instance>     instance;
-        vk::UniqueSurfaceKHR                  surface;
-        std::unique_ptr<vulkan::Device>       device;
-        std::unique_ptr<vulkan::Allocator>    allocator;
-        std::unique_ptr<vulkan::BufferStager> stager;
+        std::unique_ptr<vulkan::Instance>          instance;
+        vk::UniqueSurfaceKHR                       surface;
+        std::unique_ptr<vulkan::Device>            device;
+        std::unique_ptr<vulkan::Allocator>         allocator;
+        std::unique_ptr<vulkan::BufferStager>      stager;
+        std::unique_ptr<vulkan::DescriptorManager> descriptor_manager;
+        std::unique_ptr<vulkan::PipelineManager>   pipeline_manager;
 
         util::Mutex<std::unique_ptr<RenderingCriticalSection>> critical_section;
 

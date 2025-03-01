@@ -34,6 +34,7 @@ add_executable(cinnabar
     src/gfx/render/vulkan/frame_manager.cpp
     src/gfx/render/vulkan/image.cpp
     src/gfx/render/vulkan/instance.cpp
+    src/gfx/render/vulkan/pipeline_manager.cpp
     src/gfx/render/vulkan/swapchain.cpp
 
     src/gfx/render/renderer.cpp
