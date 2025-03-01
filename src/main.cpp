@@ -39,14 +39,14 @@ void main() {
 })";
 
 static const char* fragmentShader = R"(
-// #version 460
+#version 460
 
-// layout(location = 0) in vec3 fragColor;
-// layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec3 fragColor;
+layout(location = 0) out vec4 outColor;
 
-// void main() {
-//     outColor = vec4(fragColor, 1.0);
-// }
+void main() {
+    outColor = vec4(fragColor, 1.0);
+}
 // #version 460
 
 // #extension GL_EXT_nonuniform_qualifier : enable
@@ -72,39 +72,39 @@ static const char* fragmentShader = R"(
 //     outColor = mix(color1, color2, 0.5);
 // }
 
-#version 460
+// #version 460
 
-#extension GL_EXT_nonuniform_qualifier : enable
+// #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 0) out vec4 outColor;
+// layout(location = 0) in vec3 fragColor;
+// layout(location = 0) out vec4 outColor;
 
-// Bindless storage buffer arrays (same binding for different types)
-layout(set = 0, binding = 0) readonly buffer BufferA {
-    float data[];
-} buffersA[]; // Array of descriptors at the same binding
+// // Bindless storage buffer arrays (same binding for different types)
+// layout(set = 0, binding = 0) readonly buffer BufferA {
+//     float data[];
+// } buffersA[]; // Array of descriptors at the same binding
 
-layout(set = 0, binding = 0) readonly buffer BufferB {
-    int data[];
-} buffersB[]; // Array of descriptors at the same binding
+// layout(set = 0, binding = 0) readonly buffer BufferB {
+//     int data[];
+// } buffersB[]; // Array of descriptors at the same binding
 
-void main() {
-    int index = int(fragColor.x * 255) % 256; // Generate an index from UVs
+// void main() {
+//     int index = int(fragColor.x * 255) % 256; // Generate an index from UVs
 
-    // Select buffers dynamically
-    int bufferIndexA = 0; // Choose a specific buffer from buffersA[]
-    int bufferIndexB = 1; // Choose a specific buffer from buffersB[]
+//     // Select buffers dynamically
+//     int bufferIndexA = 0; // Choose a specific buffer from buffersA[]
+//     int bufferIndexB = 1; // Choose a specific buffer from buffersB[]
 
-    // Read values from storage buffers using non-uniform indexing
-    float valueA = buffersA[bufferIndexA].data[index];
-    int valueB = buffersB[bufferIndexB].data[index];
+//     // Read values from storage buffers using non-uniform indexing
+//     float valueA = buffersA[bufferIndexA].data[index];
+//     int valueB = buffersB[bufferIndexB].data[index];
 
-    // Normalize valueB for color usage
-    float normalizedB = clamp(valueB / 255.0, 0.0, 1.0);
+//     // Normalize valueB for color usage
+//     float normalizedB = clamp(valueB / 255.0, 0.0, 1.0);
 
-    // Compute final output color
-    outColor = vec4(valueA, normalizedB, 1.0 - normalizedB, 1.0);
-}
+//     // Compute final output color
+//     outColor = vec4(valueA, normalizedB, 1.0 - normalizedB, 1.0);
+// }
 
 
 

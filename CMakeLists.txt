@@ -29,6 +29,7 @@ find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 add_executable(cinnabar
     src/gfx/render/vulkan/allocator.cpp
     src/gfx/render/vulkan/buffer.cpp
+    src/gfx/render/vulkan/descriptor_manager.cpp
     src/gfx/render/vulkan/device.cpp
     src/gfx/render/vulkan/frame_manager.cpp
     src/gfx/render/vulkan/image.cpp

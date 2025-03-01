@@ -1,45 +1,49 @@
 #pragma once
 
+#include "util/allocators/index_allocator.hpp"
+#include "util/threads.hpp"
 #include "util/util.hpp"
+#include <source_location>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 
 namespace gfx::render::vulkan
 {
+    class Device;
 
-    // Primary template (undefined to catch invalid cases early)
     template<vk::DescriptorType D>
-    struct DescriptorTypeMap;
+    struct RegisterDescriptorArgs;
 
-    // Specializations for valid descriptor types
     template<>
-    struct DescriptorTypeMap<vk::DescriptorType::eSampler>
+    struct RegisterDescriptorArgs<vk::DescriptorType::eSampler>
     {
-        using Type = vk::Sampler;
+        vk::Sampler sampler;
     };
 
     template<>
-    struct DescriptorTypeMap<vk::DescriptorType::eSampledImage>
+    struct RegisterDescriptorArgs<vk::DescriptorType::eSampledImage>
     {
-        using Type = vk::Image;
+        vk::ImageView   view;
+        vk::ImageLayout layout;
     };
 
     template<>
-    struct DescriptorTypeMap<vk::DescriptorType::eStorageImage>
+    struct RegisterDescriptorArgs<vk::DescriptorType::eStorageImage>
     {
-        using Type = vk::Image;
+        vk::ImageView   view;
+        vk::ImageLayout layout;
     };
 
     template<>
-    struct DescriptorTypeMap<vk::DescriptorType::eUniformBuffer>
+    struct RegisterDescriptorArgs<vk::DescriptorType::eUniformBuffer>
     {
-        using Type = vk::Buffer;
+        vk::Buffer buffer;
     };
 
     template<>
-    struct DescriptorTypeMap<vk::DescriptorType::eStorageBuffer>
+    struct RegisterDescriptorArgs<vk::DescriptorType::eStorageBuffer>
     {
-        using Type = vk::Buffer;
+        vk::Buffer buffer;
     };
 
     template<vk::DescriptorType D>
@@ -50,7 +54,7 @@ namespace gfx::render::vulkan
     class DescriptorHandle
     {
     public:
-        using DescriptorType = DescriptorTypeMap<D>::Type;
+        using StorageType = u8;
     public:
         ~DescriptorHandle() = default;
 
@@ -59,32 +63,48 @@ namespace gfx::render::vulkan
         DescriptorHandle& operator= (const DescriptorHandle&) = default;
         DescriptorHandle& operator= (DescriptorHandle&&)      = default;
 
-        [[nodiscard]] u8 getOffset() const;
+        [[nodiscard]] u8 getOffset() const
+        {
+            return this->data;
+        }
     private:
-        explicit DescriptorHandle(u8 offset);
+        friend class DescriptorManager;
+        explicit DescriptorHandle(u8 offset)
+            : data {offset}
+        {}
 
         u8 data;
     };
 
-    static_assert(std::is_same_v<DescriptorHandle<vk::DescriptorType::eSampler>::DescriptorType, vk::Sampler>);
-    static_assert(std::is_same_v<DescriptorHandle<vk::DescriptorType::eSampledImage>::DescriptorType, vk::Image>);
-    static_assert(std::is_same_v<DescriptorHandle<vk::DescriptorType::eStorageImage>::DescriptorType, vk::Image>);
-    static_assert(std::is_same_v<DescriptorHandle<vk::DescriptorType::eUniformBuffer>::DescriptorType, vk::Buffer>);
-    static_assert(std::is_same_v<DescriptorHandle<vk::DescriptorType::eStorageBuffer>::DescriptorType, vk::Buffer>);
+    class DescriptorManager
+    {
+    public:
+        explicit DescriptorManager(const Device&);
+        ~DescriptorManager() = default;
 
-    // class DescriptorManager
-    // {
-    // public:
-    //     DescriptorManager(...);
-    //     ~DescriptorManager() = default;
+        DescriptorManager(const DescriptorManager&)             = delete;
+        DescriptorManager(DescriptorManager&&)                  = default;
+        DescriptorManager& operator= (const DescriptorManager&) = delete;
+        DescriptorManager& operator= (DescriptorManager&&)      = default;
 
-    //     DescriptorManager(const DescriptorManager&)             = default;
-    //     DescriptorManager(DescriptorManager&&)                  = default;
-    //     DescriptorManager& operator= (const DescriptorManager&) = default;
-    //     DescriptorManager& operator= (DescriptorManager&&)      = default;
+        [[nodiscard]] vk::DescriptorSet  getGlobalDescriptorSet() const;
+        [[nodiscard]] vk::PipelineLayout getGlobalPipelineLayout() const;
 
-    //     void                allocateDescriptor template<vk::DescriptorType D>
-    //     DescriptorHandle<D> registerDescriptor()
-    // };
+        template<vk::DescriptorType D>
+        DescriptorHandle<D> registerDescriptor(RegisterDescriptorArgs<D>, std::source_location) const;
+
+        template<vk::DescriptorType D>
+        void deregisterDescriptor(DescriptorHandle<D>) const;
+
+    private:
+        vk::Device device;
+
+        vk::UniqueDescriptorPool      bindless_descriptor_pool;
+        vk::UniqueDescriptorSetLayout bindless_descriptor_set_layout;
+        vk::UniquePipelineLayout      bindless_pipeline_layout;
+        vk::DescriptorSet             bindless_descriptor_set;
+
+        util::Mutex<std::unordered_map<vk::DescriptorType, util::IndexAllocator>> binding_allocators;
+    };
 
 } // namespace gfx::render::vulkan
