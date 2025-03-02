@@ -2,6 +2,7 @@
 #include "gfx/render/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <cstring>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hpp_macros.hpp>
@@ -106,22 +107,30 @@ namespace gfx::render::vulkan
                 const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
                 void*) -> vk::Bool32
         {
-            switch (messageSeverity)
+            const usize      len = std::strlen(pCallbackData->pMessage);
+            std::string_view message {pCallbackData->pMessage, len};
+
+            using namespace std::literals;
+
+            if (!message.starts_with("loader_get_json: Failed to open JSON file"sv))
             {
-            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-                log::trace("{}", pCallbackData->pMessage);
-                break;
-            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-                log::info("{}", pCallbackData->pMessage);
-                break;
-            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-                log::warn("{}", pCallbackData->pMessage);
-                break;
-            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-                log::error("{}", pCallbackData->pMessage);
-                break;
-            default:
-                break;
+                switch (messageSeverity)
+                {
+                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+                    log::trace("{}", message);
+                    break;
+                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+                    log::info("{}", message);
+                    break;
+                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+                    log::warn("{}", message);
+                    break;
+                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+                    log::error("{}", message);
+                    break;
+                default:
+                    break;
+                }
             }
 
             return vk::False;

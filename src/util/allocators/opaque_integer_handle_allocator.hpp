@@ -2,6 +2,7 @@
 
 #include "index_allocator.hpp"
 #include "util/logger.hpp"
+#include <array>
 #include <compare>
 #include <cstring>
 #include <source_location>

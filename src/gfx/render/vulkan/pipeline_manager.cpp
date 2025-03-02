@@ -3,6 +3,8 @@
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
+#include <filesystem>
+#include <fstream>
 #include <shaderc/shaderc.h>
 #include <shaderc/shaderc.hpp>
 #include <shaderc/status.h>
@@ -77,7 +79,7 @@ namespace gfx::render::vulkan
     }
 
     vk::UniqueShaderModule
-    PipelineManager::createShaderModuleFromShaderPath(std::string_view path, vk::ShaderStageFlags) const
+    PipelineManager::createShaderModuleFromShaderPath(std::string_view shaderString, vk::ShaderStageFlags) const
     {
         shaderc::CompileOptions options {};
         options.SetSourceLanguage(shaderc_source_language_glsl);
@@ -94,114 +96,13 @@ namespace gfx::render::vulkan
             options.SetOptimizationLevel(shaderc_optimization_level_performance);
         }
 
-        static const char* vertexShader = R"(
-            #version 460
-            
-            layout(location = 0) out vec3 fragColor;
-            
-            vec3 positions[3] = vec3[](
-                vec3( 0.0,  0.5, 0.0),  // Top
-                vec3(-0.5, -0.5, 0.0),  // Bottom left
-                vec3( 0.5, -0.5, 0.0)   // Bottom right
-            );
-            
-            vec3 colors[3] = vec3[](
-                vec3(1.0, 0.0, 0.0), // Red
-                vec3(0.0, 1.0, 0.0), // Green
-                vec3(0.0, 0.0, 1.0)  // Blue
-            );
-            
-            void main() {
-                gl_Position = vec4(positions[gl_VertexIndex], 1.0);
-                fragColor = colors[gl_VertexIndex];
-            })";
-
-        static const char* fragmentShader = R"(
-            #version 460
-            
-            layout(location = 0) in vec3 fragColor;
-            layout(location = 0) out vec4 outColor;
-            
-            void main() {
-                outColor = vec4(fragColor, 1.0);
-            }
-            // #version 460
-            
-            // #extension GL_EXT_nonuniform_qualifier : enable
-            
-            // layout(location = 0) in vec3 fragColor; // Use fragColor as UV coordinates
-            // layout(location = 0) out vec4 outColor;
-            
-            // // Descriptor set 0, binding 0: an array of sampled textures (bindless)
-            // layout(set = 0, binding = 0) uniform sampler2D textures[];
-            
-            // void main() {
-            //     vec2 uv = fragColor.xy; // Use xy components as UV coordinates
-            
-            //     // Select textures dynamically
-            //     int textureIndex1 = 0; 
-            //     int textureIndex2 = 1;
-            
-            //     // Fetch colors from the two textures using non-uniform indexing
-            //     vec4 color1 = texture(textures[textureIndex1], uv);
-            //     vec4 color2 = texture(textures[textureIndex2], uv);
-            
-            //     // Blend the two textures (you can modify the blending logic)
-            //     outColor = mix(color1, color2, 0.5);
-            // }
-            
-            // #version 460
-            
-            // #extension GL_EXT_nonuniform_qualifier : enable
-            
-            // layout(location = 0) in vec3 fragColor;
-            // layout(location = 0) out vec4 outColor;
-            
-            // // Bindless storage buffer arrays (same binding for different types)
-            // layout(set = 0, binding = 0) readonly buffer BufferA {
-            //     float data[];
-            // } buffersA[]; // Array of descriptors at the same binding
-            
-            // layout(set = 0, binding = 0) readonly buffer BufferB {
-            //     int data[];
-            // } buffersB[]; // Array of descriptors at the same binding
-            
-            // void main() {
-            //     int index = int(fragColor.x * 255) % 256; // Generate an index from UVs
-            
-            //     // Select buffers dynamically
-            //     int bufferIndexA = 0; // Choose a specific buffer from buffersA[]
-            //     int bufferIndexB = 1; // Choose a specific buffer from buffersB[]
-            
-            //     // Read values from storage buffers using non-uniform indexing
-            //     float valueA = buffersA[bufferIndexA].data[index];
-            //     int valueB = buffersB[bufferIndexB].data[index];
-            
-            //     // Normalize valueB for color usage
-            //     float normalizedB = clamp(valueB / 255.0, 0.0, 1.0);
-            
-            //     // Compute final output color
-            //     outColor = vec4(valueA, normalizedB, 1.0 - normalizedB, 1.0);
-            // }
-            
-            
-            
-            )";
-
-        std::string         source {};
         shaderc_shader_kind kind {};
-
-        // TODO: properly handle filesystem things / includes
-        log::warn("properly implement shader file system things!");
-        if (path == "triangle.vert")
+        if (shaderString.ends_with("vert"))
         {
-            source = vertexShader;
-            kind   = shaderc_vertex_shader;
+            kind = shaderc_vertex_shader;
         }
-        else if (path == "triangle.frag")
+        else if (shaderString.ends_with("frag"))
         {
-            source = fragmentShader;
-
             kind = shaderc_fragment_shader;
         }
         else
@@ -209,7 +110,29 @@ namespace gfx::render::vulkan
             panic("unsupported!");
         }
 
-        shaderc::SpvCompilationResult compileResult = this->shader_compiler.CompileGlslToSpv(source, kind, "");
+        using namespace std::literals;
+
+        const std::string_view prepend {"../src/gfx/shaders/"sv};
+        const std::string      shader {shaderString};
+
+        const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / shader};
+        const std::filesystem::path canonicalPath {std::filesystem::canonical(totalPath)};
+
+        // log::trace("loading {}", canonicalPath.string());
+
+        std::ifstream inFile;
+        inFile.open(canonicalPath);
+
+        assert::critical(!inFile.fail(), "oop");
+
+        std::stringstream strStream;
+        strStream << inFile.rdbuf();
+        std::string source = strStream.str();
+
+        // log::trace("loaded shader |{}|", source);
+
+        shaderc::SpvCompilationResult compileResult =
+            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shader.c_str());
 
         assert::critical(
             compileResult.GetCompilationStatus() == shaderc_compilation_status_success,

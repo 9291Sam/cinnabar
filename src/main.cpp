@@ -111,15 +111,15 @@ int main()
             renderer.getPipelineManager()->createGraphicsPipeline(gfx::render::vulkan::GraphicsPipelineDescriptor {
                 .vertex_shader_path {"triangle.vert"},
                 .fragment_shader_path {"triangle.frag"},
-                .topology {vk::PrimitiveTopology::eTriangleList},
-                .polygon_mode {vk::PolygonMode::eFill},
+                .topology {vk::PrimitiveTopology::eTriangleList}, // remove
+                .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
                 .cull_mode {vk::CullModeFlagBits::eNone},
-                .front_face {vk::FrontFace::eClockwise},
+                .front_face {vk::FrontFace::eClockwise}, // remove
                 .depth_test_enable {vk::False},
                 .depth_write_enable {vk::False},
-                .depth_compare_op {},
+                .depth_compare_op {}, // remove
                 .color_format {gfx::render::Renderer::ColorFormat.format},
-                .depth_format {},
+                .depth_format {}, // remove lmao?
                 .blend_enable {vk::True},
                 .name {"hacky triangle pipeline"},
             });
