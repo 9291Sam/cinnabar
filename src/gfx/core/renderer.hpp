@@ -8,7 +8,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::render
+namespace gfx::core
 {
     class Window;
 
@@ -92,4 +92,4 @@ namespace gfx::render
         mutable std::atomic<float> time_alive;
         mutable std::atomic<u32>   frame_number;
     };
-} // namespace gfx::render
+} // namespace gfx::core

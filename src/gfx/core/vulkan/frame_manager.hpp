@@ -1,14 +1,14 @@
 #pragma once
 
 #include "device.hpp"
-#include "gfx/render/vulkan/buffer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include <chrono>
 #include <cstddef>
 #include <functional>
 #include <vulkan/vulkan_format_traits.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Device;
 
@@ -73,4 +73,4 @@ namespace gfx::render::vulkan
         std::size_t                       flying_frame_index;
     };
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

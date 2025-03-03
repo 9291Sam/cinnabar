@@ -51,12 +51,12 @@ VK_DEFINE_HANDLE(VmaAllocator)
 
 //     //     bool operator== (const CacheableComputePipelineCreateInfo&) const = default;
 //     // };
-// } // namespace gfx::render::vulkan
+// } // namespace gfx::core::vulkan
 
 // template<>
-// struct std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo>
+// struct std::hash<gfx::core::vulkan::CacheablePipelineShaderStageCreateInfo>
 // {
-//     std::size_t operator() (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
+//     std::size_t operator() (const gfx::core::vulkan::CacheablePipelineShaderStageCreateInfo& i) const noexcept
 //     {
 //         std::size_t result = 5783547893548971;
 
@@ -71,15 +71,15 @@ VK_DEFINE_HANDLE(VmaAllocator)
 // };
 
 // template<>
-// struct std::hash<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo>
+// struct std::hash<gfx::core::vulkan::CacheableGraphicsPipelineCreateInfo>
 // {
-//     std::size_t operator() (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
+//     std::size_t operator() (const gfx::core::vulkan::CacheableGraphicsPipelineCreateInfo& i) const noexcept
 //     {
 //         std::size_t result = 5783547893548971;
 
-//         for (const gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
+//         for (const gfx::core::vulkan::CacheablePipelineShaderStageCreateInfo& d : i.stages)
 //         {
-//             util::hashCombine(result, std::hash<gfx::render::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
+//             util::hashCombine(result, std::hash<gfx::core::vulkan::CacheablePipelineShaderStageCreateInfo> {}(d));
 //         }
 
 //         for (const vk::VertexInputAttributeDescription& d : i.vertex_attributes)
@@ -112,9 +112,9 @@ VK_DEFINE_HANDLE(VmaAllocator)
 // };
 
 // template<>
-// struct std::hash<gfx::render::vulkan::CacheableComputePipelineCreateInfo>
+// struct std::hash<gfx::core::vulkan::CacheableComputePipelineCreateInfo>
 // {
-//     std::size_t operator() (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
+//     std::size_t operator() (const gfx::core::vulkan::CacheableComputePipelineCreateInfo& i) const noexcept
 //     {
 //         std::size_t result = 5783547893548971;
 
@@ -130,7 +130,7 @@ VK_DEFINE_HANDLE(VmaAllocator)
 //     }
 // };
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Instance;
     class Device;
@@ -179,4 +179,4 @@ namespace gfx::render::vulkan
         // util::Mutex<std::unordered_map<std::string, std::shared_ptr<vk::UniqueShaderModule>>> shader_module_cache;
     };
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

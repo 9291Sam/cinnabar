@@ -4,7 +4,7 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Device;
 
@@ -32,4 +32,4 @@ namespace gfx::render::vulkan
         vk::UniqueSwapchainKHR           swapchain;
         vk::Extent2D                     extent;
     };
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

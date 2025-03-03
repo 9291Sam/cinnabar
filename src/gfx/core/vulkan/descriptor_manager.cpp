@@ -10,7 +10,7 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
 
     static constexpr std::array<vk::DescriptorType, 5> SupportedDescriptors {
@@ -295,4 +295,4 @@ namespace gfx::render::vulkan
 
 #undef INSTANTIATE_DEREGISTER_DESCRIPTOR
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

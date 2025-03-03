@@ -8,7 +8,7 @@
 #include <utility>
 #include <vulkan/vulkan.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Device
     {
@@ -83,4 +83,4 @@ namespace gfx::render::vulkan
         bool                   is_physical_device_amd;
         vk::UniqueDevice       device;
     };
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

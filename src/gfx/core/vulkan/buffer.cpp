@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <vulkan/vulkan_enums.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     std::atomic<std::size_t> bufferBytesAllocated = 0; // NOLINT
 
@@ -182,4 +182,4 @@ namespace gfx::render::vulkan
         return {this->allocated.load(), StagingBufferSize};
     }
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

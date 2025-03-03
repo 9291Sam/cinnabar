@@ -13,7 +13,7 @@
 #include <thread>
 #include <utility>
 
-namespace gfx::render
+namespace gfx::core
 {
     Window::Window(const std::map<Action, ActionInformation>& keyInformationMap, vk::Extent2D size, const char* name)
         : window {nullptr}
@@ -305,7 +305,7 @@ namespace gfx::render
         int                  inputAction, // NOLINT
         [[maybe_unused]] int mods)        // NOLINT
     {
-        gfx::render::Window* const window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* const window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         if (!window->key_to_actions_map.contains(key))
         {
@@ -342,7 +342,7 @@ namespace gfx::render
 
     void Window::frameBufferResizeCallback(GLFWwindow* glfwWindow, int newWidth, int newHeight)
     {
-        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         window->framebuffer_size.store(
             vk::Extent2D {.width {static_cast<u32>(newWidth)}, .height {static_cast<u32>(newHeight)}},
@@ -351,7 +351,7 @@ namespace gfx::render
 
     void Window::mouseScrollCallback(GLFWwindow* glfwWindow, double x, double y)
     {
-        gfx::render::Window* const window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* const window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         window->absolute_scroll_position.store(window->absolute_scroll_position.load() + glm::dvec2 {x, y});
     }
@@ -362,7 +362,7 @@ namespace gfx::render
         int                  action,    // NOLINT
         [[maybe_unused]] int modifiers) // NOLINT
     {
-        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         std::atomic<bool>& buttonToModify = window->mouse_buttons_pressed_state.at(static_cast<std::size_t>(button));
 
@@ -398,7 +398,7 @@ namespace gfx::render
 
     void Window::windowFocusCallback(GLFWwindow* glfwWindow, int isFocused)
     {
-        gfx::render::Window* window = static_cast<gfx::render::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
         if (static_cast<bool>(isFocused))
         {
@@ -411,4 +411,4 @@ namespace gfx::render
         log::warn("GLFW Error raised! | Code: {} | {}", errorCode, message);
     }
 
-} // namespace gfx::render
+} // namespace gfx::core

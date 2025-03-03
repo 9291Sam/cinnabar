@@ -1,6 +1,6 @@
 #include "swapchain.hpp"
 #include "device.hpp"
-#include "gfx/render/renderer.hpp"
+#include "gfx/core/renderer.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <vulkan/vulkan.hpp>
@@ -9,7 +9,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     Swapchain::Swapchain(const Device& device, vk::SurfaceKHR surface, vk::Extent2D extent_)
         : extent {extent_}
@@ -173,4 +173,4 @@ namespace gfx::render::vulkan
     {
         return Renderer::ColorFormat.format;
     }
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

@@ -5,7 +5,7 @@
 VK_DEFINE_HANDLE(VmaAllocation)
 VK_DEFINE_HANDLE(VmaAllocator)
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Allocator;
     class Device;
@@ -54,4 +54,4 @@ namespace gfx::render::vulkan
         vk::UniqueImageView view;
     }; // class Image2D
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

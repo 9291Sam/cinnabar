@@ -10,7 +10,7 @@
 
 struct GLFWwindow;
 
-namespace gfx::render
+namespace gfx::core
 {
     namespace recordables
     {
@@ -120,4 +120,4 @@ namespace gfx::render
         std::atomic<glm::dvec2>          absolute_scroll_position;
         std::atomic<Delta>               scroll_delta;
     };
-} // namespace gfx::render
+} // namespace gfx::core

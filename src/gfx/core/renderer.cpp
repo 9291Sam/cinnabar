@@ -1,5 +1,5 @@
 #include "renderer.hpp"
-#include "gfx/render/vulkan/descriptor_manager.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "util/threads.hpp"
 #include "vulkan/allocator.hpp"
 #include "vulkan/buffer.hpp"
@@ -15,7 +15,7 @@
 #include <memory>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::render
+namespace gfx::core
 {
 
     Renderer::Renderer()
@@ -196,4 +196,4 @@ namespace gfx::render
     {
         return this->time_alive.load(std::memory_order_seq_cst);
     }
-} // namespace gfx::render
+} // namespace gfx::core

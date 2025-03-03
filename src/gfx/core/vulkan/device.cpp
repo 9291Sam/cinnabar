@@ -9,7 +9,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     Device::Device(vk::Instance instance, vk::SurfaceKHR surface) // NOLINT
     {
@@ -367,4 +367,4 @@ namespace gfx::render::vulkan
     {
         return &*this->device;
     }
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

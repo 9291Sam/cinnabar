@@ -1,5 +1,5 @@
 #include "pipeline_manager.hpp"
-#include "gfx/render/vulkan/device.hpp"
+#include "gfx/core/vulkan/device.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
@@ -12,7 +12,7 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
 
     static constexpr u32 MaxPipelines = 512;
@@ -334,4 +334,4 @@ namespace gfx::render::vulkan
         return std::move(maybeUniquePipeline);
     }
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

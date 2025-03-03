@@ -1,7 +1,7 @@
 #include "frame_manager.hpp"
 #include "device.hpp"
-#include "gfx/render/vulkan/buffer.hpp"
-#include "gfx/render/vulkan/frame_manager.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
+#include "gfx/core/vulkan/frame_manager.hpp"
 #include "util/util.hpp"
 #include <expected>
 #include <glm/gtc/type_ptr.hpp>
@@ -12,7 +12,7 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
@@ -253,4 +253,4 @@ namespace gfx::render::vulkan
 
         return result;
     }
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

@@ -3,7 +3,7 @@
 #include "util/util.hpp"
 #include <vulkan/vulkan.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     /// Wrapper around a vulkan instance and the things required to be able to
     /// load an instance (loading a dynamic library from the OS)
@@ -43,4 +43,4 @@ namespace gfx::render::vulkan
 #endif // CINNABAR_DEBUG_BUILD
         u32 vulkan_api_version;
     };
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

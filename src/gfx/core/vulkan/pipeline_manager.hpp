@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Device;
 
@@ -76,4 +76,4 @@ namespace gfx::render::vulkan
 
         util::RwLock<CriticalSection> critical_section;
     };
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

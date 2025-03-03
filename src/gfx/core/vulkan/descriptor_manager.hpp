@@ -7,7 +7,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Device;
 
@@ -107,4 +107,4 @@ namespace gfx::render::vulkan
         util::Mutex<std::unordered_map<vk::DescriptorType, util::IndexAllocator>> binding_allocators;
     };
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

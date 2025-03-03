@@ -16,7 +16,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     class Allocator;
     class Device;
@@ -190,8 +190,7 @@ namespace gfx::render::vulkan
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::render::vulkan::GpuOnlyBuffer<T> {
-                  allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
+            : gfx::core::vulkan::GpuOnlyBuffer<T> {allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
         {}
         ~WriteOnlyBuffer()
         {
@@ -225,7 +224,7 @@ namespace gfx::render::vulkan
         {
             std::copy(payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
 
-            const gfx::render::vulkan::FlushData flush {
+            const gfx::core::vulkan::FlushData flush {
                 .offset_elements {offset},
                 .size_elements {payload.size()},
             };
@@ -239,7 +238,7 @@ namespace gfx::render::vulkan
 
             std::fill(data.begin(), data.end(), value);
 
-            const gfx::render::vulkan::FlushData flush {
+            const gfx::core::vulkan::FlushData flush {
                 .offset_elements {0},
                 .size_elements {this->elements},
             };
@@ -353,7 +352,7 @@ namespace gfx::render::vulkan
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::render::vulkan::WriteOnlyBuffer<T> {
+            : gfx::core::vulkan::WriteOnlyBuffer<T> {
                   allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
         {
             assert::warn(
@@ -508,9 +507,9 @@ namespace gfx::render::vulkan
             u32                   size;
         };
 
-        mutable std::atomic<std::size_t>                        allocated;
-        const Allocator*                                        allocator;
-        mutable gfx::render::vulkan::WriteOnlyBuffer<std::byte> staging_buffer;
+        mutable std::atomic<std::size_t>                      allocated;
+        const Allocator*                                      allocator;
+        mutable gfx::core::vulkan::WriteOnlyBuffer<std::byte> staging_buffer;
 
         struct OverflowTransfer
         {
@@ -543,4 +542,4 @@ namespace gfx::render::vulkan
         }
     }
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

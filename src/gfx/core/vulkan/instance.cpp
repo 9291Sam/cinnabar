@@ -1,5 +1,5 @@
 #include "instance.hpp"
-#include "gfx/render/window.hpp"
+#include "gfx/core/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <cstring>
@@ -19,7 +19,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE;
 #undef VMA_DYNAMIC_VULKAN_FUNCTIONS
 // NOLINTEND
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
 
     Instance::Instance()
@@ -186,4 +186,4 @@ namespace gfx::render::vulkan
     {
         return *this->instance;
     }
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

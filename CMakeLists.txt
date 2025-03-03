@@ -27,18 +27,18 @@ find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
 add_executable(cinnabar
-    src/gfx/render/vulkan/allocator.cpp
-    src/gfx/render/vulkan/buffer.cpp
-    src/gfx/render/vulkan/descriptor_manager.cpp
-    src/gfx/render/vulkan/device.cpp
-    src/gfx/render/vulkan/frame_manager.cpp
-    src/gfx/render/vulkan/image.cpp
-    src/gfx/render/vulkan/instance.cpp
-    src/gfx/render/vulkan/pipeline_manager.cpp
-    src/gfx/render/vulkan/swapchain.cpp
+    src/gfx/core/vulkan/allocator.cpp
+    src/gfx/core/vulkan/buffer.cpp
+    src/gfx/core/vulkan/descriptor_manager.cpp
+    src/gfx/core/vulkan/device.cpp
+    src/gfx/core/vulkan/frame_manager.cpp
+    src/gfx/core/vulkan/image.cpp
+    src/gfx/core/vulkan/instance.cpp
+    src/gfx/core/vulkan/pipeline_manager.cpp
+    src/gfx/core/vulkan/swapchain.cpp
 
-    src/gfx/render/renderer.cpp
-    src/gfx/render/window.cpp
+    src/gfx/core/renderer.cpp
+    src/gfx/core/window.cpp
 
     src/util/allocators/index_allocator.cpp
     src/util/allocators/range_allocator.cpp

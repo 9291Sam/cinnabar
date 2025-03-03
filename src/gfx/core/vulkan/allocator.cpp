@@ -10,7 +10,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     Allocator::Allocator(const Instance& instance, const Device* device_)
         : device {device_}
@@ -97,10 +97,10 @@ namespace gfx::render::vulkan
     // {
     //     this->descriptor_set_layout_cache.lock(
     //         [](std::unordered_map<
-    //             gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo,
+    //             gfx::core::vulkan::CacheableDescriptorSetLayoutCreateInfo,
     //             std::shared_ptr<vk::UniqueDescriptorSetLayout>>& cache)
     //         {
-    //             std::vector<gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo> createInfosToRemove {};
+    //             std::vector<gfx::core::vulkan::CacheableDescriptorSetLayoutCreateInfo> createInfosToRemove {};
 
     //             for (const auto& [info, ptr] : cache)
     //             {
@@ -110,7 +110,7 @@ namespace gfx::render::vulkan
     //                 }
     //             }
 
-    //             for (const gfx::render::vulkan::CacheableDescriptorSetLayoutCreateInfo& i : createInfosToRemove)
+    //             for (const gfx::core::vulkan::CacheableDescriptorSetLayoutCreateInfo& i : createInfosToRemove)
     //             {
     //                 cache.erase(i);
     //             }
@@ -118,10 +118,10 @@ namespace gfx::render::vulkan
 
     //     this->pipeline_layout_cache.lock(
     //         [](std::unordered_map<
-    //             gfx::render::vulkan::CacheablePipelineLayoutCreateInfo,
+    //             gfx::core::vulkan::CacheablePipelineLayoutCreateInfo,
     //             std::shared_ptr<vk::UniquePipelineLayout>>& cache)
     //         {
-    //             std::vector<gfx::render::vulkan::CacheablePipelineLayoutCreateInfo> createInfosToRemove {};
+    //             std::vector<gfx::core::vulkan::CacheablePipelineLayoutCreateInfo> createInfosToRemove {};
 
     //             for (const auto& [info, ptr] : cache)
     //             {
@@ -131,7 +131,7 @@ namespace gfx::render::vulkan
     //                 }
     //             }
 
-    //             for (const gfx::render::vulkan::CacheablePipelineLayoutCreateInfo& i : createInfosToRemove)
+    //             for (const gfx::core::vulkan::CacheablePipelineLayoutCreateInfo& i : createInfosToRemove)
     //             {
     //                 cache.erase(i);
     //             }
@@ -160,10 +160,10 @@ namespace gfx::render::vulkan
 
     //     this->graphics_pipeline_cache.lock(
     //         [](std::unordered_map<
-    //             gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo,
+    //             gfx::core::vulkan::CacheableGraphicsPipelineCreateInfo,
     //             std::shared_ptr<vk::UniquePipeline>>& cache)
     //         {
-    //             std::vector<gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo> createInfosToRemove {};
+    //             std::vector<gfx::core::vulkan::CacheableGraphicsPipelineCreateInfo> createInfosToRemove {};
 
     //             for (const auto& [info, ptr] : cache)
     //             {
@@ -173,7 +173,7 @@ namespace gfx::render::vulkan
     //                 }
     //             }
 
-    //             for (const gfx::render::vulkan::CacheableGraphicsPipelineCreateInfo& i : createInfosToRemove)
+    //             for (const gfx::core::vulkan::CacheableGraphicsPipelineCreateInfo& i : createInfosToRemove)
     //             {
     //                 cache.erase(i);
     //             }
@@ -181,10 +181,10 @@ namespace gfx::render::vulkan
 
     //     this->compute_pipeline_cache.lock(
     //         [](std::unordered_map<
-    //             gfx::render::vulkan::CacheableComputePipelineCreateInfo,
+    //             gfx::core::vulkan::CacheableComputePipelineCreateInfo,
     //             std::shared_ptr<vk::UniquePipeline>>& cache)
     //         {
-    //             std::vector<gfx::render::vulkan::CacheableComputePipelineCreateInfo> createInfosToRemove {};
+    //             std::vector<gfx::core::vulkan::CacheableComputePipelineCreateInfo> createInfosToRemove {};
 
     //             for (const auto& [info, ptr] : cache)
     //             {
@@ -194,7 +194,7 @@ namespace gfx::render::vulkan
     //                 }
     //             }
 
-    //             for (const gfx::render::vulkan::CacheableComputePipelineCreateInfo& i : createInfosToRemove)
+    //             for (const gfx::core::vulkan::CacheableComputePipelineCreateInfo& i : createInfosToRemove)
     //             {
     //                 cache.erase(i);
     //             }
@@ -729,4 +729,4 @@ namespace gfx::render::vulkan
     // {
     //     return *this->pipeline_cache;
     // }
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan

@@ -1,11 +1,11 @@
 
-#include "gfx/render/renderer.hpp"
-#include "gfx/render/vulkan/descriptor_manager.hpp"
-#include "gfx/render/vulkan/device.hpp"
-#include "gfx/render/vulkan/instance.hpp"
-#include "gfx/render/vulkan/pipeline_manager.hpp"
-#include "gfx/render/vulkan/swapchain.hpp"
-#include "gfx/render/window.hpp"
+#include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/core/vulkan/device.hpp"
+#include "gfx/core/vulkan/instance.hpp"
+#include "gfx/core/vulkan/pipeline_manager.hpp"
+#include "gfx/core/vulkan/swapchain.hpp"
+#include "gfx/core/window.hpp"
 #include "util/logger.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -102,13 +102,13 @@ int main()
             CINNABAR_VERSION_TWEAK,
             CINNABAR_DEBUG_BUILD ? " Debug Build" : "");
 
-        gfx::render::Renderer renderer {};
-        bool                  hasResizeOccurred = true;
-        const u32             graphicsQueueIndex =
-            renderer.getDevice()->getFamilyOfQueueType(gfx::render::vulkan::Device::QueueType::Graphics).value();
+        gfx::core::Renderer renderer {};
+        bool                hasResizeOccurred = true;
+        const u32           graphicsQueueIndex =
+            renderer.getDevice()->getFamilyOfQueueType(gfx::core::vulkan::Device::QueueType::Graphics).value();
 
-        gfx::render::vulkan::PipelineManager::GraphicsPipeline trianglePipeline =
-            renderer.getPipelineManager()->createGraphicsPipeline(gfx::render::vulkan::GraphicsPipelineDescriptor {
+        gfx::core::vulkan::PipelineManager::GraphicsPipeline trianglePipeline =
+            renderer.getPipelineManager()->createGraphicsPipeline(gfx::core::vulkan::GraphicsPipelineDescriptor {
                 .vertex_shader_path {"triangle.vert"},
                 .fragment_shader_path {"triangle.frag"},
                 .topology {vk::PrimitiveTopology::eTriangleList}, // remove
@@ -118,7 +118,7 @@ int main()
                 .depth_test_enable {vk::False},
                 .depth_write_enable {vk::False},
                 .depth_compare_op {}, // remove
-                .color_format {gfx::render::Renderer::ColorFormat.format},
+                .color_format {gfx::core::Renderer::ColorFormat.format},
                 .depth_format {}, // remove lmao?
                 .blend_enable {vk::True},
                 .name {"hacky triangle pipeline"},
@@ -126,10 +126,10 @@ int main()
 
         while (!renderer.shouldWindowClose())
         {
-            auto rec = [&](vk::CommandBuffer               commandBuffer,
-                           u32                             swapchainImageIdx,
-                           gfx::render::vulkan::Swapchain& swapchain,
-                           std::size_t                     frameIndex)
+            auto rec = [&](vk::CommandBuffer             commandBuffer,
+                           u32                           swapchainImageIdx,
+                           gfx::core::vulkan::Swapchain& swapchain,
+                           std::size_t                   frameIndex)
             {
                 const vk::Image     thisSwapchainImage     = swapchain.getImages()[swapchainImageIdx];
                 const vk::ImageView thisSwapchainImageView = swapchain.getViews()[swapchainImageIdx];
@@ -280,12 +280,12 @@ int main()
                     }});
             };
 
-            if (renderer.getWindow()->isActionActive(gfx::render::Window::Action::ToggleCursorAttachment))
+            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::ToggleCursorAttachment))
             {
                 renderer.getWindow()->toggleCursor();
             }
 
-            if (renderer.getWindow()->isActionActive(gfx::render::Window::Action::CloseWindow))
+            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::CloseWindow))
             {
                 break;
             }

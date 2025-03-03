@@ -4,7 +4,7 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::render::vulkan
+namespace gfx::core::vulkan
 {
     Image2D::Image2D( // NOLINT: this->memory is initalized via vmaCreateImage
         const Allocator*        allocator_,
@@ -171,4 +171,4 @@ namespace gfx::render::vulkan
         }
     }
 
-} // namespace gfx::render::vulkan
+} // namespace gfx::core::vulkan
