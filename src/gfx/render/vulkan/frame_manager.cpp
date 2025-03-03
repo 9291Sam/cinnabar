@@ -147,9 +147,8 @@ namespace gfx::render::vulkan
                 this->command_buffer->reset();
                 this->command_buffer->begin(commandBufferBeginInfo);
 
-// HACK: flush all buffers on this
-// stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
-#warning fix
+                // HACK: flush all buffers on this
+                stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
 
                 withCommandBuffer(*this->command_buffer, maybeNextImageIdx);
 

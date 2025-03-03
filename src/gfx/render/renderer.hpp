@@ -6,6 +6,7 @@
 #include <memory>
 #include <util/threads.hpp>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::render
 {
@@ -28,6 +29,20 @@ namespace gfx::render
         static constexpr vk::SurfaceFormatKHR ColorFormat =
             vk::SurfaceFormatKHR {.format {vk::Format::eB8G8R8A8Srgb}, .colorSpace {vk::ColorSpaceKHR::eSrgbNonlinear}};
         static constexpr vk::Format DepthFormat = vk::Format::eD32Sfloat;
+
+        struct FrameRecordArguments
+        {
+            vk::CommandBuffer  command_buffer;
+            u32                swapchain_idx;
+            vulkan::Swapchain* swapchain;
+            std::size_t        global_frame_number;
+        };
+
+        struct FrameBuilder
+        {
+            virtual ~FrameBuilder() = 0;
+            void recordFrame(FrameRecordArguments);
+        };
     public:
         Renderer();
         ~Renderer() noexcept;
@@ -42,7 +57,6 @@ namespace gfx::render
         bool recordOnThread(std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;
 
-        // TODO: replace all of these functions with ones that pass through to the underlying thing to make an RHI
         [[nodiscard]] const vulkan::Instance*          getInstance() const noexcept;
         [[nodiscard]] const vulkan::Device*            getDevice() const noexcept;
         [[nodiscard]] const vulkan::Allocator*         getAllocator() const noexcept;
