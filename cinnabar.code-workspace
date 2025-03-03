@@ -55,6 +55,8 @@
 			"raytraced",
 			"recordables",
 			"remesh",
+			"Renderable",
+			"renderables",
 			"Sfloat",
 			"shaderc",
 			"skybox",
