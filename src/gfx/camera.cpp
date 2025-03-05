@@ -1,5 +1,6 @@
 #include "camera.hpp"
 #include "transform.hpp"
+#include <algorithm>
 #include <format>
 
 namespace gfx

@@ -79,6 +79,8 @@ namespace gfx::renderables::triangle
 
                 commandBuffer.draw(3, 1, 0, 0);
             });
+
+        // log::trace("Rendering {} triangles!", this->triangle_allocator.getNumberAllocated());
     }
 
 } // namespace gfx::renderables::triangle

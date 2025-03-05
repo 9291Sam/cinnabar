@@ -40,6 +40,13 @@ add_executable(cinnabar
     src/gfx/core/renderer.cpp
     src/gfx/core/window.cpp
 
+    src/gfx/renderables/triangle/triangle_renderer.cpp
+
+    src/gfx/renderables/renderable.cpp
+
+    src/gfx/camera.cpp
+    src/gfx/transform.cpp
+
     src/util/allocators/index_allocator.cpp
     src/util/allocators/range_allocator.cpp
 

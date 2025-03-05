@@ -14,7 +14,7 @@ vec3 colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)  // Blue
 );
 
-layout(push_constant) readonly uniform PushConstants
+layout(push_constant) uniform PushConstants
 {
     mat4 mvp;
 }

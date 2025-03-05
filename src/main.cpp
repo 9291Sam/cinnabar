@@ -12,6 +12,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <cstddef>
+#include <glm/trigonometric.hpp>
 #include <iterator>
 #include <shaderc/shaderc.hpp>
 #include <shaderc/status.h>
@@ -109,11 +110,20 @@ int main()
         const u32           graphicsQueueIndex =
             renderer.getDevice()->getFamilyOfQueueType(gfx::core::vulkan::Device::QueueType::Graphics).value();
 
+        const float fovY = glm::radians(70.0f);
+
         gfx::renderables::triangle::TriangleRenderer triangleRenderer {&renderer};
-        gfx::Camera                                  camera {};
+        gfx::Camera                                  camera {gfx::Camera::CameraDescriptor {.fov_y {fovY}}};
+
+        triangleRenderer.createTriangle({});
 
         while (!renderer.shouldWindowClose())
         {
+            const vk::Extent2D frameBufferSize = renderer.getWindow()->getFramebufferSize();
+
+            const float aspectRatio =
+                static_cast<float>(frameBufferSize.width) / static_cast<float>(frameBufferSize.height);
+
             auto rec = [&](vk::CommandBuffer             commandBuffer,
                            u32                           swapchainImageIdx,
                            gfx::core::vulkan::Swapchain& swapchain,
@@ -137,6 +147,15 @@ int main()
 
                 if (hasResizeOccurred)
                 {
+                    renderer.getWindow()->attachCursor();
+
+                    camera = gfx::Camera {gfx::Camera::CameraDescriptor {
+                        .aspect_ratio {aspectRatio},
+                        .position {camera.getPosition()},
+                        .fov_y {fovY},
+                        .pitch {camera.getPitch()},
+                        .yaw {camera.getYaw()}}};
+
                     const std::span<const vk::Image> swapchainImages = swapchain.getImages();
 
                     std::vector<vk::ImageMemoryBarrier> swapchainMemoryBarriers {};
@@ -237,8 +256,7 @@ int main()
                         {renderer.getDescriptorManager()->getGlobalDescriptorSet()},
                         {});
 
-                    triangleRenderer.renderIntoCommandBuffer(
-                        commandBuffer, gfx::Camera {gfx::Camera::CameraDescriptor {}});
+                    triangleRenderer.renderIntoCommandBuffer(commandBuffer, camera);
                     commandBuffer.endRendering();
                 }
 
@@ -276,6 +294,63 @@ int main()
             {
                 break;
             }
+
+            glm::vec3 previousPosition = camera.getPosition();
+
+            glm::vec3 newPosition = previousPosition;
+
+            const float deltaTime = renderer.getWindow()->getDeltaTimeSeconds();
+
+            const float moveScale = 32.0f;
+
+            // Adjust the new position based on input for movement directions
+            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveForward))
+            {
+                newPosition += camera.getForwardVector() * deltaTime * moveScale;
+            }
+            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveBackward))
+            {
+                newPosition -= camera.getForwardVector() * deltaTime * moveScale;
+            }
+
+            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveLeft))
+            {
+                newPosition -= camera.getRightVector() * deltaTime * moveScale;
+            }
+            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveRight))
+            {
+                newPosition += camera.getRightVector() * deltaTime * moveScale;
+            }
+
+            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveUp))
+            {
+                newPosition += gfx::Transform::UpVector * deltaTime * moveScale;
+            }
+            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveDown))
+            {
+                newPosition -= gfx::Transform::UpVector * deltaTime * moveScale;
+            }
+
+            camera.setPosition(newPosition);
+
+            const float rotateSpeedScale = 6.0f;
+
+            auto getMouseDeltaRadians = [&]
+            {
+                // each value from -1.0 -> 1.0 representing how much it moved
+                // on the screen
+                const auto [nDeltaX, nDeltaY] = renderer.getWindow()->getScreenSpaceMouseDelta();
+
+                const auto deltaRadiansX = (nDeltaX / 2) * aspectRatio * fovY;
+                const auto deltaRadiansY = (nDeltaY / 2) * fovY;
+
+                return gfx::core::Window::Delta {.x {deltaRadiansX}, .y {deltaRadiansY}};
+            };
+
+            auto [xDelta, yDelta] = getMouseDeltaRadians();
+
+            camera.addYaw(xDelta * rotateSpeedScale);
+            camera.addPitch(yDelta * rotateSpeedScale);
 
             hasResizeOccurred = renderer.recordOnThread(rec);
         }

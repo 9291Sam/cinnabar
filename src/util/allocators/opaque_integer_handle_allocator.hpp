@@ -31,7 +31,7 @@ namespace util
 
     template<StringSneaker Name, class I>
         requires (std::is_integral_v<I> && !std::is_floating_point_v<I>)
-    struct OpaqueHandle final
+    struct [[nodiscard]] OpaqueHandle final
     {
     public:
         using IndexType                    = I;
