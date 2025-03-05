@@ -1,4 +1,8 @@
 
+#include <glm/ext/scalar_common.hpp>
+#include <random>
+//
+
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
@@ -115,7 +119,25 @@ int main()
         gfx::renderables::triangle::TriangleRenderer triangleRenderer {&renderer};
         gfx::Camera                                  camera {gfx::Camera::CameraDescriptor {.fov_y {fovY}}};
 
-        triangleRenderer.createTriangle({});
+        std::vector<gfx::renderables::triangle::TriangleRenderer::Triangle> triangles {};
+
+        std::mt19937                          gen {std::random_device {}()};
+        std::uniform_real_distribution<float> dist {-32.0f, 32.0f};
+
+        auto getRandVec3 = [&]
+        {
+            return glm::vec3 {
+                dist(gen),
+                dist(gen),
+                dist(gen),
+            };
+        };
+
+        for (int i = 0; i < 38; ++i)
+        {
+            triangles.push_back(triangleRenderer.createTriangle(
+                {.translation {glm::vec4 {getRandVec3(), 1.0f}}, .scale {10.0f, 10.0f, 10.0f}}));
+        }
 
         while (!renderer.shouldWindowClose())
         {
@@ -353,6 +375,11 @@ int main()
             camera.addPitch(yDelta * rotateSpeedScale);
 
             hasResizeOccurred = renderer.recordOnThread(rec);
+        }
+
+        for (auto& t : triangles)
+        {
+            triangleRenderer.destroyTriangle(std::move(t));
         }
 
         renderer.getDevice()->getDevice().waitIdle();
