@@ -29,12 +29,14 @@ namespace util
     template<class Handle>
     class OpaqueHandleAllocator;
 
-    template<StringSneaker Name, class I, I NullValue = std::numeric_limits<I>::max()>
+    template<StringSneaker Name, class I>
         requires (std::is_integral_v<I> && !std::is_floating_point_v<I>)
     struct OpaqueHandle final
     {
     public:
-        using IndexType = I;
+        using IndexType                    = I;
+        static constexpr I NullValue       = std::numeric_limits<I>::max();
+        static constexpr I MaxValidElement = NullValue - 1;
 
         constexpr OpaqueHandle()
             : value {NullValue}

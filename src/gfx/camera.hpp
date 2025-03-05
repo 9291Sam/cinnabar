@@ -1,6 +1,7 @@
 #pragma once
 
 #include "transform.hpp"
+#include <glm/trigonometric.hpp>
 
 namespace gfx
 {
@@ -9,13 +10,22 @@ namespace gfx
     class Camera
     {
     public:
+        struct CameraDescriptor
+        {
+            float     aspect_ratio {};
+            glm::vec3 position {0.0f, 0.0f, 0.0f};
+            float     fov_y = glm::radians(70.0f);
+            float     pitch = 0.0f;
+            float     yaw   = 0.0f;
+        };
+    public:
 
-        Camera();
-        explicit Camera(glm::vec3 position);
+        explicit Camera(CameraDescriptor);
 
-        [[nodiscard]] glm::mat4 getPerspectiveMatrix(float yFieldOfView, float aspectRatio, const Transform&) const;
+        [[nodiscard]] glm::mat4 getPerspectiveMatrix(const Transform&) const;
         [[nodiscard]] glm::mat4 getModelMatrix() const;
         [[nodiscard]] glm::mat4 getViewMatrix() const;
+
         [[nodiscard]] glm::vec3 getForwardVector() const;
         [[nodiscard]] glm::vec3 getRightVector() const;
         [[nodiscard]] glm::vec3 getUpVector() const;
@@ -37,6 +47,8 @@ namespace gfx
 
         float pitch;
         float yaw;
+        float fov_y;
+        float aspect_ratio;
 
         Transform transform;
     };

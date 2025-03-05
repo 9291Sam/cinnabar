@@ -1,4 +1,5 @@
 
+#include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/device.hpp"
@@ -6,6 +7,7 @@
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
+#include "gfx/renderables/triangle/triangle_renderer.hpp"
 #include "util/logger.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -107,22 +109,8 @@ int main()
         const u32           graphicsQueueIndex =
             renderer.getDevice()->getFamilyOfQueueType(gfx::core::vulkan::Device::QueueType::Graphics).value();
 
-        gfx::core::vulkan::PipelineManager::GraphicsPipeline trianglePipeline =
-            renderer.getPipelineManager()->createGraphicsPipeline(gfx::core::vulkan::GraphicsPipelineDescriptor {
-                .vertex_shader_path {"triangle.vert"},
-                .fragment_shader_path {"triangle.frag"},
-                .topology {vk::PrimitiveTopology::eTriangleList}, // remove
-                .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
-                .cull_mode {vk::CullModeFlagBits::eNone},
-                .front_face {vk::FrontFace::eClockwise}, // remove
-                .depth_test_enable {vk::False},
-                .depth_write_enable {vk::False},
-                .depth_compare_op {}, // remove
-                .color_format {gfx::core::Renderer::ColorFormat.format},
-                .depth_format {}, // remove lmao?
-                .blend_enable {vk::True},
-                .name {"hacky triangle pipeline"},
-            });
+        gfx::renderables::triangle::TriangleRenderer triangleRenderer {&renderer};
+        gfx::Camera                                  camera {};
 
         while (!renderer.shouldWindowClose())
         {
@@ -248,10 +236,9 @@ int main()
                         0,
                         {renderer.getDescriptorManager()->getGlobalDescriptorSet()},
                         {});
-                    commandBuffer.bindPipeline(
-                        vk::PipelineBindPoint::eGraphics, renderer.getPipelineManager()->getPipeline(trianglePipeline));
-                    commandBuffer.draw(3, 1, 0, 0);
 
+                    triangleRenderer.renderIntoCommandBuffer(
+                        commandBuffer, gfx::Camera {gfx::Camera::CameraDescriptor {}});
                     commandBuffer.endRendering();
                 }
 

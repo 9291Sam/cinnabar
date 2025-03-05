@@ -1,7 +1,42 @@
 #pragma once
 
+#include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/core/vulkan/pipeline_manager.hpp"
+#include "gfx/renderables/renderable.hpp"
+#include "gfx/transform.hpp"
+#include "util/allocators/opaque_integer_handle_allocator.hpp"
+
 namespace gfx::renderables::triangle
 {
-    class TriangleRenderer
-    {};
+    class TriangleRenderer : Renderable
+    {
+    public:
+        using Triangle = util::OpaqueHandle<"TriangleRenderer::Triangle", u8>;
+    public:
+
+        explicit TriangleRenderer(const core::Renderer*);
+        ~TriangleRenderer() override;
+
+        TriangleRenderer(const TriangleRenderer&)             = delete;
+        TriangleRenderer(TriangleRenderer&&)                  = delete;
+        TriangleRenderer& operator= (const TriangleRenderer&) = delete;
+        TriangleRenderer& operator= (TriangleRenderer&&)      = delete;
+
+        Triangle createTriangle(const Transform&);
+        void     destroyTriangle(Triangle);
+
+        void updateTriangle(const Triangle&, const Transform&);
+
+        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
+
+
+    private:
+        const core::Renderer*                           renderer;
+        core::vulkan::PipelineManager::GraphicsPipeline pipeline;
+
+        util::OpaqueHandleAllocator<Triangle> triangle_allocator;
+        std::vector<Transform>                triangle_data;
+    };
 } // namespace gfx::renderables::triangle

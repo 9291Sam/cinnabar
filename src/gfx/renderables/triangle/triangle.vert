@@ -14,8 +14,14 @@ vec3 colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)  // Blue
 );
 
+layout(push_constant) readonly uniform PushConstants
+{
+    mat4 mvp;
+}
+in_push_constants;
+
 void main()
 {
-    gl_Position = vec4(positions[gl_VertexIndex], 1.0);
+    gl_Position = in_push_constants.mvp * vec4(positions[gl_VertexIndex], 1.0);
     fragColor   = colors[gl_VertexIndex];
 }

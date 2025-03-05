@@ -1,26 +1,15 @@
 #include "camera.hpp"
-#include "game.hpp"
-#include "game/transform.hpp"
+#include "transform.hpp"
 #include <format>
-#include <gfx/renderer.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <util/log.hpp>
 
 namespace gfx
 {
-    Camera::Camera()
-        : Camera {glm::vec3 {0.0, 0.0, 0.0}}
-    {}
-
-    Camera::Camera(glm::vec3 position)
-        : pitch {0.0f}
-        , yaw {0.0f} // clang-format off
-        , transform {
-            .rotation {1.0f, 0.0f, 0.0f, 0.0f},
-            .translation {position},
-            .scale {1.0f, 1.0f, 1.0f}
-            }
-    // clang-format on
+    Camera::Camera(CameraDescriptor cameraDescriptor)
+        : pitch {cameraDescriptor.pitch}
+        , yaw {cameraDescriptor.yaw}
+        , fov_y {cameraDescriptor.fov_y}
+        , aspect_ratio {cameraDescriptor.aspect_ratio}
+        , transform {.translation {cameraDescriptor.position}}
     {}
 
     glm::mat4 InfiniteReversedPerspective(float fov, float aspectRatio, float nearPlane)
@@ -38,9 +27,9 @@ namespace gfx
         return result;
     }
 
-    glm::mat4 Camera::getPerspectiveMatrix(float yFieldOfView, float aspectRatio, const Transform& transform_) const
+    glm::mat4 Camera::getPerspectiveMatrix(const Transform& transform_) const
     {
-        const glm::mat4 projection = InfiniteReversedPerspective(yFieldOfView, aspectRatio, 0.1f);
+        const glm::mat4 projection = InfiniteReversedPerspective(this->fov_y, this->aspect_ratio, 0.1f);
 
         return projection * this->getViewMatrix() * transform_.asModelMatrix();
     }
@@ -85,7 +74,7 @@ namespace gfx
         return this->yaw;
     }
 
-    game::Transform Camera::getTransform() const
+    Transform Camera::getTransform() const
     {
         return this->transform;
     }

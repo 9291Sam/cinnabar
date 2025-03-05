@@ -112,18 +112,23 @@ namespace gfx::core::vulkan
 
         using namespace std::literals;
 
-        const std::string_view prepend {"../src/gfx/shaders/"sv};
+        const std::string_view prepend {"../"sv};
         const std::string      shader {shaderString};
 
         const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / shader};
-        const std::filesystem::path canonicalPath {std::filesystem::canonical(totalPath)};
+        const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
 
         // log::trace("loading {}", canonicalPath.string());
 
         std::ifstream inFile;
         inFile.open(canonicalPath);
 
-        assert::critical(!inFile.fail(), "oop");
+        assert::critical(
+            !inFile.fail(),
+            "oop {} {} {}",
+            std::filesystem::current_path().string(),
+            totalPath.string(),
+            canonicalPath.string());
 
         std::stringstream strStream;
         strStream << inFile.rdbuf();
