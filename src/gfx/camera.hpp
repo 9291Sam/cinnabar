@@ -21,6 +21,12 @@ namespace gfx
     public:
 
         explicit Camera(CameraDescriptor);
+        ~Camera() = default;
+
+        Camera(const Camera&)             = default;
+        Camera(Camera&&)                  = default;
+        Camera& operator= (const Camera&) = default;
+        Camera& operator= (Camera&&)      = default;
 
         [[nodiscard]] glm::mat4 getPerspectiveMatrix(const Transform&) const;
         [[nodiscard]] glm::mat4 getModelMatrix() const;

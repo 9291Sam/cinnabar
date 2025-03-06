@@ -45,6 +45,7 @@ add_executable(cinnabar
     src/gfx/renderables/renderable.cpp
 
     src/gfx/camera.cpp
+    src/gfx/frame_generator.cpp
     src/gfx/transform.cpp
 
     src/util/allocators/index_allocator.cpp
