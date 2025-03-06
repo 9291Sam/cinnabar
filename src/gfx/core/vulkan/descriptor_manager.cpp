@@ -195,16 +195,16 @@ namespace gfx::core::vulkan
 
                 constexpr u32 ShaderBindingLocation = [] consteval
                 {
-                    constexpr decltype(SupportedDescriptors)::const_iterator thisDescriptorBindingLocation =
+                    constexpr decltype(SupportedDescriptors)::const_iterator ThisDescriptorBindingLocation =
                         std::ranges::find(SupportedDescriptors, D);
 
-                    if (thisDescriptorBindingLocation == SupportedDescriptors.cend())
+                    if (ThisDescriptorBindingLocation == SupportedDescriptors.cend())
                     {
                         panic("erm what");
                     }
                     else
                     {
-                        return ShaderBindingLocations[thisDescriptorBindingLocation - SupportedDescriptors.cbegin()];
+                        return ShaderBindingLocations[ThisDescriptorBindingLocation - SupportedDescriptors.cbegin()];
                     }
                 }();
 
