@@ -36,6 +36,8 @@ namespace gfx
         [[nodiscard]] glm::vec3 getRightVector() const;
         [[nodiscard]] glm::vec3 getUpVector() const;
         [[nodiscard]] glm::vec3 getPosition() const;
+        [[nodiscard]] float     getAspectRatio() const;
+        [[nodiscard]] float     getFovYRadians() const;
         [[nodiscard]] float     getPitch() const;
         [[nodiscard]] float     getYaw() const;
 

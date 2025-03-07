@@ -1,6 +1,7 @@
 #include "frame_generator.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 
@@ -9,6 +10,7 @@ namespace gfx
     FrameGenerator::FrameGenerator(const core::Renderer* renderer_)
         : renderer {renderer_}
         , has_resize_ocurred {true}
+        , frame_descriptors {this->createFrameDescriptors()}
     {}
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
@@ -77,6 +79,30 @@ namespace gfx
                         {},
                         {},
                         swapchainMemoryBarriers);
+
+                    commandBuffer.pipelineBarrier(
+                        vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                        vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                        {},
+                        {},
+                        {},
+                        {vk::ImageMemoryBarrier {
+                            .sType {vk::StructureType::eImageMemoryBarrier},
+                            .pNext {nullptr},
+                            .srcAccessMask {vk::AccessFlagBits::eNone},
+                            .dstAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentRead},
+                            .oldLayout {vk::ImageLayout::eUndefined},
+                            .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                            .srcQueueFamilyIndex {graphicsQueueIndex},
+                            .dstQueueFamilyIndex {graphicsQueueIndex},
+                            .image {*this->frame_descriptors.depth_buffer},
+                            .subresourceRange {vk::ImageSubresourceRange {
+                                .aspectMask {vk::ImageAspectFlagBits::eDepth},
+                                .baseMipLevel {0},
+                                .levelCount {1},
+                                .baseArrayLayer {0},
+                                .layerCount {1}}},
+                        }});
                 }
 
                 commandBuffer.pipelineBarrier(
@@ -103,6 +129,30 @@ namespace gfx
                             .layerCount {1}}},
                     }});
 
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentRead},
+                        .dstAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentWrite},
+                        .oldLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {*this->frame_descriptors.depth_buffer},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eDepth},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
+
                 // Simple Color
                 {
                     const vk::RenderingAttachmentInfo colorAttachmentInfo {
@@ -119,6 +169,20 @@ namespace gfx
                             vk::ClearColorValue {.float32 {{192.0f / 255.0f, 57.0f / 255.0f, 43.0f / 255.0f, 1.0f}}}},
                     };
 
+                    const vk::RenderingAttachmentInfo depthAttachmentInfo {
+                        .sType {vk::StructureType::eRenderingAttachmentInfo},
+                        .pNext {nullptr},
+                        .imageView {this->frame_descriptors.depth_buffer.getView()},
+                        .imageLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .resolveMode {vk::ResolveModeFlagBits::eNone},
+                        .resolveImageView {nullptr},
+                        .resolveImageLayout {},
+                        .loadOp {vk::AttachmentLoadOp::eClear},
+                        .storeOp {vk::AttachmentStoreOp::eStore},
+                        .clearValue {
+                            .depthStencil {vk::ClearDepthStencilValue {.depth {0.0}, .stencil {0}}},
+                        }};
+
                     const vk::RenderingInfo simpleColorRenderingInfo {
                         .sType {vk::StructureType::eRenderingInfo},
                         .pNext {nullptr},
@@ -128,7 +192,7 @@ namespace gfx
                         .viewMask {0},
                         .colorAttachmentCount {1},
                         .pColorAttachments {&colorAttachmentInfo},
-                        .pDepthAttachment {nullptr},
+                        .pDepthAttachment {&depthAttachmentInfo},
                         .pStencilAttachment {nullptr},
                     };
 
@@ -148,34 +212,84 @@ namespace gfx
                     {
                         generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
-                    commandBuffer.endRendering();
 
-                    commandBuffer.pipelineBarrier(
-                        vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                        vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                        vk::DependencyFlags {},
-                        {},
-                        {},
-                        {vk::ImageMemoryBarrier {
-                            .sType {vk::StructureType::eImageMemoryBarrier},
-                            .pNext {nullptr},
-                            .srcAccessMask {vk::AccessFlagBits::eColorAttachmentWrite},
-                            .dstAccessMask {vk::AccessFlagBits::eColorAttachmentRead},
-                            .oldLayout {vk::ImageLayout::eColorAttachmentOptimal},
-                            .newLayout {vk::ImageLayout::ePresentSrcKHR},
-                            .srcQueueFamilyIndex {graphicsQueueIndex},
-                            .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {thisSwapchainImage},
-                            .subresourceRange {vk::ImageSubresourceRange {
-                                .aspectMask {vk::ImageAspectFlagBits::eColor},
-                                .baseMipLevel {0},
-                                .levelCount {1},
-                                .baseArrayLayer {0},
-                                .layerCount {1}}},
-                        }});
+                    if (generators.maybe_skybox_render)
+                    {
+                        generators.maybe_skybox_render->renderIntoCommandBuffer(commandBuffer, camera);
+                    }
+
+                    commandBuffer.endRendering();
                 }
+
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eColorAttachmentWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eColorAttachmentRead},
+                        .oldLayout {vk::ImageLayout::eColorAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::ePresentSrcKHR},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {thisSwapchainImage},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eColor},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
+
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eLateFragmentTests,
+                    vk::PipelineStageFlagBits::eLateFragmentTests,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentRead},
+                        .oldLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {*this->frame_descriptors.depth_buffer},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eDepth},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
             });
 
+        if (this->has_resize_ocurred)
+        {
+            this->frame_descriptors = this->createFrameDescriptors();
+        }
+
         return this->has_resize_ocurred;
+    }
+
+    FrameGenerator::FrameDescriptors FrameGenerator::createFrameDescriptors()
+    {
+        return FrameDescriptors {.depth_buffer {
+            renderer->getAllocator(),
+            renderer->getDevice()->getDevice(),
+            renderer->getWindow()->getFramebufferSize(),
+            vk::Format::eD32Sfloat,
+            vk::ImageLayout::eUndefined,
+            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+            vk::ImageAspectFlagBits::eDepth,
+            vk::ImageTiling::eOptimal,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            "Global Depth Buffer"}};
     }
 } // namespace gfx

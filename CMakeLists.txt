@@ -44,6 +44,8 @@ add_executable(cinnabar
 
     src/gfx/generators/triangle/triangle_renderer.cpp
 
+    src/gfx/generators/skybox/skybox_renderer.cpp
+
     src/gfx/generators/generator.cpp
 
     src/gfx/camera.cpp

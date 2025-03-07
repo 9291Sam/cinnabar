@@ -3,7 +3,6 @@
 #include "gfx/core/window.hpp"
 #include "gfx/frame_generator.hpp"
 #include <atomic>
-#include <chrono>
 
 namespace game
 {
@@ -15,6 +14,7 @@ namespace game
         , frame_generator {this->renderer}
         , maybe_game_state_construction_function {nullptr}
         , maybe_current_game_state {nullptr}
+        , has_resize_ocurred {true}
     {}
 
     Game::~Game()

@@ -69,6 +69,16 @@ namespace gfx
         return this->transform.translation;
     }
 
+    float Camera::getAspectRatio() const
+    {
+        return this->aspect_ratio;
+    }
+
+    float Camera::getFovYRadians() const
+    {
+        return this->fov_y;
+    }
+
     float Camera::getPitch() const
     {
         return this->pitch;

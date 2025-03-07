@@ -1,8 +1,6 @@
 #pragma once
 
 #include "gfx/core/renderer.hpp"
-#include "gfx/core/vulkan/buffer.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/generator.hpp"
 #include "gfx/transform.hpp"

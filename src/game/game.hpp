@@ -3,7 +3,6 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/frame_generator.hpp"
-#include "util/threads.hpp"
 #include <atomic>
 #include <concepts>
 namespace game

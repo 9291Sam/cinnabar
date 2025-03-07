@@ -2,6 +2,8 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/image.hpp"
+#include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 
 namespace gfx
@@ -12,6 +14,7 @@ namespace gfx
         struct FrameGenerateArgs
         {
             generators::triangle::TriangleRenderer* maybe_triangle_renderer;
+            generators::skybox::SkyboxRenderer*     maybe_skybox_render;
         };
     public:
         explicit FrameGenerator(const core::Renderer*);
@@ -27,5 +30,14 @@ namespace gfx
     private:
         const core::Renderer* renderer;
         bool                  has_resize_ocurred;
+
+        struct FrameDescriptors
+        {
+            gfx::core::vulkan::Image2D depth_buffer;
+        };
+
+        FrameDescriptors createFrameDescriptors();
+
+        FrameDescriptors frame_descriptors;
     };
 } // namespace gfx
