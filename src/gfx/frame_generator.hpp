@@ -2,7 +2,7 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
-#include "gfx/renderables/triangle/triangle_renderer.hpp"
+#include "gfx/generators/triangle/triangle_renderer.hpp"
 
 namespace gfx
 {
@@ -11,7 +11,7 @@ namespace gfx
     public:
         struct FrameGenerateArgs
         {
-            renderables::triangle::TriangleRenderer* maybe_triangle_renderer;
+            generators::triangle::TriangleRenderer* maybe_triangle_renderer;
         };
     public:
         explicit FrameGenerator(const core::Renderer*);
@@ -22,10 +22,8 @@ namespace gfx
         FrameGenerator& operator= (const FrameGenerator&) = delete;
         FrameGenerator& operator= (FrameGenerator&&)      = delete;
 
-        [[nodiscard]] bool hasResizeOcurred() const noexcept;
-
         /// Return value is whether or not a resize ocurred
-        void renderFrame(FrameGenerateArgs, gfx::Camera);
+        [[nodiscard]] bool renderFrame(FrameGenerateArgs, gfx::Camera);
     private:
         const core::Renderer* renderer;
         bool                  has_resize_ocurred;

@@ -180,9 +180,7 @@ namespace gfx::core::vulkan
 
         std::array requiredExtensions {
             vk::KHRDynamicRenderingExtensionName,
-            vk::KHRSynchronization2ExtensionName,
             vk::KHRSwapchainExtensionName,
-            vk::KHRPushDescriptorExtensionName,
 #ifdef __APPLE__
             "VK_KHR_portability_subset",
 #endif // __APPLE__,
@@ -220,14 +218,9 @@ namespace gfx::core::vulkan
         features102.features.multiDrawIndirect        = vk::True;
         features102.features.fragmentStoresAndAtomics = vk::True;
 
-        vk::PhysicalDeviceSynchronization2Features featuresSync2 {};
-        featuresSync2.sType            = vk::StructureType::ePhysicalDeviceSynchronization2Features;
-        featuresSync2.pNext            = &features102;
-        featuresSync2.synchronization2 = vk::True;
-
         const vk::PhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures {
             .sType {vk::StructureType::ePhysicalDeviceDynamicRenderingFeatures},
-            .pNext {&featuresSync2},
+            .pNext {&features102},
             .dynamicRendering {vk::True}};
 
         const vk::DeviceCreateInfo deviceCreateInfo {

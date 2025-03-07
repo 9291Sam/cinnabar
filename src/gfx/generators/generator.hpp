@@ -3,13 +3,13 @@
 #include "gfx/camera.hpp"
 #include <vulkan/vulkan.hpp>
 
-namespace gfx::renderables
+namespace gfx::generators
 {
-    class Renderable
+    class Generator
     {
     public:
-        virtual ~Renderable() = 0;
+        virtual ~Generator() = 0;
 
         virtual void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) = 0;
     };
-} // namespace gfx::renderables
+} // namespace gfx::generators

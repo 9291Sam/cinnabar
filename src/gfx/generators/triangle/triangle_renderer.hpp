@@ -4,13 +4,13 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include "gfx/renderables/renderable.hpp"
+#include "gfx/generators/generator.hpp"
 #include "gfx/transform.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 
-namespace gfx::renderables::triangle
+namespace gfx::generators::triangle
 {
-    class TriangleRenderer : Renderable
+    class TriangleRenderer : Generator
     {
     public:
         using Triangle = util::OpaqueHandle<"TriangleRenderer::Triangle", u8>;
@@ -39,4 +39,4 @@ namespace gfx::renderables::triangle
         util::OpaqueHandleAllocator<Triangle> triangle_allocator;
         std::vector<Transform>                triangle_data;
     };
-} // namespace gfx::renderables::triangle
+} // namespace gfx::generators::triangle

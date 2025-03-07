@@ -27,6 +27,8 @@ find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 
 add_executable(cinnabar
+    src/game/game.cpp
+
     src/gfx/core/vulkan/allocator.cpp
     src/gfx/core/vulkan/buffer.cpp
     src/gfx/core/vulkan/descriptor_manager.cpp
@@ -40,9 +42,9 @@ add_executable(cinnabar
     src/gfx/core/renderer.cpp
     src/gfx/core/window.cpp
 
-    src/gfx/renderables/triangle/triangle_renderer.cpp
+    src/gfx/generators/triangle/triangle_renderer.cpp
 
-    src/gfx/renderables/renderable.cpp
+    src/gfx/generators/generator.cpp
 
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp

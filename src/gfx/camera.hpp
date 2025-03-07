@@ -5,7 +5,6 @@
 
 namespace gfx
 {
-    class Game;
 
     class Camera
     {
@@ -20,6 +19,7 @@ namespace gfx
         };
     public:
 
+        Camera();
         explicit Camera(CameraDescriptor);
         ~Camera() = default;
 

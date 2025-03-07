@@ -5,14 +5,14 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace gfx::renderables::triangle
+namespace gfx::generators::triangle
 {
     TriangleRenderer::TriangleRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , pipeline(
               this->renderer->getPipelineManager()->createGraphicsPipeline(core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/renderables/triangle/triangle.vert"},
-                  .fragment_shader_path {"src/gfx/renderables/triangle/triangle.frag"},
+                  .vertex_shader_path {"src/gfx/generators/triangle/triangle.vert"},
+                  .fragment_shader_path {"src/gfx/generators/triangle/triangle.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList}, // remove
                   .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
                   .cull_mode {vk::CullModeFlagBits::eNone},
@@ -83,4 +83,4 @@ namespace gfx::renderables::triangle
         // log::trace("Rendering {} triangles!", this->triangle_allocator.getNumberAllocated());
     }
 
-} // namespace gfx::renderables::triangle
+} // namespace gfx::generators::triangle

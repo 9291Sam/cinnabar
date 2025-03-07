@@ -3,6 +3,7 @@
 #include <random>
 //
 
+#include "game/game.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
@@ -12,7 +13,7 @@
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/frame_generator.hpp"
-#include "gfx/renderables/triangle/triangle_renderer.hpp"
+#include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "util/logger.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -26,75 +27,143 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
-// std::unordered_map<vk::ShaderStageFlagBits, std::vector<u32>> loadShaders()
-// {
-//     shaderc::CompileOptions options {};
-//     options.SetSourceLanguage(shaderc_source_language_glsl);
-//     options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-//     options.SetTargetSpirv(shaderc_spirv_version_1_5);
-//     options.SetOptimizationLevel(shaderc_optimization_level_performance);
-//     options.SetGenerateDebugInfo();
+struct TemporaryGameState : game::Game::GameState
+{
+    explicit TemporaryGameState(game::Game* game_)
+        : game {game_}
+        , triangle_renderer {this->game->getRenderer()}
+    {
+        std::mt19937                          gen {std::random_device {}()};
+        std::uniform_real_distribution<float> dist {-32.0f, 32.0f};
 
-//     shaderc::Compiler             compiler {};
-//     shaderc::SpvCompilationResult vertexShaderResult =
-//         compiler.CompileGlslToSpv(vertexShader, shaderc_vertex_shader, "", options);
-//     shaderc::SpvCompilationResult fragmentShaderResult =
-//         compiler.CompileGlslToSpv(fragmentShader, shaderc_fragment_shader, "", options);
+        for (int i = 0; i < 38; ++i)
+        {
+            triangles.push_back(this->triangle_renderer.createTriangle(
+                {.translation {glm::vec4 {dist(gen), dist(gen), dist(gen), 1.0f}}, .scale {10.0f, 10.0f, 10.0f}}));
+        }
+    }
+    ~TemporaryGameState() override
+    {
+        for (auto& t : triangles)
+        {
+            this->triangle_renderer.destroyTriangle(std::move(t));
+        }
+    }
 
-//     assert::critical(vertexShaderResult.GetCompilationStatus() == shaderc_compilation_status_success, "oops v");
-//     if (fragmentShaderResult.GetCompilationStatus() != shaderc_compilation_status_success)
-//     {
-//         assert::critical(false, "{}", fragmentShaderResult.GetErrorMessage());
-//     }
+    TemporaryGameState(const TemporaryGameState&)             = delete;
+    TemporaryGameState(TemporaryGameState&&)                  = delete;
+    TemporaryGameState& operator= (const TemporaryGameState&) = delete;
+    TemporaryGameState& operator= (TemporaryGameState&&)      = delete;
 
-//     std::vector<u32> vertexData {std::from_range, vertexShaderResult};
-//     std::vector<u32> fragmentData {std::from_range, fragmentShaderResult};
+    [[nodiscard]] std::string_view identify() const override
+    {
+        using namespace std::literals;
 
-//     assert::critical(!vertexData.empty(), "Vertex Size: {}", vertexData.size());
-//     assert::critical(!fragmentData.empty(), "Fragment Size: {}", fragmentData.size());
+        return "Temporary Game State"sv;
+    }
 
-//     std::unordered_map<vk::ShaderStageFlagBits, std::vector<u32>> out {};
+    game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
+    {
+        const float deltaTime        = updateArgs.delta_time;
+        const bool  hasResizeOcurred = updateArgs.has_resize_ocurred;
 
-//     out[vk::ShaderStageFlagBits::eVertex]   = std::move(vertexData);
-//     out[vk::ShaderStageFlagBits::eFragment] = std::move(fragmentData);
+        const gfx::core::Renderer* renderer = this->game->getRenderer();
 
-//     return out;
+        const vk::Extent2D frameBufferSize = renderer->getWindow()->getFramebufferSize();
 
-//     // if (compileResult.GetCompilationStatus() != shaderc_compilation_status_success)
-//     // {
-//     //     log::error(
-//     //         "compile failed: {} {}",
-//     //         static_cast<int>(compileResult.GetCompilationStatus()),
-//     //         compileResult.GetErrorMessage());
-//     // }
-//     // else
-//     // {
-//     //     std::span<const char> data {compileResult.cbegin(), compileResult.cend()};
+        const float aspectRatio =
+            static_cast<float>(frameBufferSize.width) / static_cast<float>(frameBufferSize.height);
 
-//     //     std::array<char, 16> hexChars {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
-//     //     'F'}; std::string          result {}; result.reserve(data.size() * 6);
+        if (hasResizeOcurred)
+        {
+            camera = gfx::Camera {gfx::Camera::CameraDescriptor {
+                .aspect_ratio {aspectRatio},
+                .position {camera.getPosition()},
+                .fov_y {FovY},
+                .pitch {camera.getPitch()},
+                .yaw {camera.getYaw()}}};
+        }
 
-//     //     for (char d : data)
-//     //     {
-//     //         const u32 c = static_cast<u8>(d);
+        if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::ToggleCursorAttachment))
+        {
+            renderer->getWindow()->toggleCursor();
+        }
 
-//     //         result.push_back('0');
-//     //         result.push_back('x');
-//     //         result += hexChars[static_cast<u32>(c & 0xF0u) >> 4u];
-//     //         result += hexChars[static_cast<u32>(c & 0x0Fu) >> 0u];
-//     //         result.push_back(',');
-//     //         result.push_back(' ');
-//     //     }
+        if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::CloseWindow))
+        {
+            return game::Game::GameStateUpdateResult {.should_terminate {true}, .generators {}, .camera {}};
+        }
 
-//     //     if (!result.empty())
-//     //     {
-//     //         result.pop_back();
-//     //         result.pop_back();
-//     //     }
+        glm::vec3 previousPosition = camera.getPosition();
 
-//     //     log::info("{}", result);
-//     // }
-// }
+        glm::vec3 newPosition = previousPosition;
+
+        const float moveScale = 32.0f;
+
+        // Adjust the new position based on input for movement directions
+        if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveForward))
+        {
+            newPosition += camera.getForwardVector() * deltaTime * moveScale;
+        }
+        else if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveBackward))
+        {
+            newPosition -= camera.getForwardVector() * deltaTime * moveScale;
+        }
+
+        if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveLeft))
+        {
+            newPosition -= camera.getRightVector() * deltaTime * moveScale;
+        }
+        else if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveRight))
+        {
+            newPosition += camera.getRightVector() * deltaTime * moveScale;
+        }
+
+        if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveUp))
+        {
+            newPosition += gfx::Transform::UpVector * deltaTime * moveScale;
+        }
+        else if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveDown))
+        {
+            newPosition -= gfx::Transform::UpVector * deltaTime * moveScale;
+        }
+
+        camera.setPosition(newPosition);
+
+        const float rotateSpeedScale = 6.0f;
+
+        auto getMouseDeltaRadians = [&]
+        {
+            // each value from -1.0 -> 1.0 representing how much it moved
+            // on the screen
+            const auto [nDeltaX, nDeltaY] = renderer->getWindow()->getScreenSpaceMouseDelta();
+
+            const auto deltaRadiansX = (nDeltaX / 2) * aspectRatio * FovY;
+            const auto deltaRadiansY = (nDeltaY / 2) * FovY;
+
+            return gfx::core::Window::Delta {.x {deltaRadiansX}, .y {deltaRadiansY}};
+        };
+
+        auto [xDelta, yDelta] = getMouseDeltaRadians();
+
+        camera.addYaw(xDelta * rotateSpeedScale);
+        camera.addPitch(yDelta * rotateSpeedScale);
+
+        return game::Game::GameStateUpdateResult {
+            .should_terminate {false},
+            .generators {gfx::FrameGenerator::FrameGenerateArgs {.maybe_triangle_renderer {&this->triangle_renderer}}},
+            .camera {this->camera}};
+    }
+
+    static constexpr float FovY = glm::radians(70.0f);
+
+    game::Game* game;
+
+    gfx::generators::triangle::TriangleRenderer                        triangle_renderer;
+    std::vector<gfx::generators::triangle::TriangleRenderer::Triangle> triangles;
+
+    gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
+};
 
 int main()
 {
@@ -111,126 +180,11 @@ int main()
             CINNABAR_DEBUG_BUILD ? " Debug Build" : "");
 
         gfx::core::Renderer renderer {};
+        game::Game          game {&renderer};
 
-        gfx::renderables::triangle::TriangleRenderer triangleRenderer {&renderer};
+        game.enqueueInstallGameState<TemporaryGameState>();
 
-        const float fovY = glm::radians(70.0f);
-
-        gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {fovY}}};
-
-        std::vector<gfx::renderables::triangle::TriangleRenderer::Triangle> triangles {};
-
-        std::mt19937                          gen {std::random_device {}()};
-        std::uniform_real_distribution<float> dist {-32.0f, 32.0f};
-
-        auto getRandVec3 = [&]
-        {
-            return glm::vec3 {
-                dist(gen),
-                dist(gen),
-                dist(gen),
-            };
-        };
-
-        for (int i = 0; i < 38; ++i)
-        {
-            triangles.push_back(triangleRenderer.createTriangle(
-                {.translation {glm::vec4 {getRandVec3(), 1.0f}}, .scale {10.0f, 10.0f, 10.0f}}));
-        }
-
-        gfx::FrameGenerator frameGenerator {&renderer};
-
-        while (!renderer.shouldWindowClose())
-        {
-            const vk::Extent2D frameBufferSize = renderer.getWindow()->getFramebufferSize();
-
-            const float aspectRatio =
-                static_cast<float>(frameBufferSize.width) / static_cast<float>(frameBufferSize.height);
-
-            if (frameGenerator.hasResizeOcurred())
-            {
-                camera = gfx::Camera {gfx::Camera::CameraDescriptor {
-                    .aspect_ratio {aspectRatio},
-                    .position {camera.getPosition()},
-                    .fov_y {fovY},
-                    .pitch {camera.getPitch()},
-                    .yaw {camera.getYaw()}}};
-            }
-
-            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::ToggleCursorAttachment))
-            {
-                renderer.getWindow()->toggleCursor();
-            }
-
-            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::CloseWindow))
-            {
-                break;
-            }
-
-            glm::vec3 previousPosition = camera.getPosition();
-
-            glm::vec3 newPosition = previousPosition;
-
-            const float deltaTime = renderer.getWindow()->getDeltaTimeSeconds();
-
-            const float moveScale = 32.0f;
-
-            // Adjust the new position based on input for movement directions
-            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveForward))
-            {
-                newPosition += camera.getForwardVector() * deltaTime * moveScale;
-            }
-            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveBackward))
-            {
-                newPosition -= camera.getForwardVector() * deltaTime * moveScale;
-            }
-
-            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveLeft))
-            {
-                newPosition -= camera.getRightVector() * deltaTime * moveScale;
-            }
-            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveRight))
-            {
-                newPosition += camera.getRightVector() * deltaTime * moveScale;
-            }
-
-            if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveUp))
-            {
-                newPosition += gfx::Transform::UpVector * deltaTime * moveScale;
-            }
-            else if (renderer.getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveDown))
-            {
-                newPosition -= gfx::Transform::UpVector * deltaTime * moveScale;
-            }
-
-            camera.setPosition(newPosition);
-
-            const float rotateSpeedScale = 6.0f;
-
-            auto getMouseDeltaRadians = [&]
-            {
-                // each value from -1.0 -> 1.0 representing how much it moved
-                // on the screen
-                const auto [nDeltaX, nDeltaY] = renderer.getWindow()->getScreenSpaceMouseDelta();
-
-                const auto deltaRadiansX = (nDeltaX / 2) * aspectRatio * fovY;
-                const auto deltaRadiansY = (nDeltaY / 2) * fovY;
-
-                return gfx::core::Window::Delta {.x {deltaRadiansX}, .y {deltaRadiansY}};
-            };
-
-            auto [xDelta, yDelta] = getMouseDeltaRadians();
-
-            camera.addYaw(xDelta * rotateSpeedScale);
-            camera.addPitch(yDelta * rotateSpeedScale);
-
-            frameGenerator.renderFrame({.maybe_triangle_renderer {&triangleRenderer}}, camera);
-        }
-
-        for (auto& t : triangles)
-        {
-            triangleRenderer.destroyTriangle(std::move(t));
-        }
+        game.enterUpdateLoop();
 
         renderer.getDevice()->getDevice().waitIdle();
     }

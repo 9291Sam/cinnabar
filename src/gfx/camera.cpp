@@ -5,6 +5,10 @@
 
 namespace gfx
 {
+    Camera::Camera()
+        : Camera {CameraDescriptor {}}
+    {}
+
     Camera::Camera(CameraDescriptor cameraDescriptor)
         : pitch {cameraDescriptor.pitch}
         , yaw {cameraDescriptor.yaw}

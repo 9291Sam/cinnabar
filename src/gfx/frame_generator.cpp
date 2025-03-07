@@ -11,13 +11,7 @@ namespace gfx
         , has_resize_ocurred {true}
     {}
 
-    bool FrameGenerator::hasResizeOcurred() const noexcept
-    {
-        return this->has_resize_ocurred;
-    }
-
-    // TODO: rename renderables to generators?
-    void FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
+    bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
     {
         this->has_resize_ocurred = this->renderer->recordOnThread(
             [&](vk::CommandBuffer             commandBuffer,
@@ -181,5 +175,7 @@ namespace gfx
                         }});
                 }
             });
+
+        return this->has_resize_ocurred;
     }
 } // namespace gfx
