@@ -402,7 +402,7 @@ namespace gfx
             this->frame_descriptors = this->createFrameDescriptors();
         }
 
-        if (this->renderer->getWindow()->isActionActive(gfx::core::Window::Action::ReloadShaders))
+        if (this->renderer->getPipelineManager()->couldAnyShadersReload())
         {
             this->renderer->getDevice()->getDevice().waitIdle();
 

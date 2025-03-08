@@ -6,6 +6,7 @@
 #include <shaderc/shaderc.hpp>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -64,11 +65,28 @@ namespace gfx::core::vulkan
             std::filesystem::file_time_type fragment_modify_time;
         };
 
-        /// Returns the new shader module and the time the file's info
-        std::pair<vk::UniqueShaderModule, std::filesystem::path>
-        createShaderModuleFromShaderPath(const std::string&, vk::ShaderStageFlags) const;
+        struct TryCreateShaderModuleResult
+        {
+            std::filesystem::path path;
 
-        GraphicsPipelineInternalStorage createGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor) const;
+            bool                   success;
+            vk::UniqueShaderModule maybe_shader;
+            std::string            maybe_error_string;
+        };
+
+        /// Returns the new shader module and the time the file's info
+        TryCreateShaderModuleResult tryCreateShaderModuleFromShaderPath(const std::string&, vk::ShaderStageFlags) const;
+
+        struct TryCreateGraphicsPipelineFromDescriptorError
+        {
+            GraphicsPipelineDescriptor      recycled_descriptor;
+            std::string                     error;
+            std::filesystem::file_time_type vertex_modify_time;
+            std::filesystem::file_time_type fragment_modify_time;
+        };
+
+        std::expected<GraphicsPipelineInternalStorage, TryCreateGraphicsPipelineFromDescriptorError>
+            tryCreateGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor) const;
 
         vk::Device              device;
         vk::UniquePipelineCache pipeline_cache;
@@ -83,6 +101,6 @@ namespace gfx::core::vulkan
             std::vector<GraphicsPipelineInternalStorage>  graphics_pipeline_storage;
         };
 
-        util::RwLock<CriticalSection> critical_section;
+        util::Mutex<CriticalSection> critical_section;
     };
 } // namespace gfx::core::vulkan
