@@ -4,11 +4,11 @@
 #include "util/util.hpp"
 #include "vulkan/vulkan_structs.hpp"
 #include <atomic>
-// #include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_glfw.h>
 #include <chrono>
 #include <cmath>
 #include <glm/fwd.hpp>
-// #include <imgui.h>
+#include <imgui.h>
 #include <magic_enum/magic_enum.hpp>
 #include <thread>
 #include <utility>
@@ -235,7 +235,7 @@ namespace gfx::core
 
     void Window::initializeImgui() const
     {
-        // ImGui_ImplGlfw_InitForVulkan(this->window, true);
+        ImGui_ImplGlfw_InitForVulkan(this->window, true);
     }
 
     std::span<const char*> Window::getRequiredExtensions()

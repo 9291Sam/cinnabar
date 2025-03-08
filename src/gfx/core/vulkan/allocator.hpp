@@ -150,9 +150,7 @@ namespace gfx::core::vulkan
 
         [[nodiscard]] VmaAllocator operator* () const;
 
-        const Device*      getDevice() const;
-        vk::DescriptorPool getRawPool() const;
-        vk::PipelineCache  getRawCache() const;
+        const Device* getDevice() const;
 
     private:
         const Device* device;

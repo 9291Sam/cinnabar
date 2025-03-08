@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <string_view>
 
 using u8    = std::uint8_t;   // NOLINT
@@ -47,3 +48,15 @@ namespace util
     }
 
 } // namespace util
+
+inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
+{
+    using namespace std::literals;
+
+    const std::string_view prepend {"../"sv};
+
+    const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
+    const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
+
+    return canonicalPath;
+}

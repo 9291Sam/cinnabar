@@ -13,6 +13,7 @@
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/frame_generator.hpp"
+#include "gfx/generators/imgui/imgui_renderer.hpp"
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "util/logger.hpp"
@@ -34,6 +35,7 @@ struct TemporaryGameState : game::Game::GameState
         : game {game_}
         , triangle_renderer {this->game->getRenderer()}
         , skybox_renderer {this->game->getRenderer()}
+        , imgui_renderer {this->game->getRenderer()}
     {
         std::mt19937                          gen {std::random_device {}()};
         std::uniform_real_distribution<float> dist {-32.0f, 32.0f};
@@ -154,7 +156,9 @@ struct TemporaryGameState : game::Game::GameState
         return game::Game::GameStateUpdateResult {
             .should_terminate {false},
             .generators {gfx::FrameGenerator::FrameGenerateArgs {
-                .maybe_triangle_renderer {&this->triangle_renderer}, .maybe_skybox_render {&this->skybox_renderer}}},
+                .maybe_triangle_renderer {&this->triangle_renderer},
+                .maybe_skybox_renderer {&this->skybox_renderer},
+                .maybe_imgui_renderer {&this->imgui_renderer}}},
             .camera {this->camera}};
     }
 
@@ -164,6 +168,7 @@ struct TemporaryGameState : game::Game::GameState
 
     gfx::generators::triangle::TriangleRenderer                        triangle_renderer;
     gfx::generators::skybox::SkyboxRenderer                            skybox_renderer;
+    gfx::generators::imgui::ImguiRenderer                              imgui_renderer;
     std::vector<gfx::generators::triangle::TriangleRenderer::Triangle> triangles;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};

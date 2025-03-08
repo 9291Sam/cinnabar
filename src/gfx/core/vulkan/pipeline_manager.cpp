@@ -12,21 +12,6 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
-namespace
-{
-    std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
-    {
-        using namespace std::literals;
-
-        const std::string_view prepend {"../"sv};
-
-        const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
-        const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
-
-        return canonicalPath;
-    }
-} // namespace
-
 namespace gfx::core::vulkan
 {
     static constexpr u32 MaxPipelines = 512;
@@ -137,13 +122,13 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            options.SetGenerateDebugInfo();
             options.SetOptimizationLevel(shaderc_optimization_level_zero);
         }
         else
-        {
-            options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        }
+        {}
+
+        options.SetOptimizationLevel(shaderc_optimization_level_performance);
+        options.SetGenerateDebugInfo();
 
         shaderc_shader_kind kind {};
         if (shaderString.ends_with("vert"))
@@ -176,7 +161,7 @@ namespace gfx::core::vulkan
         std::string source = strStream.str();
 
         shaderc::SpvCompilationResult compileResult =
-            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shaderString.c_str());
+            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shaderString.c_str(), options);
 
         assert::critical(
             compileResult.GetCompilationStatus() == shaderc_compilation_status_success,

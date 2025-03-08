@@ -4,6 +4,10 @@
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
+#include "gfx/generators/imgui/imgui_renderer.hpp"
+#include "gfx/generators/skybox/skybox_renderer.hpp"
+#include "gfx/generators/triangle/triangle_renderer.hpp"
+#include <vulkan/vulkan_enums.hpp>
 
 namespace gfx
 {
@@ -41,6 +45,9 @@ namespace gfx
                     .minDepth {0.0},
                     .maxDepth {1.0},
                 };
+
+                commandBuffer.setViewport(0, {renderViewport});
+                commandBuffer.setScissor(0, {scissor});
 
                 if (this->has_resize_ocurred)
                 {
@@ -103,6 +110,30 @@ namespace gfx
                                 .baseArrayLayer {0},
                                 .layerCount {1}}},
                         }});
+
+                    commandBuffer.pipelineBarrier(
+                        vk::PipelineStageFlagBits::eFragmentShader,
+                        vk::PipelineStageFlagBits::eFragmentShader,
+                        {},
+                        {},
+                        {},
+                        {vk::ImageMemoryBarrier {
+                            .sType {vk::StructureType::eImageMemoryBarrier},
+                            .pNext {nullptr},
+                            .srcAccessMask {vk::AccessFlagBits::eNone},
+                            .dstAccessMask {vk::AccessFlagBits::eShaderRead},
+                            .oldLayout {vk::ImageLayout::eUndefined},
+                            .newLayout {vk::ImageLayout::eGeneral},
+                            .srcQueueFamilyIndex {graphicsQueueIndex},
+                            .dstQueueFamilyIndex {graphicsQueueIndex},
+                            .image {*this->frame_descriptors.imgui_render_target},
+                            .subresourceRange {vk::ImageSubresourceRange {
+                                .aspectMask {vk::ImageAspectFlagBits::eColor},
+                                .baseMipLevel {0},
+                                .levelCount {1},
+                                .baseArrayLayer {0},
+                                .layerCount {1}}},
+                        }});
                 }
 
                 commandBuffer.pipelineBarrier(
@@ -153,6 +184,97 @@ namespace gfx
                             .layerCount {1}}},
                     }});
 
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eFragmentShader,
+                    vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eShaderRead},
+                        .dstAccessMask {vk::AccessFlagBits::eColorAttachmentWrite},
+                        .oldLayout {vk::ImageLayout::eGeneral},
+                        .newLayout {vk::ImageLayout::eColorAttachmentOptimal},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {*this->frame_descriptors.imgui_render_target},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eColor},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
+
+                // ImGui
+                {
+                    const vk::RenderingAttachmentInfo colorAttachmentInfo {
+                        .sType {vk::StructureType::eRenderingAttachmentInfo},
+                        .pNext {nullptr},
+                        .imageView {this->frame_descriptors.imgui_render_target.getView()},
+                        .imageLayout {vk::ImageLayout::eColorAttachmentOptimal},
+                        .resolveMode {vk::ResolveModeFlagBits::eNone},
+                        .resolveImageView {nullptr},
+                        .resolveImageLayout {},
+                        .loadOp {vk::AttachmentLoadOp::eClear},
+                        .storeOp {vk::AttachmentStoreOp::eStore},
+                        .clearValue {
+                            vk::ClearColorValue {.float32 {{0.0f, 0.0f, 0.0f, 0.0f}}},
+                        },
+                    };
+
+                    const vk::RenderingInfo imguiRenderingInfo {
+                        .sType {vk::StructureType::eRenderingInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .renderArea {scissor},
+                        .layerCount {1},
+                        .viewMask {0},
+                        .colorAttachmentCount {1},
+                        .pColorAttachments {&colorAttachmentInfo},
+                        .pDepthAttachment {nullptr},
+                        .pStencilAttachment {nullptr},
+                    };
+
+                    commandBuffer.beginRendering(imguiRenderingInfo);
+
+                    if (generators.maybe_imgui_renderer)
+                    {
+                        generators.maybe_imgui_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+
+                        commandBuffer.setViewport(0, {renderViewport});
+                        commandBuffer.setScissor(0, {scissor});
+                    }
+
+                    commandBuffer.endRendering();
+                }
+
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eFragmentShader,
+                    vk::PipelineStageFlagBits::eFragmentShader,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eShaderWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eShaderRead},
+                        .oldLayout {vk::ImageLayout::eColorAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::eGeneral},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {*this->frame_descriptors.imgui_render_target},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eColor},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
+
                 // Simple Color
                 {
                     const vk::RenderingAttachmentInfo colorAttachmentInfo {
@@ -196,9 +318,6 @@ namespace gfx
                         .pStencilAttachment {nullptr},
                     };
 
-                    commandBuffer.setViewport(0, {renderViewport});
-                    commandBuffer.setScissor(0, {scissor});
-
                     commandBuffer.beginRendering(simpleColorRenderingInfo);
 
                     commandBuffer.bindDescriptorSets(
@@ -213,9 +332,24 @@ namespace gfx
                         generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
-                    if (generators.maybe_skybox_render)
+                    if (generators.maybe_skybox_renderer)
                     {
-                        generators.maybe_skybox_render->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_skybox_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                    }
+
+                    if (generators.maybe_imgui_renderer)
+                    {
+                        if (!this->frame_descriptors.imgui_image_descriptor.has_value())
+                        {
+                            // TODO: bad it leaks
+                            this->frame_descriptors.imgui_image_descriptor =
+                                this->renderer->getDescriptorManager()
+                                    ->registerDescriptor<vk::DescriptorType::eStorageImage>(
+                                        {.view {this->frame_descriptors.imgui_render_target.getView()},
+                                         .layout {vk::ImageLayout::eGeneral}});
+                        }
+                        generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(
+                            commandBuffer, this->frame_descriptors.imgui_image_descriptor.value());
                     }
 
                     commandBuffer.endRendering();
@@ -287,16 +421,28 @@ namespace gfx
 
     FrameGenerator::FrameDescriptors FrameGenerator::createFrameDescriptors()
     {
-        return FrameDescriptors {.depth_buffer {
-            renderer->getAllocator(),
-            renderer->getDevice()->getDevice(),
-            renderer->getWindow()->getFramebufferSize(),
-            vk::Format::eD32Sfloat,
-            vk::ImageLayout::eUndefined,
-            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
-            vk::ImageAspectFlagBits::eDepth,
-            vk::ImageTiling::eOptimal,
-            vk::MemoryPropertyFlagBits::eDeviceLocal,
-            "Global Depth Buffer"}};
+        return FrameDescriptors {
+            .depth_buffer {
+                renderer->getAllocator(),
+                renderer->getDevice()->getDevice(),
+                renderer->getWindow()->getFramebufferSize(),
+                vk::Format::eD32Sfloat,
+                vk::ImageLayout::eUndefined,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+                vk::ImageAspectFlagBits::eDepth,
+                vk::ImageTiling::eOptimal,
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                "Global Depth Buffer"},
+            .imgui_render_target {
+                renderer->getAllocator(),
+                renderer->getDevice()->getDevice(),
+                renderer->getWindow()->getFramebufferSize(),
+                vk::Format::eB8G8R8A8Unorm,
+                vk::ImageLayout::eUndefined,
+                vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage,
+                vk::ImageAspectFlagBits::eColor,
+                vk::ImageTiling::eOptimal,
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                "Imgui Render Target"}};
     }
 } // namespace gfx

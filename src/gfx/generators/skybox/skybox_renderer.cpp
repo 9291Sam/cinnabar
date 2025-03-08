@@ -44,7 +44,7 @@ namespace gfx::generators::skybox
             glm::vec4 camera_right;
             glm::vec4 camera_up;
             f32       aspect_ratio;
-            f32       fov_y;
+            f32       tan_of_half_fov_y;
             f32       time_alive;
         };
 
@@ -53,7 +53,7 @@ namespace gfx::generators::skybox
             .camera_right {glm::vec4 {camera.getRightVector(), 0.0f}},
             .camera_up {glm::vec4 {camera.getUpVector(), 0.0f}},
             .aspect_ratio {camera.getAspectRatio()},
-            .fov_y {camera.getFovYRadians()},
+            .tan_of_half_fov_y {std::tan(0.5f * camera.getFovYRadians())},
             .time_alive {this->time_alive}};
 
         commandBuffer.pushConstants<PushConstants>(

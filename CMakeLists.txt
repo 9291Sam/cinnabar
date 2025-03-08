@@ -23,7 +23,16 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
+CPMAddPackage("gh:ocornut/imgui#v1.91.8")
+CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
+CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+
+set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
+if (WIN32 AND NOT FREETYPE_DIR)
+    message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable")
+endif()
+find_package(Freetype REQUIRED)
 
 
 add_executable(cinnabar
@@ -42,6 +51,8 @@ add_executable(cinnabar
     src/gfx/core/renderer.cpp
     src/gfx/core/window.cpp
 
+    src/gfx/generators/imgui/imgui_renderer.cpp
+
     src/gfx/generators/triangle/triangle_renderer.cpp
 
     src/gfx/generators/skybox/skybox_renderer.cpp
@@ -58,6 +69,42 @@ add_executable(cinnabar
     src/util/logger.cpp
 
     src/main.cpp
+)
+
+add_library(imgui_build_target STATIC
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui.cpp
+
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    
+    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
+
+    
+    ${plutosvg_SOURCE_DIR}/source/plutosvg.c
+)
+target_include_directories(imgui_build_target SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
+target_include_directories(imgui_build_target SYSTEM PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(imgui_build_target SYSTEM PUBLIC ${FREETYPE_INCLUDE_DIRS})
+target_include_directories(imgui_build_target SYSTEM PUBLIC ${plutosvg_SOURCE_DIR}/source)
+target_compile_definitions(imgui_build_target PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+target_compile_definitions(imgui_build_target PUBLIC VULKAN_HPP_NO_CONSTRUCTORS=1)
+target_compile_definitions(imgui_build_target PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES=1)
+target_compile_definitions(imgui_build_target PUBLIC IMGUI_USE_WCHAR32=1)
+target_compile_definitions(imgui_build_target PUBLIC IMGUI_ENABLE_FREETYPE=1)
+target_compile_definitions(imgui_build_target PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG=1)
+target_compile_definitions(imgui_build_target PUBLIC PLUTOSVG_HAS_FREETYPE=1)
+target_compile_definitions(imgui_build_target PUBLIC PLUTOSVG_BUILD_STATIC=1)
+target_compile_definitions(imgui_build_target PUBLIC VK_NO_PROTOTYPES=1)
+target_link_libraries(
+    imgui_build_target
+    PUBLIC 
+    glfw
+    plutovg::plutovg
+    ${FREETYPE_LIBRARIES}
 )
 
 target_include_directories(cinnabar PRIVATE src)
@@ -96,6 +143,7 @@ target_link_libraries(cinnabar
     Boost::type_traits
     Boost::sort
     Boost::pool
+    imgui_build_target
 )
 
 

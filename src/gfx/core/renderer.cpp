@@ -120,9 +120,6 @@ namespace gfx::core
                 }
             });
 
-// this->allocator->trimCaches();
-#warning fix
-
         this->window->endFrame();
 
         this->time_alive += this->window->getDeltaTimeSeconds();

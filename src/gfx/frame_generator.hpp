@@ -2,19 +2,32 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/image.hpp"
-#include "gfx/generators/skybox/skybox_renderer.hpp"
-#include "gfx/generators/triangle/triangle_renderer.hpp"
 
 namespace gfx
 {
+    namespace generators::imgui
+    {
+        class ImguiRenderer;
+    } // namespace generators::imgui
+    namespace generators::skybox
+    {
+        class SkyboxRenderer;
+    } // namespace generators::skybox
+    namespace generators::triangle
+    {
+        class TriangleRenderer;
+    } // namespace generators::triangle
+
     class FrameGenerator
     {
     public:
         struct FrameGenerateArgs
         {
             generators::triangle::TriangleRenderer* maybe_triangle_renderer;
-            generators::skybox::SkyboxRenderer*     maybe_skybox_render;
+            generators::skybox::SkyboxRenderer*     maybe_skybox_renderer;
+            generators::imgui::ImguiRenderer*       maybe_imgui_renderer;
         };
     public:
         explicit FrameGenerator(const core::Renderer*);
@@ -34,6 +47,9 @@ namespace gfx
         struct FrameDescriptors
         {
             gfx::core::vulkan::Image2D depth_buffer;
+            gfx::core::vulkan::Image2D imgui_render_target;
+
+            std::optional<core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage>> imgui_image_descriptor;
         };
 
         FrameDescriptors createFrameDescriptors();

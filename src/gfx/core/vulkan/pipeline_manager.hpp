@@ -46,6 +46,7 @@ namespace gfx::core::vulkan
         [[nodiscard]] GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor) const;
         void                           destroyGraphicsPipeline(GraphicsPipeline) const;
 
+        bool couldAnyShadersReload() const;
         void reloadShaders() const;
 
         /// The value returned is valid until the next call to reloadShaders
