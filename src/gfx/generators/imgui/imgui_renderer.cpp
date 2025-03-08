@@ -234,6 +234,27 @@ namespace gfx::generators::imgui
 
         const float deltaTime = renderer->getWindow()->getDeltaTimeSeconds();
 
+        auto getDeltaTimeEmoji = [](const float dt) -> std::string_view
+        {
+            using namespace std::literals;
+
+            const float fps = 1.0f / dt;
+
+            if (fps >= 60)
+            {
+                return "🚀"sv;
+            }
+            if (fps >= 30)
+            {
+                return "⏳"sv;
+            }
+            if (fps >= 15)
+            {
+                return "❄️"sv;
+            }
+            return "💀"sv;
+        };
+
         if (ImGui::Begin(
                 "Console",
                 nullptr,
@@ -302,8 +323,8 @@ namespace gfx::generators::imgui
             //     100.0f * static_cast<float>(facesVisible) / static_cast<float>(facesPossible),
             //     fly);
 
-            const std::string menuText =
-                std::format("ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nDelta Time: {}\n {}", deltaTime, this->dummy);
+            const std::string menuText = std::format(
+                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}", getDeltaTimeEmoji(deltaTime), 1.0f / deltaTime);
 
             ImGui::TextWrapped("%s", menuText.c_str()); // NOLINT
 
@@ -342,7 +363,5 @@ namespace gfx::generators::imgui
             static_cast<u32>(menuTransferFromImage.getOffset()));
 
         commandBuffer.draw(3, 1, 0, 0);
-
-        this->dummy = menuTransferFromImage.getOffset();
     }
 } // namespace gfx::generators::imgui

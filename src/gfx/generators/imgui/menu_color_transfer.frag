@@ -14,9 +14,9 @@ in_push_constants;
 
 void main()
 {
-    vec4 color = imageLoad(menu_transfer_image[in_push_constants.menuTransferImageId], ivec2(floor(gl_FragCoord.xy)));
+    vec4 color = imageLoad(menu_transfer_image[in_push_constants.menuTransferImageId], ivec2(gl_FragCoord.xy));
 
-    color.rgb = pow(color.rgb, vec3(2.2));
+    color.rgb = color.rgb * color.rgb; // fast srgb approximation
 
     out_color = color;
 }

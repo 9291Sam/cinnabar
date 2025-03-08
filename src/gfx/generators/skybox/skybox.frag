@@ -1,7 +1,7 @@
 #version 460
 
 // https://nullprogram.com/blog/2018/07/31/
-uint gpu_hashuint(uint x)
+uint hash(uint x)
 {
     x ^= x >> 17;
     x *= 0xed5ad4bbU;
@@ -19,7 +19,7 @@ uint rotate_right(uint x, uint r)
     return (x >> r) | (x << (32u - r));
 }
 
-uint gpu_hashCombineuint(uint a, uint h)
+uint combine(uint a, uint h)
 {
     a *= 0xcc9e2d51u;
     a = rotate_right(a, 17u);
@@ -31,18 +31,11 @@ uint gpu_hashCombineuint(uint a, uint h)
 
 float random(vec2 pos)
 {
-    uint seed = 474838454;
+    uint seed = 44;
 
-    seed = gpu_hashCombineuint(seed, gpu_hashuint(floatBitsToUint(pos.x)));
+    seed = combine(seed, hash(floatBitsToUint(pos.x)));
 
-    seed = gpu_hashCombineuint(seed, gpu_hashuint(floatBitsToUint(pos.y)));
-
-    // if ((seed & 7u) == 0u)
-    // {
-    //     seed += gpu_hashCombineuint(seed - seed * 727382, gpu_hashuint(floatBitsToUint(pos.y)));
-    // }
-
-    // seed = gpu_hashCombineuint(gpu_hashuint(floatBitsToUint(pos.z)), seed);
+    seed = combine(seed, hash(hash(floatBitsToUint(pos.y))));
 
     return float(seed) / float(uint(-1));
 }
