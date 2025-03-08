@@ -18,6 +18,7 @@ namespace gfx::generators::imgui
 {
     ImguiRenderer::ImguiRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
+        , font {nullptr}
         , menu_transfer_pipeline {
               this->renderer->getPipelineManager()->createGraphicsPipeline(core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/imgui/menu_color_transfer.vert"},
@@ -141,74 +142,70 @@ namespace gfx::generators::imgui
                 io.IniFilename = nullptr;
                 io.LogFilename = nullptr;
 
-                // {
-                //     static std::array<ImWchar, 3> unifontRanges {0x0001, 0xFFFF, 0};
-                //     ImFontConfig                  fontConfigUnifont;
-                //     fontConfigUnifont.OversampleH          = 2;
-                //     fontConfigUnifont.OversampleV          = 2;
-                //     fontConfigUnifont.RasterizerDensity    = 2.0f;
-                //     fontConfigUnifont.MergeMode            = false;
-                //     fontConfigUnifont.SizePixels           = 64;
-                //     fontConfigUnifont.FontDataOwnedByAtlas = false;
+                {
+                    static std::array<ImWchar, 3> unifontRanges {0x0001, 0xFFFF, 0};
+                    ImFontConfig                  fontConfigUnifont;
+                    fontConfigUnifont.OversampleH          = 2;
+                    fontConfigUnifont.OversampleV          = 2;
+                    fontConfigUnifont.RasterizerDensity    = 2.0f;
+                    fontConfigUnifont.MergeMode            = false;
+                    fontConfigUnifont.SizePixels           = 64;
+                    fontConfigUnifont.FontDataOwnedByAtlas = false;
 
-                //     const std::filesystem::path unifontPath =
-                //     getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
+                    const std::filesystem::path unifontPath = getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
 
-                //     std::ifstream inFile;
-                //     inFile.open(unifontPath);
+                    std::ifstream inFile;
+                    inFile.open(unifontPath);
 
-                //     log::trace("{}", unifontPath.string());
+                    assert::critical(
+                        !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
 
-                //     assert::critical(
-                //         !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
+                    std::ostringstream strStream;
+                    strStream << inFile.rdbuf();
 
-                //     std::ostringstream strStream;
-                //     strStream << inFile.rdbuf();
+                    assert::critical(!strStream.view().empty(), "size {}", strStream.view());
 
-                //     log::trace("{} {}", strStream.view().size(), strStream.view());
-                //     assert::critical(!strStream.view().empty(), "size {}", strStream.view());
+                    this->font = io.Fonts->AddFontFromMemoryTTF(
+                        const_cast<char*>(strStream.view().data()), // NOLINT
+                        static_cast<int>(strStream.view().size()),
+                        16,
+                        &fontConfigUnifont,
+                        unifontRanges.data());
+                }
 
-                //     this->font = io.Fonts->AddFontFromMemoryTTF(
-                //         const_cast<char*>(strStream.view().data()), // NOLINT
-                //         static_cast<int>(strStream.view().size()),
-                //         16,
-                //         &fontConfigUnifont,
-                //         unifontRanges.data());
-                // }
+                {
+                    static std::array<ImWchar, 3> ranges {0x00001, 0x1FFFF, 0};
+                    static ImFontConfig           cfg;
 
-                // {
-                //     static std::array<ImWchar, 3> ranges {0x00001, 0x1FFFF, 0};
-                //     static ImFontConfig           cfg;
+                    cfg.OversampleH       = 1;
+                    cfg.OversampleV       = 1;
+                    cfg.RasterizerDensity = 2.0f;
+                    cfg.MergeMode         = true;
+                    cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor; // NOLINT
+                    cfg.SizePixels = 64;
 
-                //     cfg.OversampleH       = 1;
-                //     cfg.OversampleV       = 1;
-                //     cfg.RasterizerDensity = 2.0f;
-                //     cfg.MergeMode         = true;
-                //     cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor; // NOLINT
-                //     cfg.SizePixels = 64;
+                    const std::filesystem::path unifontPath =
+                        getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
 
-                //     const std::filesystem::path unifontPath =
-                //         getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
+                    std::ifstream inFile;
+                    inFile.open(unifontPath);
 
-                //     std::ifstream inFile;
-                //     inFile.open(unifontPath);
+                    assert::critical(
+                        !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
 
-                //     assert::critical(
-                //         !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
+                    std::stringstream strStream;
+                    strStream << inFile.rdbuf();
+                    std::string source = strStream.str();
 
-                //     std::stringstream strStream;
-                //     strStream << inFile.rdbuf();
-                //     std::string source = strStream.str();
+                    this->font = io.Fonts->AddFontFromMemoryTTF(
+                        source.data(), // NOLINT
+                        static_cast<int>(source.size()),
+                        16.0f,
+                        &cfg,
+                        ranges.data());
+                }
 
-                //     this->font = io.Fonts->AddFontFromMemoryTTF(
-                //         source.data(), // NOLINT
-                //         static_cast<int>(source.size()),
-                //         16.0f,
-                //         &cfg,
-                //         ranges.data());
-                // }
-
-                // io.Fonts->Build();
+                io.Fonts->Build();
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });
@@ -249,7 +246,7 @@ namespace gfx::generators::imgui
 
             // assert::critical(this->font != nullptr, "oopers");
 
-            // ImGui::PushFont(this->font);
+            ImGui::PushFont(this->font);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(WindowPadding, WindowPadding));
 
             // auto facesVisible = numberOfFacesVisible.load();
@@ -320,7 +317,7 @@ namespace gfx::generators::imgui
             }
 
             ImGui::PopStyleVar();
-            // ImGui::PopFont();
+            ImGui::PopFont();
 
             ImGui::End();
         }

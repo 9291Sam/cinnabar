@@ -36,7 +36,7 @@ namespace gfx::generators::imgui
 
         vk::UniqueDescriptorPool imgui_descriptor_pool;
 
-        // ImFont* font;
+        ImFont*                                         font;
         core::vulkan::PipelineManager::GraphicsPipeline menu_transfer_pipeline;
         u8                                              dummy = 255;
     };
