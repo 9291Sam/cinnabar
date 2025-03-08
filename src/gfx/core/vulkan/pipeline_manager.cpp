@@ -12,9 +12,23 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
+namespace
+{
+    std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
+    {
+        using namespace std::literals;
+
+        const std::string_view prepend {"../"sv};
+
+        const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
+        const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
+
+        return canonicalPath;
+    }
+} // namespace
+
 namespace gfx::core::vulkan
 {
-
     static constexpr u32 MaxPipelines = 512;
 
     PipelineManager::PipelineManager(const Device& device_, vk::PipelineLayout bindlessPipelineLayout)
@@ -36,7 +50,8 @@ namespace gfx::core::vulkan
     PipelineManager::GraphicsPipeline
     PipelineManager::createGraphicsPipeline(GraphicsPipelineDescriptor descriptor) const
     {
-        vk::UniquePipeline pipeline = this->createGraphicsPipelineFromDescriptor(descriptor);
+        GraphicsPipelineInternalStorage internalRepresentation =
+            this->createGraphicsPipelineFromDescriptor(std::move(descriptor));
 
         return this->critical_section.writeLock(
             [&](CriticalSection& criticalSection)
@@ -47,8 +62,7 @@ namespace gfx::core::vulkan
                 const u16 handleValue =
                     criticalSection.graphics_pipeline_handle_allocator.getValueOfHandle(newPipelineHandle);
 
-                criticalSection.graphics_pipeline_storage[handleValue] = GraphicsPipelineInternalStorage {
-                    .descriptor {std::move(descriptor)}, .pipeline {std::move(pipeline)}};
+                criticalSection.graphics_pipeline_storage[handleValue] = std::move(internalRepresentation);
 
                 return newPipelineHandle;
             });
@@ -67,6 +81,41 @@ namespace gfx::core::vulkan
             });
     }
 
+    void PipelineManager::reloadShaders() const
+    {
+        usize numberOfReloadedPipelines = 0;
+
+        this->critical_section.writeLock(
+            [&](CriticalSection& criticalSection)
+            {
+                criticalSection.graphics_pipeline_handle_allocator.iterateThroughAllocatedElements(
+                    [&](const u16 handleValue)
+                    {
+                        GraphicsPipelineInternalStorage& pipelineStorage =
+                            criticalSection.graphics_pipeline_storage[handleValue];
+
+                        if (pipelineStorage.vertex_modify_time
+                                != std::filesystem::last_write_time(pipelineStorage.vertex_path)
+                            || pipelineStorage.fragment_modify_time
+                                   != std::filesystem::last_write_time(pipelineStorage.fragment_path))
+                        {
+                            // TODO: have failures dont change the pipeline, print the error and move on
+                            pipelineStorage =
+                                this->createGraphicsPipelineFromDescriptor(std::move(pipelineStorage.descriptor));
+
+                            log::trace("Reloaded {}", pipelineStorage.descriptor.name);
+
+                            numberOfReloadedPipelines += 1;
+                        }
+                    });
+            });
+
+        if (numberOfReloadedPipelines != 0)
+        {
+            log::info("Reloaded {} pipelines", numberOfReloadedPipelines);
+        }
+    }
+
     vk::Pipeline PipelineManager::getPipeline(const GraphicsPipeline& p) const
     {
         return this->critical_section.writeLock(
@@ -78,8 +127,8 @@ namespace gfx::core::vulkan
             });
     }
 
-    vk::UniqueShaderModule
-    PipelineManager::createShaderModuleFromShaderPath(std::string_view shaderString, vk::ShaderStageFlags) const
+    std::pair<vk::UniqueShaderModule, std::filesystem::path>
+    PipelineManager::createShaderModuleFromShaderPath(const std::string& shaderString, vk::ShaderStageFlags) const
     {
         shaderc::CompileOptions options {};
         options.SetSourceLanguage(shaderc_source_language_glsl);
@@ -110,15 +159,7 @@ namespace gfx::core::vulkan
             panic("unsupported!");
         }
 
-        using namespace std::literals;
-
-        const std::string_view prepend {"../"sv};
-        const std::string      shader {shaderString};
-
-        const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / shader};
-        const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
-
-        // log::trace("loading {}", canonicalPath.string());
+        const std::filesystem::path canonicalPath = getCanonicalPathOfShaderFile(shaderString);
 
         std::ifstream inFile;
         inFile.open(canonicalPath);
@@ -127,17 +168,15 @@ namespace gfx::core::vulkan
             !inFile.fail(),
             "oop {} {} {}",
             std::filesystem::current_path().string(),
-            totalPath.string(),
+            shaderString,
             canonicalPath.string());
 
         std::stringstream strStream;
         strStream << inFile.rdbuf();
         std::string source = strStream.str();
 
-        // log::trace("loaded shader |{}|", source);
-
         shaderc::SpvCompilationResult compileResult =
-            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shader.c_str());
+            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shaderString.c_str());
 
         assert::critical(
             compileResult.GetCompilationStatus() == shaderc_compilation_status_success,
@@ -154,16 +193,19 @@ namespace gfx::core::vulkan
             .pCode {compiledSPV.data()},
         };
 
-        return this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+        return {this->device.createShaderModuleUnique(shaderModuleCreateInfo), canonicalPath};
     }
 
-    vk::UniquePipeline
+    PipelineManager::GraphicsPipelineInternalStorage
     PipelineManager::createGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor descriptor) const
     {
-        vk::UniqueShaderModule vertexShader =
-            this->createShaderModuleFromShaderPath(descriptor.vertex_shader_path, vk::ShaderStageFlagBits::eVertex);
-        vk::UniqueShaderModule fragmentShader =
-            this->createShaderModuleFromShaderPath(descriptor.fragment_shader_path, vk::ShaderStageFlagBits::eFragment);
+        // clang-format off
+        auto [vertexShader, vertexShaderPath]     = this->createShaderModuleFromShaderPath(descriptor.vertex_shader_path, vk::ShaderStageFlagBits::eVertex);
+        auto [fragmentShader, fragmentShaderPath] = this->createShaderModuleFromShaderPath(descriptor.fragment_shader_path, vk::ShaderStageFlagBits::eFragment);
+        
+        const std::filesystem::file_time_type vertexShaderModifyTime   = std::filesystem::last_write_time(vertexShaderPath);
+        const std::filesystem::file_time_type fragmentShaderModifyTime = std::filesystem::last_write_time(fragmentShaderPath);
+        // clang-format on
 
         const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
             vk::PipelineShaderStageCreateInfo {
@@ -176,7 +218,6 @@ namespace gfx::core::vulkan
                 .pSpecializationInfo {},
             },
             vk::PipelineShaderStageCreateInfo {
-
                 .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
                 .pNext {nullptr},
                 .flags {},
@@ -336,7 +377,13 @@ namespace gfx::core::vulkan
         assert::critical(
             result == vk::Result::eSuccess, "Failed to create graphics pipeline | Error: {}", vk::to_string(result));
 
-        return std::move(maybeUniquePipeline);
+        return GraphicsPipelineInternalStorage {
+            .descriptor {std::move(descriptor)},
+            .pipeline {std::move(maybeUniquePipeline)},
+            .vertex_path {vertexShaderPath},
+            .vertex_modify_time {vertexShaderModifyTime},
+            .fragment_path {fragmentShaderPath},
+            .fragment_modify_time {fragmentShaderModifyTime}};
     }
 
 } // namespace gfx::core::vulkan

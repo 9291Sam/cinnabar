@@ -56,10 +56,10 @@ namespace gfx::core
                      .key {GLFW_KEY_GRAVE_ACCENT}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::ResetPlayPosition,
-                 Window::ActionInformation {.key {GLFW_KEY_R}, .method {Window::InteractionMethod::SinglePress}}},
+                 Window::ActionInformation {.key {GLFW_KEY_K}, .method {Window::InteractionMethod::SinglePress}}},
 
-                {Window::Action::SpawnFlyer,
-                 Window::ActionInformation {.key {GLFW_KEY_F}, .method {Window::InteractionMethod::SinglePress}}},
+                {Window::Action::ReloadShaders,
+                 Window::ActionInformation {.key {GLFW_KEY_R}, .method {Window::InteractionMethod::SinglePress}}},
 
                 {Window::Action::CloseWindow,
                  Window::ActionInformation {.key {GLFW_KEY_ESCAPE}, .method {Window::InteractionMethod::SinglePress}}},

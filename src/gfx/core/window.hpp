@@ -41,7 +41,7 @@ namespace gfx::core
             ToggleConsole          = 7,
             ToggleCursorAttachment = 8,
             ResetPlayPosition      = 9,
-            SpawnFlyer             = 10,
+            ReloadShaders          = 10,
             CloseWindow            = 11,
             MaxActionValue         = 12,
         };

@@ -2,6 +2,7 @@
 
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/threads.hpp"
+#include <filesystem>
 #include <shaderc/shaderc.hpp>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
@@ -45,15 +46,28 @@ namespace gfx::core::vulkan
         [[nodiscard]] GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor) const;
         void                           destroyGraphicsPipeline(GraphicsPipeline) const;
 
-        // void trimCaches();
-        // void reloadShaders();
+        void reloadShaders() const;
 
-        /// The value returned is valid until the next call to trimCaches or reloadShaders
+        /// The value returned is valid until the next call to reloadShaders
         [[nodiscard]] vk::Pipeline getPipeline(const GraphicsPipeline&) const;
 
     private:
-        vk::UniqueShaderModule createShaderModuleFromShaderPath(std::string_view, vk::ShaderStageFlags) const;
-        vk::UniquePipeline     createGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor) const;
+
+        struct GraphicsPipelineInternalStorage
+        {
+            GraphicsPipelineDescriptor      descriptor;
+            vk::UniquePipeline              pipeline;
+            std::filesystem::path           vertex_path;
+            std::filesystem::file_time_type vertex_modify_time;
+            std::filesystem::path           fragment_path;
+            std::filesystem::file_time_type fragment_modify_time;
+        };
+
+        /// Returns the new shader module and the time the file's info
+        std::pair<vk::UniqueShaderModule, std::filesystem::path>
+        createShaderModuleFromShaderPath(const std::string&, vk::ShaderStageFlags) const;
+
+        GraphicsPipelineInternalStorage createGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor) const;
 
         vk::Device              device;
         vk::UniquePipelineCache pipeline_cache;
@@ -61,12 +75,6 @@ namespace gfx::core::vulkan
         shaderc::Compiler shader_compiler;
 
         vk::PipelineLayout bindless_pipeline_layout;
-
-        struct GraphicsPipelineInternalStorage
-        {
-            GraphicsPipelineDescriptor descriptor;
-            vk::UniquePipeline         pipeline;
-        };
 
         struct CriticalSection
         {

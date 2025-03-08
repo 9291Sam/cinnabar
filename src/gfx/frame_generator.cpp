@@ -275,6 +275,13 @@ namespace gfx
             this->frame_descriptors = this->createFrameDescriptors();
         }
 
+        if (this->renderer->getWindow()->isActionActive(gfx::core::Window::Action::ReloadShaders))
+        {
+            this->renderer->getDevice()->getDevice().waitIdle();
+
+            this->renderer->getPipelineManager()->reloadShaders();
+        }
+
         return this->has_resize_ocurred;
     }
 
