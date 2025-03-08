@@ -1,26 +1,28 @@
 #include "image.hpp"
 #include "allocator.hpp"
+#include "gfx/core/renderer.hpp"
 #include "util/logger.hpp"
+#include <optional>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
-    Image2D::Image2D( // NOLINT: this->memory is initalized via vmaCreateImage
-        const Allocator*        allocator_,
-        vk::Device              device,
+    Image2D::Image2D(
+        const Renderer*         renderer_,
         vk::Extent2D            extent_,
         vk::Format              format_,
         vk::ImageLayout         layout,
-        vk::ImageUsageFlags     usage,
+        vk::ImageUsageFlags     usage_,
         vk::ImageAspectFlags    aspect_,
         vk::ImageTiling         tiling,
         vk::MemoryPropertyFlags memoryPropertyFlags,
         std::string             name)
-        : allocator {**allocator_}
+        : renderer {renderer_}
         , extent {extent_}
         , format {format_}
         , aspect {aspect_}
+        , usage {usage_}
         , image {nullptr}
         , memory {nullptr}
         , view {nullptr}
@@ -36,7 +38,7 @@ namespace gfx::core::vulkan
             .arrayLayers {1},
             .samples {VK_SAMPLE_COUNT_1_BIT},
             .tiling {static_cast<VkImageTiling>(tiling)},
-            .usage {static_cast<VkImageUsageFlags>(usage)},
+            .usage {static_cast<VkImageUsageFlags>(this->usage)},
             .sharingMode {VK_SHARING_MODE_EXCLUSIVE},
             .queueFamilyIndexCount {0},
             .pQueueFamilyIndices {nullptr},
@@ -55,7 +57,12 @@ namespace gfx::core::vulkan
         VkImage outputImage = nullptr;
 
         const vk::Result result {::vmaCreateImage(
-            this->allocator, &imageCreateInfo, &imageAllocationCreateInfo, &outputImage, &this->memory, nullptr)};
+            **this->renderer->getAllocator(),
+            &imageCreateInfo,
+            &imageAllocationCreateInfo,
+            &outputImage,
+            &this->memory,
+            nullptr)};
 
         assert::critical(result == vk::Result::eSuccess, "Failed to allocate image memory {}", vk::to_string(result));
 
@@ -65,7 +72,7 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
                 .pNext {nullptr},
                 .objectType {vk::ObjectType::eImage},
@@ -91,13 +98,13 @@ namespace gfx::core::vulkan
             }},
         };
 
-        this->view = device.createImageViewUnique(imageViewCreateInfo);
+        this->view = this->renderer->getDevice()->getDevice().createImageViewUnique(imageViewCreateInfo);
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
             std::string viewName = std::format("{} View", name);
 
-            device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
                 .pNext {nullptr},
                 .objectType {vk::ObjectType::eImageView},
@@ -109,24 +116,42 @@ namespace gfx::core::vulkan
 
     Image2D::~Image2D()
     {
+        if (this->maybe_sampled_image_descriptor_handle.has_value())
+        {
+            this->renderer->getDescriptorManager()->deregisterDescriptor(
+                *std::exchange(this->maybe_sampled_image_descriptor_handle, std::nullopt));
+        }
+
+        if (this->maybe_storage_image_descriptor_handle.has_value())
+        {
+            this->renderer->getDescriptorManager()->deregisterDescriptor(
+                *std::exchange(this->maybe_storage_image_descriptor_handle, std::nullopt));
+        }
+
         this->free();
     }
 
     Image2D::Image2D(Image2D&& other) noexcept
-        : allocator {other.allocator}
+        : renderer {other.renderer}
         , extent {other.extent}
         , format {other.format}
         , aspect {other.aspect}
+        , usage {other.usage}
+        , maybe_sampled_image_descriptor_handle {other.maybe_sampled_image_descriptor_handle}
+        , maybe_storage_image_descriptor_handle {other.maybe_storage_image_descriptor_handle}
         , image {other.image}
         , memory {other.memory}
         , view {std::move(other.view)}
     {
-        other.allocator = nullptr;
-        other.extent    = vk::Extent2D {};
-        other.format    = {};
-        other.aspect    = {};
-        other.image     = nullptr;
-        other.memory    = nullptr;
+        other.renderer                              = nullptr;
+        other.extent                                = vk::Extent2D {};
+        other.format                                = {};
+        other.aspect                                = {};
+        other.usage                                 = {};
+        other.maybe_sampled_image_descriptor_handle = std::nullopt;
+        other.maybe_storage_image_descriptor_handle = std::nullopt;
+        other.image                                 = nullptr;
+        other.memory                                = nullptr;
     }
 
     Image2D& Image2D::operator= (Image2D&& other) noexcept
@@ -163,11 +188,42 @@ namespace gfx::core::vulkan
         return this->extent;
     }
 
+    DescriptorHandle<vk::DescriptorType::eSampledImage> Image2D::getSampledDescriptor(vk::ImageLayout layout)
+    {
+        if (!this->maybe_sampled_image_descriptor_handle.has_value())
+        {
+            assert::critical(
+                static_cast<bool>(this->usage | vk::ImageUsageFlagBits::eSampled),
+                "Tried to access a non sampled image as a sampled image!");
+
+            this->maybe_sampled_image_descriptor_handle =
+                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
+                    {.view {*this->view}, .layout {layout}});
+        }
+
+        return this->maybe_sampled_image_descriptor_handle.value();
+    }
+
+    DescriptorHandle<vk::DescriptorType::eStorageImage> Image2D::getStorageDescriptor(vk::ImageLayout layout)
+    {
+        if (!this->maybe_storage_image_descriptor_handle.has_value())
+        {
+            assert::critical(
+                static_cast<bool>(this->usage | vk::ImageUsageFlagBits::eStorage),
+                "Tried to access a non storage image as a storage image!");
+
+            this->maybe_storage_image_descriptor_handle =
+                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
+                    {.view {*this->view}, .layout {layout}});
+        }
+
+        return this->maybe_storage_image_descriptor_handle.value();
+    }
     void Image2D::free()
     {
-        if (this->allocator != nullptr)
+        if (this->renderer != nullptr)
         {
-            vmaDestroyImage(this->allocator, static_cast<VkImage>(this->image), this->memory);
+            vmaDestroyImage(**this->renderer->getAllocator(), static_cast<VkImage>(this->image), this->memory);
         }
     }
 

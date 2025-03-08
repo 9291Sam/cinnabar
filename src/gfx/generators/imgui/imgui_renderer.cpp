@@ -216,6 +216,7 @@ namespace gfx::generators::imgui
 
     ImguiRenderer::~ImguiRenderer()
     {
+        this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->menu_transfer_pipeline));
         ImGui_ImplVulkan_Shutdown();
     }
 

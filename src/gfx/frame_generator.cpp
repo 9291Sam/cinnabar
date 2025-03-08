@@ -339,17 +339,10 @@ namespace gfx
 
                     if (generators.maybe_imgui_renderer)
                     {
-                        if (!this->frame_descriptors.imgui_image_descriptor.has_value())
-                        {
-                            // TODO: bad it leaks
-                            this->frame_descriptors.imgui_image_descriptor =
-                                this->renderer->getDescriptorManager()
-                                    ->registerDescriptor<vk::DescriptorType::eStorageImage>(
-                                        {.view {this->frame_descriptors.imgui_render_target.getView()},
-                                         .layout {vk::ImageLayout::eGeneral}});
-                        }
                         generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(
-                            commandBuffer, this->frame_descriptors.imgui_image_descriptor.value());
+                            commandBuffer,
+                            this->frame_descriptors.imgui_render_target.getStorageDescriptor(
+                                vk::ImageLayout::eGeneral));
                     }
 
                     commandBuffer.endRendering();
@@ -423,8 +416,7 @@ namespace gfx
     {
         return FrameDescriptors {
             .depth_buffer {
-                renderer->getAllocator(),
-                renderer->getDevice()->getDevice(),
+                renderer,
                 renderer->getWindow()->getFramebufferSize(),
                 vk::Format::eD32Sfloat,
                 vk::ImageLayout::eUndefined,
@@ -434,8 +426,7 @@ namespace gfx
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
                 "Global Depth Buffer"},
             .imgui_render_target {
-                renderer->getAllocator(),
-                renderer->getDevice()->getDevice(),
+                renderer,
                 renderer->getWindow()->getFramebufferSize(),
                 vk::Format::eB8G8R8A8Unorm,
                 vk::ImageLayout::eUndefined,

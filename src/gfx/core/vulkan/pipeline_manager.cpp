@@ -84,7 +84,8 @@ namespace gfx::core::vulkan
                             || pipelineStorage.fragment_modify_time
                                    != std::filesystem::last_write_time(pipelineStorage.fragment_path))
                         {
-                            // TODO: have failures dont change the pipeline, print the error and move on
+                            // TODO: have failures dont change the pipeline, print the error and move on using the old
+                            // pipeline
                             pipelineStorage =
                                 this->createGraphicsPipelineFromDescriptor(std::move(pipelineStorage.descriptor));
 

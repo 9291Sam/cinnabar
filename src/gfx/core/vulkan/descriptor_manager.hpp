@@ -91,7 +91,7 @@ namespace gfx::core::vulkan
         [[nodiscard]] vk::PipelineLayout getGlobalPipelineLayout() const;
 
         template<vk::DescriptorType D>
-        DescriptorHandle<D>
+        [[nodiscard]] DescriptorHandle<D>
             registerDescriptor(RegisterDescriptorArgs<D>, std::source_location = std::source_location::current()) const;
 
         template<vk::DescriptorType D>

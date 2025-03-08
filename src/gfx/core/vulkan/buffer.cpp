@@ -4,10 +4,9 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/util.hpp"
 #include <boost/container/small_vector.hpp>
-#include <limits>
 #include <source_location>
-#include <type_traits>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_hash.hpp>
 
 namespace gfx::core::vulkan
 {

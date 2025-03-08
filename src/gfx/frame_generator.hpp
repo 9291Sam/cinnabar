@@ -48,8 +48,6 @@ namespace gfx
         {
             gfx::core::vulkan::Image2D depth_buffer;
             gfx::core::vulkan::Image2D imgui_render_target;
-
-            std::optional<core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage>> imgui_image_descriptor;
         };
 
         FrameDescriptors createFrameDescriptors();
