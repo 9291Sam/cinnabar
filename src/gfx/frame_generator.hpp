@@ -2,7 +2,6 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/image.hpp"
 
 namespace gfx
@@ -20,6 +19,11 @@ namespace gfx
         class TriangleRenderer;
     } // namespace generators::triangle
 
+    namespace generators::voxel
+    {
+        class VoxelRenderer;
+    } // namespace generators::voxel
+
     class FrameGenerator
     {
     public:
@@ -28,6 +32,7 @@ namespace gfx
             generators::triangle::TriangleRenderer* maybe_triangle_renderer;
             generators::skybox::SkyboxRenderer*     maybe_skybox_renderer;
             generators::imgui::ImguiRenderer*       maybe_imgui_renderer;
+            generators::voxel::VoxelRenderer*       maybe_voxel_renderer;
         };
     public:
         explicit FrameGenerator(const core::Renderer*);

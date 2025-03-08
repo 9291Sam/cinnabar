@@ -53,9 +53,11 @@ add_executable(cinnabar
 
     src/gfx/generators/imgui/imgui_renderer.cpp
 
+    src/gfx/generators/skybox/skybox_renderer.cpp
+
     src/gfx/generators/triangle/triangle_renderer.cpp
 
-    src/gfx/generators/skybox/skybox_renderer.cpp
+    src/gfx/generators/voxel/voxel_renderer.cpp
 
     src/gfx/generators/generator.cpp
 

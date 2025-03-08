@@ -111,26 +111,34 @@ namespace gfx::core::vulkan
             std::string_view message {pCallbackData->pMessage, len};
 
             using namespace std::literals;
+            std::array<std::string_view, 2> discardedMessages {
+                "loader_get_json: Failed to open JSON file"sv,
+                "VK_ERROR_FEATURE_NOT_PRESENT: Metal does not support disabling primitive restart."};
 
-            if (!message.starts_with("loader_get_json: Failed to open JSON file"sv))
+            for (const std::string_view m : discardedMessages)
             {
-                switch (messageSeverity)
+                if (message.starts_with(m))
                 {
-                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-                    log::trace("{}", message);
-                    break;
-                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-                    log::info("{}", message);
-                    break;
-                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-                    log::warn("{}", message);
-                    break;
-                case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-                    log::error("{}", message);
-                    break;
-                default:
-                    break;
+                    return vk::False;
                 }
+            }
+
+            switch (messageSeverity)
+            {
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+                log::trace("{}", message);
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+                log::info("{}", message);
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+                log::warn("{}", message);
+                break;
+            case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+                log::error("{}", message);
+                break;
+            default:
+                break;
             }
 
             return vk::False;

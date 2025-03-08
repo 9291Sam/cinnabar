@@ -1,0 +1,32 @@
+#pragma once
+
+#include "gfx/core/vulkan/pipeline_manager.hpp"
+#include "gfx/generators/generator.hpp"
+
+namespace gfx::core
+{
+    class Renderer;
+} // namespace gfx::core
+
+namespace gfx::generators::voxel
+{
+    class VoxelRenderer : Generator
+    {
+    public:
+
+        explicit VoxelRenderer(const core::Renderer*);
+        ~VoxelRenderer() override;
+
+        VoxelRenderer(const VoxelRenderer&)             = delete;
+        VoxelRenderer(VoxelRenderer&&)                  = delete;
+        VoxelRenderer& operator= (const VoxelRenderer&) = delete;
+        VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
+
+        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
+
+    private:
+        const core::Renderer*                                renderer;
+        gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
+    };
+
+} // namespace gfx::generators::voxel

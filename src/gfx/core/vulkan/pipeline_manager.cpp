@@ -302,7 +302,7 @@ namespace gfx::core::vulkan
             .pNext {nullptr},
             .flags {},
             .topology {descriptor.topology},
-            // not even supported by moltenvk https://github.com/KhronosGroup/MoltenVK/issues/1521
+            // Moltenvk doesn't support disabling this = https://github.com/KhronosGroup/MoltenVK/issues/1521
             .primitiveRestartEnable {vk::False},
         };
 

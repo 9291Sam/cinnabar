@@ -1,0 +1,39 @@
+#version 460
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 model_view_proj;
+}
+in_push_constants;
+
+layout(location = 0) out vec4 out_color;
+
+const vec3 CUBE_STRIP_OFFSETS[] = {
+    vec3(-0.5f, 0.5f, 0.5f),   // Front-top-left
+    vec3(0.5f, 0.5f, 0.5f),    // Front-top-right
+    vec3(-0.5f, -0.5f, 0.5f),  // Front-bottom-left
+    vec3(0.5f, -0.5f, 0.5f),   // Front-bottom-right
+    vec3(0.5f, -0.5f, -0.5f),  // Back-bottom-right
+    vec3(0.5f, 0.5f, 0.5f),    // Front-top-right
+    vec3(0.5f, 0.5f, -0.5f),   // Back-top-right
+    vec3(-0.5f, 0.5f, 0.5f),   // Front-top-left
+    vec3(-0.5f, 0.5f, -0.5f),  // Back-top-left
+    vec3(-0.5f, -0.5f, 0.5f),  // Front-bottom-left
+    vec3(-0.5f, -0.5f, -0.5f), // Back-bottom-left
+    vec3(0.5f, -0.5f, -0.5f),  // Back-bottom-right
+    vec3(-0.5f, 0.5f, -0.5f),  // Back-top-left
+    vec3(0.5f, 0.5f, -0.5f),   // Back-top-right
+};
+
+void main()
+{
+    const vec3  center_location = vec3(0.0, 26.3, 0.3);
+    const float voxel_size      = 1.0;
+    const vec4  voxel_color     = vec4(1.0, 0.0, 0.0, 1.0);
+
+    const vec3 cube_vertex    = CUBE_STRIP_OFFSETS[gl_VertexIndex % 14];
+    const vec3 world_location = center_location + voxel_size * cube_vertex;
+
+    gl_Position = in_push_constants.model_view_proj * vec4(world_location, 1.0);
+    out_color   = voxel_color;
+}

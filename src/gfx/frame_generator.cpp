@@ -7,6 +7,7 @@
 #include "gfx/generators/imgui/imgui_renderer.hpp"
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
+#include "gfx/generators/voxel/voxel_renderer.hpp"
 #include <vulkan/vulkan_enums.hpp>
 
 namespace gfx
@@ -343,6 +344,11 @@ namespace gfx
                             commandBuffer,
                             this->frame_descriptors.imgui_render_target.getStorageDescriptor(
                                 vk::ImageLayout::eGeneral));
+                    }
+
+                    if (generators.maybe_voxel_renderer)
+                    {
+                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     commandBuffer.endRendering();
