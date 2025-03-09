@@ -1,5 +1,12 @@
 #version 460
 
+#extension GL_EXT_shader_explicit_arithmetic_types : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float32 : require
+
 const int MAX_RAY_STEPS = 64;
 
 #define B8(x)                                                                                                          \
@@ -164,18 +171,19 @@ layout(location = 1) in vec3 in_world_position;
 
 layout(location = 0) out vec4 out_color;
 
-layout(depth_less) out float gl_FragDepth;
+layout(depth_any) out float gl_FragDepth;
 
 void main()
 {
     vec3       origin = in_world_position;
     const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
 
-    const WorldTraceResult result = traceWorld(origin, dir);
+    const WorldTraceResult result = traceWorld(in_uvw * 8 - 4, dir);
 
     out_color = vec4(result.world_normal, 1.0);
+    // out_color = vec4(, 1.0);
 
-    vec4 clipPos = in_push_constants.model_view_proj * vec4(result.world_fragment_position, 1.0);
+    vec4 clipPos = in_push_constants.model_view_proj * vec4(in_world_position, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 
     // out_color = vec4(in_uvw, 1.0);

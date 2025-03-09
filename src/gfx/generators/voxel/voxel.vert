@@ -61,7 +61,7 @@ vec3 CUBE_TRIANGLE_LIST[] = {
 
 void main()
 {
-    const vec3  center_location = vec3(0.0);
+    const vec3  center_location = vec3(0.0, 4.9, -1.3);
     const float voxel_size      = 8.0;
     const vec4  voxel_color     = vec4(1.0, 0.0, 0.0, 1.0);
 
