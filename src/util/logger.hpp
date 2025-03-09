@@ -1,5 +1,12 @@
 #pragma once
 
+// These are here because MSVC likes to huff paint when it comes to name resolution
+
+#include <algorithm>
+#include <random>
+
+//
+
 #include <fmt/format.h>
 #include <source_location>
 #include <spdlog/spdlog.h>

@@ -74,11 +74,12 @@ namespace gfx::core
         this->instance           = std::make_unique<vulkan::Instance>();
         this->surface            = this->window->createSurface(**this->instance);
         this->device             = std::make_unique<vulkan::Device>(**this->instance, *this->surface);
-        this->allocator          = std::make_unique<vulkan::Allocator>(*this->instance, &*this->device);
-        this->stager             = std::make_unique<vulkan::BufferStager>(&*this->allocator);
         this->descriptor_manager = std::make_unique<vulkan::DescriptorManager>(*this->device);
         this->pipeline_manager   = std::make_unique<vulkan::PipelineManager>(
             *this->device, this->descriptor_manager->getGlobalPipelineLayout());
+        this->allocator =
+            std::make_unique<vulkan::Allocator>(*this->instance, &*this->device, &*this->descriptor_manager);
+        this->stager = std::make_unique<vulkan::BufferStager>(&*this->allocator);
 
         this->critical_section =
             util::Mutex {Renderer::makeCriticalSection(*this->device, *this->surface, *this->window)};

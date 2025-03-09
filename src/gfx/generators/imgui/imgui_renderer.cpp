@@ -142,6 +142,7 @@ namespace gfx::generators::imgui
                 io.IniFilename = nullptr;
                 io.LogFilename = nullptr;
 
+#ifndef WIN32
                 {
                     static std::array<ImWchar, 3> unifontRanges {0x0001, 0xFFFF, 0};
                     ImFontConfig                  fontConfigUnifont;
@@ -204,8 +205,9 @@ namespace gfx::generators::imgui
                         &cfg,
                         ranges.data());
                 }
-
                 io.Fonts->Build();
+#endif
+#warning fix
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });

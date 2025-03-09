@@ -82,10 +82,10 @@ namespace gfx::core
         std::unique_ptr<vulkan::Instance>          instance;
         vk::UniqueSurfaceKHR                       surface;
         std::unique_ptr<vulkan::Device>            device;
-        std::unique_ptr<vulkan::Allocator>         allocator;
-        std::unique_ptr<vulkan::BufferStager>      stager;
         std::unique_ptr<vulkan::DescriptorManager> descriptor_manager;
         std::unique_ptr<vulkan::PipelineManager>   pipeline_manager;
+        std::unique_ptr<vulkan::Allocator>         allocator;
+        std::unique_ptr<vulkan::BufferStager>      stager;
 
         util::Mutex<std::unique_ptr<RenderingCriticalSection>> critical_section;
 

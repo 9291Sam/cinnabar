@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/generator.hpp"
 #include "gfx/transform.hpp"
@@ -22,10 +23,10 @@ namespace gfx::generators::triangle
         TriangleRenderer& operator= (const TriangleRenderer&) = delete;
         TriangleRenderer& operator= (TriangleRenderer&&)      = delete;
 
-        Triangle createTriangle(const Transform&);
+        Triangle createTriangle(glm::vec3);
         void     destroyTriangle(Triangle);
 
-        void updateTriangle(const Triangle&, const Transform&);
+        void updateTriangle(const Triangle&, glm::vec3);
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
 
@@ -34,7 +35,7 @@ namespace gfx::generators::triangle
         const core::Renderer*                           renderer;
         core::vulkan::PipelineManager::GraphicsPipeline pipeline;
 
-        util::OpaqueHandleAllocator<Triangle> triangle_allocator;
-        std::vector<Transform>                triangle_data;
+        util::OpaqueHandleAllocator<Triangle>         triangle_allocator;
+        gfx::core::vulkan::WriteOnlyBuffer<glm::vec3> triangle_gpu_data;
     };
 } // namespace gfx::generators::triangle

@@ -1,4 +1,5 @@
 
+
 #include "game/game.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
@@ -18,7 +19,6 @@
 #include <cstddef>
 #include <glm/ext/scalar_common.hpp>
 #include <glm/trigonometric.hpp>
-#include <random>
 #include <shaderc/shaderc.hpp>
 #include <shaderc/status.h>
 #include <vulkan/vulkan_enums.hpp>
@@ -40,8 +40,7 @@ struct TemporaryGameState : game::Game::GameState
 
         for (int i = 0; i < 38; ++i)
         {
-            triangles.push_back(this->triangle_renderer.createTriangle(
-                {.translation {glm::vec4 {dist(gen), dist(gen), dist(gen), 1.0f}}, .scale {10.0f, 10.0f, 10.0f}}));
+            triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
     }
     ~TemporaryGameState() override

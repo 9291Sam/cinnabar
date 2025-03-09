@@ -1,5 +1,6 @@
 #include "allocator.hpp"
 #include "device.hpp"
+#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "instance.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
@@ -10,8 +11,9 @@
 
 namespace gfx::core::vulkan
 {
-    Allocator::Allocator(const Instance& instance, const Device* device_)
+    Allocator::Allocator(const Instance& instance, const Device* device_, const DescriptorManager* descriptorManager)
         : device {device_}
+        , descriptor_manager {descriptorManager}
         , allocator {nullptr}
     {
         VmaVulkanFunctions vulkanFunctions {};
@@ -50,6 +52,11 @@ namespace gfx::core::vulkan
     const vulkan::Device* Allocator::getDevice() const
     {
         return this->device;
+    }
+
+    const vulkan::DescriptorManager* Allocator::getDescriptorManager() const
+    {
+        return this->descriptor_manager;
     }
 
 } // namespace gfx::core::vulkan

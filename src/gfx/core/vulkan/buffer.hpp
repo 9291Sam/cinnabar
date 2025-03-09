@@ -1,12 +1,14 @@
 #pragma once
 
 #include "allocator.hpp"
+#include "descriptor_manager.hpp"
 #include "device.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <source_location>
 #include <type_traits>
+#include <utility>
 #include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
@@ -44,7 +46,7 @@ namespace gfx::core::vulkan
         {}
         GpuOnlyBuffer(
             const Allocator*        allocator_,
-            vk::BufferUsageFlags    usage,
+            vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
@@ -53,6 +55,7 @@ namespace gfx::core::vulkan
             , buffer {nullptr}
             , allocation {nullptr}
             , elements {elements_}
+            , usage {usage_}
         {
             assert::critical(!this->name.empty(), "Tried to create buffer with empty name!");
 
@@ -71,7 +74,7 @@ namespace gfx::core::vulkan
                 .pNext {nullptr},
                 .flags {},
                 .size {this->elements * sizeof(T)},
-                .usage {static_cast<VkBufferUsageFlags>(usage)},
+                .usage {static_cast<VkBufferUsageFlags>(this->usage)},
                 .sharingMode {VK_SHARING_MODE_EXCLUSIVE},
                 .queueFamilyIndexCount {0},
                 .pQueueFamilyIndices {nullptr},
@@ -123,6 +126,15 @@ namespace gfx::core::vulkan
         }
         ~GpuOnlyBuffer()
         {
+            if (this->maybe_uniform_descriptor_handle.has_value())
+            {
+                this->allocator->getDescriptorManager()->deregisterDescriptor(*this->maybe_uniform_descriptor_handle);
+            }
+
+            if (this->maybe_storage_descriptor_handle.has_value())
+            {
+                this->allocator->getDescriptorManager()->deregisterDescriptor(*this->maybe_storage_descriptor_handle);
+            }
             this->free();
         }
 
@@ -146,16 +158,52 @@ namespace gfx::core::vulkan
             , buffer {other.buffer}
             , allocation {other.allocation}
             , elements {other.elements}
+            , usage {other.usage}
+            , maybe_uniform_descriptor_handle {std::exchange(other.maybe_uniform_descriptor_handle, std::nullopt)}
+            , maybe_storage_descriptor_handle {std::exchange(other.maybe_storage_descriptor_handle, std::nullopt)}
         {
             other.allocator  = nullptr;
             other.buffer     = nullptr;
             other.allocation = nullptr;
             other.elements   = 0;
+            other.usage      = {};
         }
 
         vk::Buffer operator* () const
         {
             return vk::Buffer {this->buffer};
+        }
+
+        DescriptorHandle<vk::DescriptorType::eUniformBuffer> getUniformDescriptor()
+        {
+            if (!this->maybe_uniform_descriptor_handle.has_value())
+            {
+                assert::critical(
+                    static_cast<bool>(this->usage | vk::BufferUsageFlagBits::eUniformBuffer),
+                    "Tried to access a non Uniform Buffer as a Uniform Buffer!");
+
+                this->maybe_uniform_descriptor_handle =
+                    this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
+                        {.buffer {this->buffer}});
+            }
+
+            return this->maybe_uniform_descriptor_handle.value();
+        }
+
+        DescriptorHandle<vk::DescriptorType::eStorageBuffer> geStorageDescriptor()
+        {
+            if (!this->maybe_storage_descriptor_handle.has_value())
+            {
+                assert::critical(
+                    static_cast<bool>(this->usage | vk::BufferUsageFlagBits::eStorageBuffer),
+                    "Tried to access a non Storage Buffer as a Storage Buffer!");
+
+                this->maybe_storage_descriptor_handle =
+                    this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
+                        {.buffer {this->buffer}});
+            }
+
+            return this->maybe_storage_descriptor_handle.value();
         }
 
     protected:
@@ -172,11 +220,15 @@ namespace gfx::core::vulkan
             bufferBytesAllocated -= (this->elements * sizeof(T));
         }
 
-        std::string      name;
-        const Allocator* allocator;
-        vk::Buffer       buffer;
-        VmaAllocation    allocation;
-        std::size_t      elements;
+        std::string          name;
+        const Allocator*     allocator;
+        vk::Buffer           buffer;
+        VmaAllocation        allocation;
+        std::size_t          elements;
+        vk::BufferUsageFlags usage;
+
+        std::optional<DescriptorHandle<vk::DescriptorType::eUniformBuffer>> maybe_uniform_descriptor_handle;
+        std::optional<DescriptorHandle<vk::DescriptorType::eStorageBuffer>> maybe_storage_descriptor_handle;
     };
 
     template<class T>
@@ -186,11 +238,11 @@ namespace gfx::core::vulkan
 
         WriteOnlyBuffer(
             const Allocator*        allocator_,
-            vk::BufferUsageFlags    usage,
+            vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::core::vulkan::GpuOnlyBuffer<T> {allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
+            : gfx::core::vulkan::GpuOnlyBuffer<T> {allocator_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
         {}
         ~WriteOnlyBuffer()
         {
@@ -348,15 +400,15 @@ namespace gfx::core::vulkan
 
         CpuCachedBuffer(
             const Allocator*        allocator_,
-            vk::BufferUsageFlags    usage,
+            vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
             : gfx::core::vulkan::WriteOnlyBuffer<T> {
-                  allocator_, usage, memoryPropertyFlags, elements_, std::move(name_)}
+                  allocator_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
         {
             assert::warn(
-                static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage),
+                static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage_),
                 "Creating CpuCachedBuffer<{}> without vk::BufferUsageFlagBits::eTransferDst",
                 util::getNameOfType<T>({}));
 

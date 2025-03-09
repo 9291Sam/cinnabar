@@ -8,6 +8,8 @@
 
 namespace gfx::generators::triangle
 {
+    static constexpr glm::vec3 NullTrianglePosition {NAN};
+
     TriangleRenderer::TriangleRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , pipeline(
@@ -24,10 +26,15 @@ namespace gfx::generators::triangle
                   .color_format {gfx::core::Renderer::ColorFormat.format},
                   .depth_format {gfx::core::Renderer::DepthFormat}, // remove lmao?
                   .blend_enable {vk::True},
-                  .name {"hacky triangle pipeline"},
+                  .name {"SRGB triangle pipeline"},
               }))
         , triangle_allocator {Triangle::MaxValidElement}
-        , triangle_data {Triangle::MaxValidElement, Transform {}}
+        , triangle_gpu_data {
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer,
+              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              Triangle::MaxValidElement,
+              "SRGB Triangle Pipeline"}
     {}
 
     TriangleRenderer::~TriangleRenderer()
@@ -35,25 +42,26 @@ namespace gfx::generators::triangle
         this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->pipeline));
     }
 
-    TriangleRenderer::Triangle TriangleRenderer::createTriangle(const Transform& transform)
+    TriangleRenderer::Triangle TriangleRenderer::createTriangle(glm::vec3 position)
     {
         Triangle newHandle = this->triangle_allocator.allocateOrPanic();
 
-        const u32 handleOffset = this->triangle_allocator.getValueOfHandle(newHandle);
-
-        this->triangle_data[handleOffset] = transform;
+        this->triangle_gpu_data.uploadImmediate(this->triangle_allocator.getValueOfHandle(newHandle), {&position, 1});
 
         return newHandle;
     }
 
     void TriangleRenderer::destroyTriangle(Triangle t)
     {
+        this->triangle_gpu_data.uploadImmediate(
+            this->triangle_allocator.getValueOfHandle(t), {&NullTrianglePosition, 1});
+
         this->triangle_allocator.free(std::move(t));
     }
 
-    void TriangleRenderer::updateTriangle(const Triangle& t, const Transform& newTransform)
+    void TriangleRenderer::updateTriangle(const Triangle& t, glm::vec3 newPosition)
     {
-        this->triangle_data[this->triangle_allocator.getValueOfHandle(t)] = newTransform;
+        this->triangle_gpu_data.uploadImmediate(this->triangle_allocator.getValueOfHandle(t), {&newPosition, 1});
     }
 
     void TriangleRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera& camera)
@@ -61,27 +69,25 @@ namespace gfx::generators::triangle
         struct PushConstants
         {
             glm::mat4 mvp;
+            u32       position_buffer;
         };
 
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        this->triangle_allocator.iterateThroughAllocatedElements(
-            [&](const u32 id)
-            {
-                const Transform     thisTransform = this->triangle_data[id];
-                const PushConstants pushConstants {.mvp {camera.getPerspectiveMatrix(thisTransform)}};
+        const u32 maxTriangles = this->triangle_allocator.getUpperBoundOnAllocatedElements();
 
-                commandBuffer.pushConstants<PushConstants>(
-                    this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-                    vk::ShaderStageFlagBits::eAll,
-                    0,
-                    pushConstants);
+        const PushConstants pushConstants {
+            .mvp {camera.getPerspectiveMatrix(Transform {})},
+            .position_buffer {this->triangle_gpu_data.geStorageDescriptor().getOffset()}};
 
-                commandBuffer.draw(3, 1, 0, 0);
-            });
+        commandBuffer.pushConstants<PushConstants>(
+            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+            vk::ShaderStageFlagBits::eAll,
+            0,
+            pushConstants);
 
-        // log::trace("Rendering {} triangles!", this->triangle_allocator.getNumberAllocated());
+        commandBuffer.draw(maxTriangles * 3, 1, 0, 0);
     }
 
 } // namespace gfx::generators::triangle
