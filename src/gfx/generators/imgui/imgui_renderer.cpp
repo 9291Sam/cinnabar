@@ -9,6 +9,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <fstream>
+#include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
 #include <misc/freetype/imgui_freetype.h>
 #include <vulkan/vulkan_enums.hpp>
@@ -206,8 +207,9 @@ namespace gfx::generators::imgui
                         ranges.data());
                 }
                 io.Fonts->Build();
-#endif
+
 #warning fix
+#endif
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });
@@ -219,7 +221,7 @@ namespace gfx::generators::imgui
         ImGui_ImplVulkan_Shutdown();
     }
 
-    void ImguiRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
+    void ImguiRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera& camera)
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -326,7 +328,10 @@ namespace gfx::generators::imgui
             //     fly);
 
             const std::string menuText = std::format(
-                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}", getDeltaTimeEmoji(deltaTime), 1.0f / deltaTime);
+                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}\n{}",
+                getDeltaTimeEmoji(deltaTime),
+                1.0f / deltaTime,
+                glm::to_string(camera.getPosition()));
 
             ImGui::TextWrapped("%s", menuText.c_str()); // NOLINT
 

@@ -34,14 +34,21 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera& camera)
     {
+        struct PushConstants
+        {
+            glm::mat4 mvp_matrix;
+            glm::vec4 camera_position;
+        };
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<glm::mat4>(
+        commandBuffer.pushConstants<PushConstants>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            camera.getPerspectiveMatrix({}));
+            PushConstants {
+                .mvp_matrix {camera.getPerspectiveMatrix({})},
+                .camera_position {glm::vec4 {camera.getPosition(), 0.0}}});
 
         commandBuffer.draw(14, 1, 0, 0);
     }

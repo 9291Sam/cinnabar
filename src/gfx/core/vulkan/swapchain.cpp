@@ -24,8 +24,8 @@ namespace gfx::core::vulkan
             vk::to_string(Renderer::ColorFormat.colorSpace));
 
         const std::array desiredPresentModes {
-            vk::PresentModeKHR::eMailbox,
-            vk::PresentModeKHR::eImmediate,
+            // vk::PresentModeKHR::eMailbox,
+            // vk::PresentModeKHR::eImmediate,
             vk::PresentModeKHR::eFifo,
         };
 

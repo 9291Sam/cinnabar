@@ -338,17 +338,17 @@ namespace gfx
                         generators.maybe_skybox_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
+                    if (generators.maybe_voxel_renderer)
+                    {
+                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                    }
+
                     if (generators.maybe_imgui_renderer)
                     {
                         generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(
                             commandBuffer,
                             this->frame_descriptors.imgui_render_target.getStorageDescriptor(
                                 vk::ImageLayout::eGeneral));
-                    }
-
-                    if (generators.maybe_voxel_renderer)
-                    {
-                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     commandBuffer.endRendering();
