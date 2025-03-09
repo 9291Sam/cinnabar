@@ -158,6 +158,7 @@ in_push_constants;
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
+layout(location = 2) in flat uint in_bool_is_camera_in_box;
 
 layout(location = 0) out vec4 out_color;
 
@@ -165,6 +166,11 @@ void main()
 {
     vec3       origin = in_world_position;
     const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
+
+    if (bool(in_bool_is_camera_in_box))
+    {
+        origin = in_push_constants.camera_position.xyz;
+    }
 
     out_color = traceWorld(origin, dir);
 }
