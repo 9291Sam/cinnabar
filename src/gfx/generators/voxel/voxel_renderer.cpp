@@ -13,10 +13,10 @@ namespace gfx::generators::voxel
               this->renderer->getPipelineManager()->createGraphicsPipeline(core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/voxel/voxel.vert"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel.frag"},
-                  .topology {vk::PrimitiveTopology::eTriangleStrip}, // remove
-                  .polygon_mode {vk::PolygonMode::eFill},            // replace with dynamic state
-                  .cull_mode {vk::CullModeFlagBits::eNone},
-                  .front_face {vk::FrontFace::eClockwise}, // remove
+                  .topology {vk::PrimitiveTopology::eTriangleList}, // remove
+                  .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
+                  .cull_mode {vk::CullModeFlagBits::eBack},
+                  .front_face {vk::FrontFace::eCounterClockwise}, // remove
                   .depth_test_enable {vk::True},
                   .depth_write_enable {vk::True},
                   .depth_compare_op {vk::CompareOp::eGreater}, // remove
@@ -50,6 +50,6 @@ namespace gfx::generators::voxel
                 .mvp_matrix {camera.getPerspectiveMatrix({})},
                 .camera_position {glm::vec4 {camera.getPosition(), 0.0}}});
 
-        commandBuffer.draw(14, 1, 0, 0);
+        commandBuffer.draw(36, 1, 0, 0);
     }
 } // namespace gfx::generators::voxel

@@ -48,14 +48,25 @@ float sdBox(vec3 p, vec3 b)
 
 bool getVoxel(ivec3 c)
 {
-    vec3  p = vec3(c) + vec3(0.5);
-    float d = min(max(-sdSphere(p, 7.5), sdBox(p, vec3(6.0))), -sdSphere(p, 25.0));
+    vec3  p           = vec3(c) + vec3(0.5);
+    float outerSphere = sdSphere(p, 25.0);
+    float d           = min(max(-sdSphere(p, 4.6), sdBox(p, vec3(4.0))), -outerSphere);
+
+    if (outerSphere > 0.0)
+    {
+        discard;
+    }
 
     return d < 0.0;
 }
 
 bool getBlockVoxel(ivec3 c)
 {
+    if (any(lessThan(c, ivec3(0))) || any(greaterThan(c, ivec3(7))))
+    {
+        return false;
+    }
+
     int index = c.y * 8 * 8 + c.z * 8 + c.x;
     return ((block[index / 32] >> (index % 32)) & 1) != 0;
 }
@@ -84,61 +95,53 @@ vec3 stepMask(vec3 sideDist)
     return vec3(mask);
 }
 
-vec4 traceBlock(vec3 rayPos, vec3 rayDir, vec3 iMask)
+struct WorldTraceResult
 {
-    rayPos         = clamp(rayPos, vec3(0.0001), vec3(7.9999));
-    vec3 mapPos    = floor(rayPos);
-    vec3 raySign   = sign(rayDir);
-    vec3 deltaDist = 1.0 / rayDir;
-    vec3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
-    vec3 mask      = iMask;
+    vec3 world_fragment_position;
+    vec3 world_normal;
+    vec3 local_voxel_uvw;
+    // TODO: normal
+    // TODO: brick UV
+};
 
-    int i = 0;
-
-    while (mapPos.x <= 7.0 && mapPos.x >= 0.0 && mapPos.y <= 7.0 && mapPos.y >= 0.0 && mapPos.z <= 7.0
-           && mapPos.z >= 0.0 && i++ < 64)
-    {
-        if (getBlockVoxel(ivec3(mapPos)))
-        {
-            return vec4(floor(mapPos) / 8.0, 1.0);
-        }
-
-        mask = stepMask(sideDist);
-        mapPos += mask * raySign;
-        sideDist += mask * raySign * deltaDist;
-    }
-
-    return vec4(0.0);
-}
-
-vec4 traceWorld(vec3 rayPos, vec3 rayDir)
+WorldTraceResult traceWorld(vec3 rayPos, vec3 rayDir)
 {
-    vec3 mapPos    = floor(rayPos);
-    vec3 raySign   = sign(rayDir);
-    vec3 deltaDist = 1.0 / rayDir;
-    vec3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
-    vec3 mask      = stepMask(sideDist);
+    vec3       mapPos    = floor(rayPos);
+    vec3       raySign   = sign(rayDir);
+    const vec3 deltaDist = 1.0 / rayDir;
+    vec3       sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
+    vec3       mask      = stepMask(sideDist);
 
     for (int i = 0; i < MAX_RAY_STEPS; i++)
     {
-        if (getVoxel(ivec3(mapPos)))
+        if (getBlockVoxel(ivec3(mapPos) + 4))
         {
-            vec3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
-            float d         = max(mini.x, max(mini.y, mini.z));
-            vec3  intersect = rayPos + rayDir * d;
-            vec3  uv3d      = intersect - mapPos;
+            // Okay, we've struck a voxel, let's do a ray-cube intersection to determine other parameters)
+            vec3  mini                              = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
+            float rayTraversalDistanceSinceFragment = max(mini.x, max(mini.y, mini.z));
+            vec3  intersectionPositionWorld         = rayPos + rayDir * rayTraversalDistanceSinceFragment;
+            vec3  voxelLocalUVW3D                   = intersectionPositionWorld - mapPos;
 
             if (mapPos == floor(rayPos)) // Handle edge case where camera origin is inside of block
             {
-                uv3d = rayPos - mapPos;
+                voxelLocalUVW3D = rayPos - mapPos;
             }
 
-            vec4 hit = traceBlock(uv3d * 8.0, rayDir, mask);
-
-            if (hit.a > 0.95)
+            vec3 normal = vec3(0.0);
+            if (mini.x > mini.y && mini.x > mini.z)
             {
-                return hit;
+                normal.x = -raySign.x;
             }
+            else if (mini.y > mini.z)
+            {
+                normal.y = -raySign.y;
+            }
+            else
+            {
+                normal.z = -raySign.z;
+            }
+
+            return WorldTraceResult(intersectionPositionWorld, normal, voxelLocalUVW3D);
         }
 
         mask = stepMask(sideDist);
@@ -146,7 +149,7 @@ vec4 traceWorld(vec3 rayPos, vec3 rayDir)
         sideDist += mask * raySign * deltaDist;
     }
 
-    return vec4(0.0);
+    discard;
 }
 
 layout(push_constant) uniform PushConstants
@@ -158,19 +161,22 @@ in_push_constants;
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
-layout(location = 2) in flat uint in_bool_is_camera_in_box;
 
 layout(location = 0) out vec4 out_color;
+
+layout(depth_less) out float gl_FragDepth;
 
 void main()
 {
     vec3       origin = in_world_position;
     const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
 
-    if (bool(in_bool_is_camera_in_box))
-    {
-        origin = in_push_constants.camera_position.xyz;
-    }
+    const WorldTraceResult result = traceWorld(origin, dir);
 
-    out_color = traceWorld(origin, dir);
+    out_color = vec4(result.world_normal, 1.0);
+
+    vec4 clipPos = in_push_constants.model_view_proj * vec4(result.world_fragment_position, 1.0);
+    gl_FragDepth = (clipPos.z / clipPos.w);
+
+    // out_color = vec4(in_uvw, 1.0);
 }
