@@ -2,64 +2,6 @@
 
 #extension GL_EXT_nonuniform_qualifier : require
 
-// // https://nullprogram.com/blog/2018/07/31/
-// uint hash(uint x)
-// {
-//     x ^= x >> 17;
-//     x *= 0xed5ad4bbU;
-//     x ^= x >> 11;
-//     x *= 0xac4c1b51U;
-//     x ^= x >> 15;
-//     x *= 0x31848babU;
-//     x ^= x >> 14;
-
-//     return x;
-// }
-
-// uint rotate_right(uint x, uint r)
-// {
-//     return (x >> r) | (x << (32u - r));
-// }
-
-// uint combine(uint a, uint h)
-// {
-//     a *= 0xcc9e2d51u;
-//     a = rotate_right(a, 17u);
-//     a *= 0x1b873593u;
-//     h ^= a;
-//     h = rotate_right(h, 19u);
-//     return h * 5u + 0xe6546b64u;
-// }
-
-// float random(vec2 pos)
-// {
-//     uint seed = 44;
-
-//     seed = combine(seed, hash(floatBitsToUint(pos.x)));
-
-//     seed = combine(seed, hash(hash(floatBitsToUint(pos.y))));
-
-//     return float(seed) / float(uint(-1));
-// }
-
-// // Based on Morgan McGuire @morgan3d
-// // https://www.shadertoy.com/view/4dS3Wd
-// float noise(in vec2 st)
-// {
-//     vec2 i = floor(st);
-//     vec2 f = fract(st);
-
-//     // Four corners in 2D of a tile
-//     float a = random(i);
-//     float b = random(i + vec2(1.0, 0.0));
-//     float c = random(i + vec2(0.0, 1.0));
-//     float d = random(i + vec2(1.0, 1.0));
-
-//     vec2 u = f * f * (3.0 - 2.0 * f);
-
-//     return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-// }
-
 vec4 permute(vec4 x)
 {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -121,7 +63,7 @@ float fbm(in vec2 st)
     }
     return value;
 }
-vec3 Sky(in vec3 ro, in vec3 rd, in float iTime)
+vec3 Sky(in vec3 ro, in vec3 rd, in float iTime, in vec3 sunDir)
 {
     const float SC = 1e5;
 
@@ -138,7 +80,7 @@ vec3 Sky(in vec3 ro, in vec3 rd, in float iTime)
     p *= 4.2 / SC;
 
     // from iq's shader, https://www.shadertoy.com/view/MdX3Rr
-    vec3  lightDir = normalize(vec3(-.8, .15, -.3) * ((rd.y < 0.0) ? vec3(-1, 1, -1) : vec3(1.0)));
+    vec3  lightDir = normalize(sunDir * ((rd.y < 0.0) ? vec3(-1, 1, -1) : vec3(1.0)));
     float sundot   = clamp(dot(rd, lightDir), 0.0, 1.0);
 
     vec3 cloudCol = vec3(1.);
@@ -161,6 +103,173 @@ vec3 Sky(in vec3 ro, in vec3 rd, in float iTime)
     // skyCol = mix(skyCol, 0.68 * vec3(.418, .394, .372), pow(1.0 - max(rd.y, 0.0), 16.0));
 
     return skyCol;
+}
+
+vec3 uncharted2_tonemap_partial(vec3 x)
+{
+    float A = 0.15f;
+    float B = 0.50f;
+    float C = 0.10f;
+    float D = 0.20f;
+    float E = 0.02f;
+    float F = 0.30f;
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 uncharted2_filmic(vec3 v)
+{
+    float exposure_bias = 2.0f;
+    vec3  curr          = uncharted2_tonemap_partial(v * exposure_bias);
+
+    vec3 W           = vec3(11.2f);
+    vec3 white_scale = vec3(1.0f) / uncharted2_tonemap_partial(W);
+    return curr * white_scale;
+}
+
+const float atmosphereRayleighHeight       = 8000.0;
+const float atmosphereMieHeight            = 1200.0;
+const float planetHeight                   = 6360e3;
+const float atmosphereHeight               = planetHeight + atmosphereRayleighHeight; // 6420e3;
+const vec3  atmospherePosition             = vec3(0.0, -(planetHeight + 1000.0), 0.0);
+const vec3  rayleighScatteringCoefficients = vec3(5.8e-6, 1.35e-5, 3.31e-5);
+const float mieScatteringCoefficient       = 2e-6;
+const float pi                             = 3.141592;
+const float g                              = 0.758;
+// const vec3  rayleighScatteringCoefficients = vec3(5.47e-6, 1.28e-5, 3.12e-5);
+
+// https://iquilezles.org/articles/intersectors
+vec2 traceSphere(in vec3 ro, in vec3 rd, in vec3 ce, float ra)
+{
+    vec3  oc = ro - ce;
+    float b  = dot(oc, rd);
+    float c  = dot(oc, oc) - ra * ra;
+    float h  = b * b - c;
+    if (h < 0.0)
+    {
+        return vec2(-1.0); // no intersection
+    }
+    h = sqrt(h);
+    return vec2(-b - h, -b + h);
+}
+
+// https://iquilezles.org/articles/intersectors
+vec2 boxIntersection(in vec3 ro, in vec3 rd, in vec3 boxSize, out vec3 outNormal)
+{
+    vec3  m  = 1.0 / rd; // can precompute if traversing a set of aligned boxes
+    vec3  n  = m * ro;   // can precompute if traversing a set of aligned boxes
+    vec3  k  = abs(m) * boxSize;
+    vec3  t1 = -n - k;
+    vec3  t2 = -n + k;
+    float tN = max(max(t1.x, t1.y), t1.z);
+    float tF = min(min(t2.x, t2.y), t2.z);
+    if (tN > tF || tF < 0.0)
+    {
+        return vec2(-1.0); // no intersection
+    }
+    outNormal = -sign(rd) * step(t1.yzx, t1.xyz) * step(t1.zxy, t1.xyz);
+    return vec2(tN, tF);
+}
+
+float scene(in vec3 ro, in vec3 rd)
+{
+    float res = -1.0;
+
+    vec3  rd2   = normalize(vec3((-1.0 + 2.0 * vec2(0.5)), -1.00));
+    float scale = 100.0 * 100.0;
+    vec3  pos   = normalize(rd2 + vec3(0.0, 0.0, 0.0)) * (scale * 2.0) * 2.0 + vec3(0.0, scale / 1.0, 0.0);
+
+    float sphere = traceSphere(ro, rd, pos, scale).x;
+    sphere       = sphere < 0.0 ? traceSphere(ro, rd, pos, scale).y : sphere;
+    // res          = res < 0.0 ? sphere : ((sphere >= 0.0) ? min(res, sphere) : res);
+
+    // vec3 normal;
+    // return boxIntersection(ro - rd2 * 80000.0, rd, vec3(20000.0), normal).x;
+
+    return res;
+}
+
+vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
+{
+    vec2  atmosphereSphere = traceSphere(ro, rd, atmospherePosition, atmosphereHeight);
+    vec2  planetSphere     = traceSphere(ro, rd, atmospherePosition, planetHeight);
+    // float start            = (atmosphereSphere.x >= 0.0) ? atmosphereSphere.x : distance(ro, atmospherePosition);
+    float end              = (planetSphere.x >= 0.0) ? planetSphere.x : atmosphereSphere.y;
+    if (end < 0.0)
+    {
+        return vec3(0.0);
+    }
+
+    float hit = scene(ro, rd);
+    if (hit >= 0.0)
+    {
+        end = hit - 10000.0;
+    }
+
+    float theta         = dot(rd, sd);
+    float theta2        = theta * theta;
+    float g2            = g * g;
+    float rayleighPhase = (3.0 / (16.0 * pi)) * (1.0 + theta2);
+    float miePhase      = (1.0 - g2) / (4.0 * pi * pow(1.0 + g2 - 2.0 * g * theta, 1.5));
+
+    vec3 rayleighTotalScattering = vec3(0.0), mieTotalScattering = vec3(0.0);
+
+    float dither = fract(dot(vec3(0.75487765, 0.56984026, 0.61803398875), vec3(gl_FragCoord.xy, 0.0)));
+
+    // DEBUG
+    vec3 tr = vec3(0.0);
+    // DEBUG
+
+    const float viewStepCount  = 32.0 - 1.0;
+    float       viewOdRayleigh = 0.0, viewOdMie = 0.0;
+    vec3        viewStart = (atmosphereSphere.x >= 0.0) ? (ro + rd * atmosphereSphere.x) : ro, viewEnd = ro + rd * end;
+    float       viewSize = distance(viewStart, viewEnd) / viewStepCount;
+    for (float viewStep = 0.0; viewStep <= viewStepCount; ++viewStep)
+    {
+        vec3  viewSample = mix(viewStart, viewEnd, (viewStep + dither) / viewStepCount); // + (rd * viewSize * dither);
+        float viewSampleHeight = (distance(atmospherePosition, viewSample) - planetHeight);
+
+        float viewSampleOdRayleigh = exp(-viewSampleHeight / atmosphereRayleighHeight) * viewSize;
+        float viewSampleOdMie      = exp(-viewSampleHeight / atmosphereMieHeight) * viewSize;
+
+        viewOdRayleigh += viewSampleOdRayleigh;
+        viewOdMie += viewSampleOdMie;
+
+        const float sunStepCount  = 16.0 - 1.0;
+        float       sunOdRayleigh = 0.0, sunOdMie = 0.0;
+        float       sunAtmosphereDistance = traceSphere(viewSample, sd, atmospherePosition, atmosphereHeight).y;
+
+        float hit = scene(viewSample, sd);
+        if (hit >= 0.0)
+        {
+            continue; // sunAtmosphereDistance = hit;
+        }
+
+        vec3  sunStart = viewSample, sunEnd = viewSample + sd * sunAtmosphereDistance;
+        float sunSize = distance(sunStart, sunEnd) / sunStepCount;
+        for (float sunStep = 0.0; sunStep <= sunStepCount; ++sunStep)
+        {
+            vec3  sunSample = mix(sunStart, sunEnd, (sunStep + dither) / sunStepCount); // + (sd * sunSize * dither);
+            float sunSampleHeight = (distance(atmospherePosition, sunSample) - planetHeight);
+
+            sunOdRayleigh += exp(-sunSampleHeight / atmosphereRayleighHeight) * sunSize;
+            sunOdMie += exp(-sunSampleHeight / atmosphereMieHeight) * sunSize;
+        }
+
+        vec3 transmittance = exp(
+            -(rayleighScatteringCoefficients * (viewOdRayleigh + sunOdRayleigh)
+              + mieScatteringCoefficient * 1.11 * (viewOdMie + sunOdMie)));
+        // DEBUG
+        tr += transmittance / viewStepCount;
+        // DEBUG
+
+        rayleighTotalScattering += viewSampleOdRayleigh * transmittance;
+        mieTotalScattering += viewSampleOdMie * transmittance;
+    }
+    vec3 color = hit >= 0.0 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 0.0);
+    return /*color * clamp(tr, 0.0, 1.0) + */ (
+               rayleighTotalScattering * rayleighScatteringCoefficients * rayleighPhase
+               + mieTotalScattering * mieScatteringCoefficient * miePhase)
+         * 22.0;
 }
 
 layout(location = 0) in vec2 ndc;
@@ -202,5 +311,12 @@ void main()
         + ndc.x * vec3(globalData.camera_right_vector.xyz) * globalData.aspect_ratio * globalData.tan_half_fov_y
         + ndc.y * vec3(globalData.camera_up_vector) * globalData.tan_half_fov_y);
 
-    out_color = vec4(Sky(vec3(0.0), rayDir, globalData.time_alive), 1.0);
+    vec3  sunDir = normalize(vec3(-1.0, 0.0, 0.0));
+    float time   = globalData.time_alive / 10.0;
+    sunDir       = normalize(vec3(0.0, sin(time), -cos(time)));
+
+    const vec3 cloudColor      = Sky(vec3(0.0), rayDir, globalData.time_alive, sunDir);
+    const vec3 atmosphereColor = atmosphere(vec3(0.0), rayDir, sunDir);
+
+    out_color = vec4(atmosphereColor * cloudColor, 1.0);
 }
