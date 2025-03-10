@@ -5,6 +5,8 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_shader_explicit_arithmetic_types_float32 : require
 
 const int MAX_RAY_STEPS = 64;
@@ -159,12 +161,26 @@ WorldTraceResult traceBrick(vec3 rayPos, vec3 rayDir)
     discard;
 }
 
-layout(push_constant) uniform PushConstants
+struct GlobalGpuData
 {
-    mat4 model_view_proj;
-    vec4 camera_position;
+    mat4  view_matrix;
+    mat4  projection_matrix;
+    mat4  view_projection_matrix;
+    vec4  camera_forward_vector;
+    vec4  camera_right_vector;
+    vec4  camera_up_vector;
+    vec4  camera_position;
+    float fov_y;
+    float tan_half_fov_y;
+    float aspect_ratio;
+    float time_alive;
+};
+
+layout(set = 0, binding = 4) readonly buffer GlobalGpuDataBuffer
+{
+    GlobalGpuData data;
 }
-in_push_constants;
+in_global_gpu_data[];
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
@@ -174,10 +190,17 @@ layout(location = 0) out vec4 out_color;
 
 layout(depth_any) out float gl_FragDepth;
 
+layout(push_constant) uniform PushConstants
+{
+    uint global_data_offset;
+}
+in_push_constants;
+
 void main()
 {
     vec3       origin = in_world_position;
-    const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
+    const vec3 dir    = normalize(
+        in_world_position - in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz);
 
     const WorldTraceResult result = traceBrick(in_uvw * 8, dir);
 
@@ -186,7 +209,7 @@ void main()
 
     // TODO: integrate tracing with proper fragment position
 
-    vec4 clipPos = in_push_constants.model_view_proj
+    vec4 clipPos = in_global_gpu_data[in_push_constants.global_data_offset].data.view_projection_matrix
                  * vec4(result.brick_local_fragment_position + in_cube_corner_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 

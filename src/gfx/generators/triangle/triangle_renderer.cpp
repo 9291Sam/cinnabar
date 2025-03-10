@@ -71,8 +71,8 @@ namespace gfx::generators::triangle
     {
         struct PushConstants
         {
-            glm::mat4 mvp;
-            u32       position_buffer;
+            u32 position_buffer;
+            u32 global_buffer;
         };
 
         commandBuffer.bindPipeline(
@@ -81,8 +81,8 @@ namespace gfx::generators::triangle
         const u32 maxTriangles = this->triangle_allocator.getUpperBoundOnAllocatedElements();
 
         const PushConstants pushConstants {
-            .mvp {camera.getPerspectiveMatrix(Transform {})},
-            .position_buffer {this->triangle_gpu_data.getStorageDescriptor().getOffset()}};
+            .position_buffer {this->triangle_gpu_data.getStorageDescriptor().getOffset()},
+            .global_buffer {globalDescriptorInfo.getOffset()}};
 
         commandBuffer.pushConstants<PushConstants>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),

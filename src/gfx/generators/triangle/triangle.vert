@@ -20,10 +20,31 @@ vec3 colors[3] = vec3[](
     vec3(0.0, 0.0, 1.0)  // Blue
 );
 
+struct GlobalGpuData
+{
+    mat4  view_matrix;
+    mat4  projection_matrix;
+    mat4  view_projection_matrix;
+    vec4  camera_forward_vector;
+    vec4  camera_right_vector;
+    vec4  camera_up_vector;
+    vec4  camera_position;
+    float fov_y;
+    float tan_half_fov_y;
+    float aspect_ratio;
+    float time_alive;
+};
+
+layout(set = 0, binding = 4) readonly buffer GlobalGpuDataBuffer
+{
+    GlobalGpuData data;
+}
+in_global_gpu_data[];
+
 layout(push_constant) uniform PushConstants
 {
-    mat4 mvp;
-    uint position_buffer;
+    uint position_buffer_offset;
+    uint global_data_offset;
 }
 in_push_constants;
 
@@ -36,9 +57,9 @@ void main()
     const float scale                    = 10.0;
 
     const vec4 world_vertex_coordinate =
-        in_push_constants.mvp
+        in_global_gpu_data[in_push_constants.global_data_offset].data.view_projection_matrix
         * vec4(
-            in_position_buffers[in_push_constants.position_buffer].positions[triangle_id]
+            in_position_buffers[in_push_constants.position_buffer_offset].positions[triangle_id]
                 + triangle_positions[position_within_triangle] * scale,
             1.0);
 

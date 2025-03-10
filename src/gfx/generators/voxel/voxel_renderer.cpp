@@ -33,25 +33,18 @@ namespace gfx::generators::voxel
     }
 
     void VoxelRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer                                                  commandBuffer,
-        const Camera&                                                      camera,
+        vk::CommandBuffer commandBuffer,
+        const Camera&,
         core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
     {
-        struct PushConstants
-        {
-            glm::mat4 mvp_matrix;
-            glm::vec4 camera_position;
-        };
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<PushConstants>(
+        commandBuffer.pushConstants<u32>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            PushConstants {
-                .mvp_matrix {camera.getPerspectiveMatrix({})},
-                .camera_position {glm::vec4 {camera.getPosition(), 0.0}}});
+            globalDescriptorInfo.getOffset());
 
         commandBuffer.draw(36, 1, 0, 0);
     }
