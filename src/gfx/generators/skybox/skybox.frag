@@ -1,7 +1,6 @@
 #version 460
 
 #extension GL_EXT_nonuniform_qualifier : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 
 // // https://nullprogram.com/blog/2018/07/31/
 // uint hash(uint x)
@@ -190,7 +189,7 @@ in_global_gpu_data[];
 
 layout(push_constant) uniform Camera
 {
-    uint8_t global_data_offset;
+    uint global_data_offset;
 }
 in_push_constants;
 

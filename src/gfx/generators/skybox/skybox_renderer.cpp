@@ -41,29 +41,11 @@ namespace gfx::generators::skybox
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        struct PushConstants
-        {
-            glm::vec4 camera_forward;
-            glm::vec4 camera_right;
-            glm::vec4 camera_up;
-            f32       aspect_ratio;
-            f32       tan_of_half_fov_y;
-            f32       time_alive;
-        };
-
-        PushConstants pushConstants {
-            .camera_forward {glm::vec4 {camera.getForwardVector(), 0.0f}},
-            .camera_right {glm::vec4 {camera.getRightVector(), 0.0f}},
-            .camera_up {glm::vec4 {camera.getUpVector(), 0.0f}},
-            .aspect_ratio {camera.getAspectRatio()},
-            .tan_of_half_fov_y {std::tan(0.5f * camera.getFovYRadians())},
-            .time_alive {this->time_alive}};
-
-        commandBuffer.pushConstants<PushConstants>(
+        commandBuffer.pushConstants<u32>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            pushConstants);
+            globalDescriptorInfo.getOffset());
 
         commandBuffer.draw(3, 1, 0, 0);
 
