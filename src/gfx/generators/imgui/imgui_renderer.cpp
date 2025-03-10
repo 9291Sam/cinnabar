@@ -344,7 +344,7 @@ namespace gfx::generators::imgui
                 }
             }
 
-            if (allDescriptorsRepresentation.empty())
+            if (!allDescriptorsRepresentation.empty())
             {
                 // removes trailing '\n'
                 allDescriptorsRepresentation.pop_back();

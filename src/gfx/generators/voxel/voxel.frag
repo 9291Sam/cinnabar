@@ -69,6 +69,8 @@ bool getVoxel(ivec3 c)
 
 bool getBlockVoxel(ivec3 c)
 {
+    c += 4;
+
     if (any(lessThan(c, ivec3(0))) || any(greaterThan(c, ivec3(7))))
     {
         return false;
@@ -104,14 +106,14 @@ vec3 stepMask(vec3 sideDist)
 
 struct WorldTraceResult
 {
-    vec3 world_fragment_position;
-    vec3 world_normal;
+    vec3 brick_local_fragment_position;
+    vec3 normal;
     vec3 local_voxel_uvw;
     // TODO: normal
     // TODO: brick UV
 };
 
-WorldTraceResult traceWorld(vec3 rayPos, vec3 rayDir)
+WorldTraceResult traceBrick(vec3 rayPos, vec3 rayDir)
 {
     vec3       mapPos    = floor(rayPos);
     vec3       raySign   = sign(rayDir);
@@ -121,13 +123,13 @@ WorldTraceResult traceWorld(vec3 rayPos, vec3 rayDir)
 
     for (int i = 0; i < MAX_RAY_STEPS; i++)
     {
-        if (getBlockVoxel(ivec3(mapPos) + 4))
+        if (getBlockVoxel(ivec3(mapPos)))
         {
             // Okay, we've struck a voxel, let's do a ray-cube intersection to determine other parameters)
             vec3  mini                              = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
             float rayTraversalDistanceSinceFragment = max(mini.x, max(mini.y, mini.z));
-            vec3  intersectionPositionWorld         = rayPos + rayDir * rayTraversalDistanceSinceFragment;
-            vec3  voxelLocalUVW3D                   = intersectionPositionWorld - mapPos;
+            vec3  intersectionPositionBrick         = rayPos + rayDir * rayTraversalDistanceSinceFragment;
+            vec3  voxelLocalUVW3D                   = intersectionPositionBrick - mapPos;
 
             if (mapPos == floor(rayPos)) // Handle edge case where camera origin is inside of block
             {
@@ -148,7 +150,7 @@ WorldTraceResult traceWorld(vec3 rayPos, vec3 rayDir)
                 normal.z = -raySign.z;
             }
 
-            return WorldTraceResult(intersectionPositionWorld, normal, voxelLocalUVW3D);
+            return WorldTraceResult(intersectionPositionBrick, normal, voxelLocalUVW3D);
         }
 
         mask = stepMask(sideDist);
@@ -168,6 +170,7 @@ in_push_constants;
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
+layout(location = 2) in vec3 in_cube_center_location;
 
 layout(location = 0) out vec4 out_color;
 
@@ -178,12 +181,15 @@ void main()
     vec3       origin = in_world_position;
     const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
 
-    const WorldTraceResult result = traceWorld(in_uvw * 8 - 4, dir);
+    const WorldTraceResult result = traceBrick(in_uvw * 8 - 4, dir);
 
-    out_color = vec4(result.world_normal, 1.0);
+    out_color = vec4(result.local_voxel_uvw, 1.0);
     // out_color = vec4(, 1.0);
 
-    vec4 clipPos = in_push_constants.model_view_proj * vec4(in_world_position, float(1.0));
+    // TODO: integrate tracing with proper fragment position
+
+    vec4 clipPos = in_push_constants.model_view_proj
+                 * vec4(result.brick_local_fragment_position + in_cube_center_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 
     // out_color = vec4(in_uvw, 1.0);
