@@ -8,9 +8,11 @@
 #include "util/util.hpp"
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <cstdio>
 #include <fstream>
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
+#include <iterator>
 #include <misc/freetype/imgui_freetype.h>
 #include <unordered_map>
 #include <vulkan/vulkan_enums.hpp>
@@ -145,33 +147,25 @@ namespace gfx::generators::imgui
                 io.IniFilename = nullptr;
                 io.LogFilename = nullptr;
 
-#ifndef WIN32
                 {
                     static std::array<ImWchar, 3> unifontRanges {0x0001, 0xFFFF, 0};
                     ImFontConfig                  fontConfigUnifont;
-                    fontConfigUnifont.OversampleH          = 2;
-                    fontConfigUnifont.OversampleV          = 2;
-                    fontConfigUnifont.RasterizerDensity    = 2.0f;
+                    fontConfigUnifont.OversampleH          = 1;
+                    fontConfigUnifont.OversampleV          = 1;
+                    fontConfigUnifont.RasterizerDensity    = 1.0f;
                     fontConfigUnifont.MergeMode            = false;
-                    fontConfigUnifont.SizePixels           = 64;
+                    fontConfigUnifont.SizePixels           = 16;
                     fontConfigUnifont.FontDataOwnedByAtlas = false;
 
                     const std::filesystem::path unifontPath = getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
 
-                    std::ifstream inFile;
-                    inFile.open(unifontPath);
+                    std::vector<std::byte> buffer = loadEntireFileFromPath(unifontPath);
 
-                    assert::critical(
-                        !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
-
-                    std::ostringstream strStream;
-                    strStream << inFile.rdbuf();
-
-                    assert::critical(!strStream.view().empty(), "size {}", strStream.view());
+                    log::trace("loading data: size {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
-                        const_cast<char*>(strStream.view().data()), // NOLINT
-                        static_cast<int>(strStream.view().size()),
+                        buffer.data(), // NOLINT
+                        static_cast<int>(buffer.size()),
                         16,
                         &fontConfigUnifont,
                         unifontRanges.data());
@@ -185,33 +179,27 @@ namespace gfx::generators::imgui
                     cfg.OversampleV       = 1;
                     cfg.RasterizerDensity = 2.0f;
                     cfg.MergeMode         = true;
-                    cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor; // NOLINT
-                    cfg.SizePixels = 64;
+                    cfg.FontBuilderFlags |=
+                        (ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap); // NOLINT
+                    cfg.SizePixels           = 64;
+                    cfg.FontDataOwnedByAtlas = false;
 
-                    const std::filesystem::path unifontPath =
+                    const std::filesystem::path emojiPath =
                         getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
 
-                    std::ifstream inFile;
-                    inFile.open(unifontPath);
+                    std::vector<std::byte> buffer = loadEntireFileFromPath(emojiPath);
 
-                    assert::critical(
-                        !inFile.fail(), "oop {} {}", std::filesystem::current_path().string(), unifontPath.string());
-
-                    std::stringstream strStream;
-                    strStream << inFile.rdbuf();
-                    std::string source = strStream.str();
+                    log::trace("loaded data: size{}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
-                        source.data(), // NOLINT
-                        static_cast<int>(source.size()),
+                        buffer.data(), // NOLINT
+                        static_cast<int>(buffer.size()),
                         16.0f,
                         &cfg,
                         ranges.data());
                 }
-                io.Fonts->Build();
 
-#warning fix
-#endif
+                io.Fonts->Build();
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });

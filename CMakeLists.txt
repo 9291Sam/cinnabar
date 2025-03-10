@@ -69,6 +69,7 @@ add_executable(cinnabar
     src/util/allocators/range_allocator.cpp
 
     src/util/logger.cpp
+    src/util/util.cpp
 
     src/main.cpp
 )

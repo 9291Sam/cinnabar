@@ -36,7 +36,8 @@ Checks: >
   -cppcoreguidelines-avoid-do-while,
   -cert-flp30-c,
   -cppcoreguidelines-pro-bounds-constant-array-index,
-  -modernize-raw-string-literal
+  -modernize-raw-string-literal,
+  -android-cloexec-fopen
   
 CheckOptions:
   - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor, value: true       }

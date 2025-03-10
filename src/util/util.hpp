@@ -56,7 +56,11 @@ inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
     const std::string_view prepend {"../"sv};
 
     const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
-    const std::filesystem::path canonicalPath {std::filesystem::weakly_canonical(totalPath)};
+    std::filesystem::path       canonicalPath {std::filesystem::weakly_canonical(totalPath)};
+
+    canonicalPath.make_preferred(); // non const member function
 
     return canonicalPath;
 }
+
+std::vector<std::byte> loadEntireFileFromPath(const std::filesystem::path& path);
