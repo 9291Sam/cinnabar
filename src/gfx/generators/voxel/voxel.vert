@@ -75,5 +75,5 @@ void main()
     gl_Position              = in_push_constants.model_view_proj * vec4(world_location, 1.0);
     out_uvw                  = cube_vertex + 0.5;
     out_world_position       = world_location;
-    out_cube_center_location = center_location;
+    out_cube_center_location = box_corner_negative;
 }

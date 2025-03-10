@@ -168,7 +168,7 @@ in_push_constants;
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
-layout(location = 2) in vec3 in_cube_center_location;
+layout(location = 2) in vec3 in_cube_corner_location;
 
 layout(location = 0) out vec4 out_color;
 
@@ -181,13 +181,13 @@ void main()
 
     const WorldTraceResult result = traceBrick(in_uvw * 8, dir);
 
-    out_color = vec4(in_uvw, 1.0);
+    out_color = vec4(result.local_voxel_uvw, 1.0);
     // out_color = vec4(, 1.0);
 
     // TODO: integrate tracing with proper fragment position
 
     vec4 clipPos = in_push_constants.model_view_proj
-                 * vec4(result.brick_local_fragment_position + in_cube_center_location - 4, float(1.0));
+                 * vec4(result.brick_local_fragment_position + in_cube_corner_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 
     // out_color = vec4(in_uvw, 1.0);
