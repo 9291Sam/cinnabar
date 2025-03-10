@@ -150,18 +150,18 @@ namespace gfx::generators::imgui
                 {
                     static std::array<ImWchar, 3> unifontRanges {0x0001, 0xFFFF, 0};
                     ImFontConfig                  fontConfigUnifont;
-                    fontConfigUnifont.OversampleH          = 1;
-                    fontConfigUnifont.OversampleV          = 1;
-                    fontConfigUnifont.RasterizerDensity    = 1.0f;
+                    fontConfigUnifont.OversampleH          = 2;
+                    fontConfigUnifont.OversampleV          = 2;
+                    fontConfigUnifont.RasterizerDensity    = 2.0f;
                     fontConfigUnifont.MergeMode            = false;
-                    fontConfigUnifont.SizePixels           = 16;
+                    fontConfigUnifont.SizePixels           = 64;
                     fontConfigUnifont.FontDataOwnedByAtlas = false;
 
                     const std::filesystem::path unifontPath = getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
 
                     std::vector<std::byte> buffer = loadEntireFileFromPath(unifontPath);
 
-                    log::trace("loading data: size {}", buffer.size());
+                    log::trace("Loaded Text font. Size: {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
                         buffer.data(), // NOLINT
@@ -183,13 +183,14 @@ namespace gfx::generators::imgui
                         (ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap); // NOLINT
                     cfg.SizePixels           = 64;
                     cfg.FontDataOwnedByAtlas = false;
+                    // cfg.GlyphOffset          = ImVec2(0.0, -2.0);
 
                     const std::filesystem::path emojiPath =
                         getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
 
                     std::vector<std::byte> buffer = loadEntireFileFromPath(emojiPath);
 
-                    log::trace("loaded data: size{}", buffer.size());
+                    log::trace("Loaded Emojis. Size: {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
                         buffer.data(), // NOLINT
