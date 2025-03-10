@@ -67,6 +67,7 @@ namespace gfx::core::vulkan
         vk::Image           image;
         VmaAllocation       memory {};
         vk::UniqueImageView view;
+        std::string         name;
     }; // class Image2D
 
 } // namespace gfx::core::vulkan

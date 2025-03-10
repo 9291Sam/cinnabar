@@ -79,7 +79,7 @@ namespace gfx::generators::triangle
 
         const PushConstants pushConstants {
             .mvp {camera.getPerspectiveMatrix(Transform {})},
-            .position_buffer {this->triangle_gpu_data.geStorageDescriptor().getOffset()}};
+            .position_buffer {this->triangle_gpu_data.getStorageDescriptor().getOffset()}};
 
         commandBuffer.pushConstants<PushConstants>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),

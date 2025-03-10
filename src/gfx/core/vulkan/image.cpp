@@ -17,7 +17,7 @@ namespace gfx::core::vulkan
         vk::ImageAspectFlags    aspect_,
         vk::ImageTiling         tiling,
         vk::MemoryPropertyFlags memoryPropertyFlags,
-        std::string             name)
+        std::string             name_)
         : renderer {renderer_}
         , extent {extent_}
         , format {format_}
@@ -26,6 +26,7 @@ namespace gfx::core::vulkan
         , image {nullptr}
         , memory {nullptr}
         , view {nullptr}
+        , name {std::move(name_)}
     {
         const VkImageCreateInfo imageCreateInfo {
             .sType {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO},
@@ -198,7 +199,7 @@ namespace gfx::core::vulkan
 
             this->maybe_sampled_image_descriptor_handle =
                 this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
-                    {.view {*this->view}, .layout {layout}});
+                    {.view {*this->view}, .layout {layout}}, this->name);
         }
 
         return this->maybe_sampled_image_descriptor_handle.value();
@@ -214,7 +215,7 @@ namespace gfx::core::vulkan
 
             this->maybe_storage_image_descriptor_handle =
                 this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
-                    {.view {*this->view}, .layout {layout}});
+                    {.view {*this->view}, .layout {layout}}, this->name);
         }
 
         return this->maybe_storage_image_descriptor_handle.value();

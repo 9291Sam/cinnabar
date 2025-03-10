@@ -4,6 +4,7 @@
 #include "util/threads.hpp"
 #include "util/util.hpp"
 #include <source_location>
+#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 
@@ -87,12 +88,20 @@ namespace gfx::core::vulkan
         DescriptorManager& operator= (const DescriptorManager&) = delete;
         DescriptorManager& operator= (DescriptorManager&&)      = default;
 
+        struct DescriptorReport
+        {
+            u32         offset;
+            std::string name;
+        };
+
+        std::unordered_map<vk::DescriptorType, std::vector<DescriptorReport>> getAllDescriptorsDebugInfo() const;
+
         [[nodiscard]] vk::DescriptorSet  getGlobalDescriptorSet() const;
         [[nodiscard]] vk::PipelineLayout getGlobalPipelineLayout() const;
 
         template<vk::DescriptorType D>
-        [[nodiscard]] DescriptorHandle<D>
-            registerDescriptor(RegisterDescriptorArgs<D>, std::source_location = std::source_location::current()) const;
+        [[nodiscard]] DescriptorHandle<D> registerDescriptor(
+            RegisterDescriptorArgs<D>, std::string name, std::source_location = std::source_location::current()) const;
 
         template<vk::DescriptorType D>
         void deregisterDescriptor(DescriptorHandle<D>) const;
@@ -105,7 +114,13 @@ namespace gfx::core::vulkan
         vk::UniquePipelineLayout      bindless_pipeline_layout;
         vk::DescriptorSet             bindless_descriptor_set;
 
-        util::Mutex<std::unordered_map<vk::DescriptorType, util::IndexAllocator>> binding_allocators;
+        struct CriticalSection
+        {
+            std::unordered_map<vk::DescriptorType, util::IndexAllocator>     binding_allocators;
+            std::unordered_map<vk::DescriptorType, std::vector<std::string>> debug_descriptor_names;
+        };
+
+        util::Mutex<CriticalSection> critical_section;
     };
 
 } // namespace gfx::core::vulkan

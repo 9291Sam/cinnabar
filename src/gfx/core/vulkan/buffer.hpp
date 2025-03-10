@@ -184,13 +184,13 @@ namespace gfx::core::vulkan
 
                 this->maybe_uniform_descriptor_handle =
                     this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
-                        {.buffer {this->buffer}});
+                        {.buffer {this->buffer}}, this->name);
             }
 
             return this->maybe_uniform_descriptor_handle.value();
         }
 
-        DescriptorHandle<vk::DescriptorType::eStorageBuffer> geStorageDescriptor()
+        DescriptorHandle<vk::DescriptorType::eStorageBuffer> getStorageDescriptor()
         {
             if (!this->maybe_storage_descriptor_handle.has_value())
             {
@@ -200,7 +200,7 @@ namespace gfx::core::vulkan
 
                 this->maybe_storage_descriptor_handle =
                     this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
-                        {.buffer {this->buffer}});
+                        {.buffer {this->buffer}}, this->name);
             }
 
             return this->maybe_storage_descriptor_handle.value();

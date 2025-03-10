@@ -12,8 +12,10 @@
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
 #include <misc/freetype/imgui_freetype.h>
+#include <unordered_map>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace gfx::generators::imgui
 {
@@ -327,11 +329,33 @@ namespace gfx::generators::imgui
             //     100.0f * static_cast<float>(facesVisible) / static_cast<float>(facesPossible),
             //     fly);
 
+            std::unordered_map<vk::DescriptorType, std::vector<core::vulkan::DescriptorManager::DescriptorReport>>
+                allDescriptors = this->renderer->getDescriptorManager()->getAllDescriptorsDebugInfo();
+
+            std::string allDescriptorsRepresentation {};
+
+            for (const auto& [descriptorType, descriptors] : allDescriptors)
+            {
+                allDescriptorsRepresentation += std::format("{}\n", vk::to_string(descriptorType));
+
+                for (auto dr : descriptors)
+                {
+                    allDescriptorsRepresentation += std::format("{} @ {}\n", dr.name, dr.offset);
+                }
+            }
+
+            if (allDescriptorsRepresentation.empty())
+            {
+                // removes trailing '\n'
+                allDescriptorsRepresentation.pop_back();
+            }
+
             const std::string menuText = std::format(
-                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}\n{}",
+                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}\n{}\n{}",
                 getDeltaTimeEmoji(deltaTime),
                 1.0f / deltaTime,
-                glm::to_string(camera.getPosition()));
+                glm::to_string(camera.getPosition()),
+                allDescriptorsRepresentation);
 
             ImGui::TextWrapped("%s", menuText.c_str()); // NOLINT
 
