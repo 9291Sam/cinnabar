@@ -9,6 +9,19 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_shader_explicit_arithmetic_types_float32 : require
 
+layout(push_constant) uniform PushConstants
+{
+    uint global_data_offset;
+    uint brick_data_offset;
+}
+in_push_constants;
+
+layout(set = 0, binding = 4) readonly buffer GlobalGpuBricks
+{
+    uint data[16];
+}
+in_global_bricks[];
+
 const int MAX_RAY_STEPS = 64;
 
 #define B8(x)                                                                                                          \
@@ -77,7 +90,7 @@ bool getBlockVoxel(ivec3 c)
     }
 
     int index = c.y * 8 * 8 + c.z * 8 + c.x;
-    return ((block[index / 32] >> (index % 32)) & 1) != 0;
+    return ((in_global_bricks[in_push_constants.brick_data_offset].data[index / 32] >> (index % 32)) & 1) != 0;
 }
 
 vec2 rotate2d(vec2 v, float a)
@@ -189,12 +202,6 @@ layout(location = 2) in vec3 in_cube_corner_location;
 layout(location = 0) out vec4 out_color;
 
 layout(depth_any) out float gl_FragDepth;
-
-layout(push_constant) uniform PushConstants
-{
-    uint global_data_offset;
-}
-in_push_constants;
 
 void main()
 {

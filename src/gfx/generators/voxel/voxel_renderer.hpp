@@ -1,7 +1,9 @@
 #pragma once
 
+#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/generator.hpp"
+#include <random>
 
 namespace gfx::core
 {
@@ -10,6 +12,11 @@ namespace gfx::core
 
 namespace gfx::generators::voxel
 {
+    struct BooleanBrick
+    {
+        std::array<u32, 16> data;
+    };
+
     class VoxelRenderer : Generator
     {
     public:
@@ -30,6 +37,9 @@ namespace gfx::generators::voxel
     private:
         const core::Renderer*                                renderer;
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
+
+        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick> bricks;
+        std::mt19937                                   generator;
     };
 
 } // namespace gfx::generators::voxel

@@ -2,6 +2,8 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/generators/generator.hpp"
+#include <random>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -9,8 +11,8 @@ namespace gfx::generators::voxel
 {
     VoxelRenderer::VoxelRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
-        , pipeline {
-              this->renderer->getPipelineManager()->createGraphicsPipeline(core::vulkan::GraphicsPipelineDescriptor {
+        , pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
+              core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/voxel/voxel.vert"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList}, // remove
@@ -25,6 +27,13 @@ namespace gfx::generators::voxel
                   .blend_enable {vk::True},
                   .name {"Voxel pipeline"},
               })}
+        , bricks {
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              1,
+              "Temporary Boolean Bricks"}
+        , generator {std::random_device{}()}
     {}
 
     VoxelRenderer::~VoxelRenderer()
@@ -37,14 +46,23 @@ namespace gfx::generators::voxel
         const Camera&,
         core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
     {
+        BooleanBrick brick {};
+
+        for (u32& d : brick.data)
+        {
+            d = this->generator();
+        }
+
+        this->renderer->getStager().enqueueTransfer(this->bricks, 0, {&brick, 1});
+
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<u32>(
+        commandBuffer.pushConstants<std::array<u32, 2>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            globalDescriptorInfo.getOffset());
+            std::array<u32, 2> {globalDescriptorInfo.getOffset(), this->bricks.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);
     }
