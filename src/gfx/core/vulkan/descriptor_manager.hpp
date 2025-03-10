@@ -47,6 +47,8 @@ namespace gfx::core::vulkan
         vk::Buffer buffer;
     };
 
+    u32 getShaderBindingLocation(vk::DescriptorType);
+
     template<vk::DescriptorType D>
         requires (
             D == vk::DescriptorType::eSampler || D == vk::DescriptorType::eSampledImage

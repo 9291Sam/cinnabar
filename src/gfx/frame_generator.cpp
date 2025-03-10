@@ -16,10 +16,32 @@ namespace gfx
         : renderer {renderer_}
         , has_resize_ocurred {true}
         , frame_descriptors {this->createFrameDescriptors()}
+        , global_gpu_data {
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              1,
+              "Global Data"}
     {}
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
     {
+        const GlobalGpuData thisFrameGlobalGpuData {
+            .view_matrix {camera.getViewMatrix()},
+            .projection_matrix {camera.getProjectionMatrix()},
+            .view_projection_matrix {camera.getProjectionMatrix() * camera.getViewMatrix()},
+            .camera_forward_vector {glm::vec4 {camera.getForwardVector(), 0.0}},
+            .camera_right_vector {glm::vec4 {camera.getRightVector(), 0.0}},
+            .camera_up_vector {glm::vec4 {camera.getUpVector(), 0.0}},
+            .camera_position {glm::vec4 {camera.getPosition(), 0.0}},
+            .fov_y {camera.getFovYRadians()},
+            .tan_half_fov_y {std::tan(0.5f * camera.getFovYRadians())},
+            .aspect_ratio {camera.getAspectRatio()},
+            .time_alive {this->renderer->getTimeAlive()},
+        };
+
+        this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
+
         this->has_resize_ocurred = this->renderer->recordOnThread(
             [&](vk::CommandBuffer             commandBuffer,
                 u32                           swapchainImageIdx,
@@ -243,7 +265,8 @@ namespace gfx
 
                     if (generators.maybe_imgui_renderer)
                     {
-                        generators.maybe_imgui_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_imgui_renderer->renderIntoCommandBuffer(
+                            commandBuffer, camera, this->global_gpu_data.getStorageDescriptor());
 
                         commandBuffer.setViewport(0, {renderViewport});
                         commandBuffer.setScissor(0, {scissor});
@@ -330,17 +353,20 @@ namespace gfx
 
                     if (generators.maybe_triangle_renderer)
                     {
-                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(
+                            commandBuffer, camera, this->global_gpu_data.getStorageDescriptor());
                     }
 
                     if (generators.maybe_skybox_renderer)
                     {
-                        generators.maybe_skybox_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_skybox_renderer->renderIntoCommandBuffer(
+                            commandBuffer, camera, this->global_gpu_data.getStorageDescriptor());
                     }
 
                     if (generators.maybe_voxel_renderer)
                     {
-                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(
+                            commandBuffer, camera, this->global_gpu_data.getStorageDescriptor());
                     }
 
                     if (generators.maybe_imgui_renderer)

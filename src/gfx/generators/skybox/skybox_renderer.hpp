@@ -19,7 +19,10 @@ namespace gfx::generators::skybox
         SkyboxRenderer& operator= (const SkyboxRenderer&) = delete;
         SkyboxRenderer& operator= (SkyboxRenderer&&)      = delete;
 
-        void renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&) override;
+        void renderIntoCommandBuffer(
+            vk::CommandBuffer commandBuffer,
+            const Camera&,
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
 
     private:
         const core::Renderer*                           renderer;

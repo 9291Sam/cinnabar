@@ -1,5 +1,8 @@
 #version 460
 
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+
 // // https://nullprogram.com/blog/2018/07/31/
 // uint hash(uint x)
 // {
@@ -164,25 +167,41 @@ vec3 Sky(in vec3 ro, in vec3 rd, in float iTime)
 layout(location = 0) in vec2 ndc;
 layout(location = 0) out vec4 out_color;
 
+struct GlobalGpuData
+{
+    mat4  view_matrix;
+    mat4  projection_matrix;
+    mat4  view_projection_matrix;
+    vec4  camera_forward_vector;
+    vec4  camera_right_vector;
+    vec4  camera_up_vector;
+    vec4  camera_position;
+    float fov_y;
+    float tan_half_fov_y;
+    float aspect_ratio;
+    float time_alive;
+};
+
+layout(set = 0, binding = 4) buffer GlobalGpuDataBuffer
+{
+    GlobalGpuData data;
+}
+in_global_gpu_data[];
+
 layout(push_constant) uniform Camera
 {
-    vec4  camForward;  // Camera forward direction (normalized)
-    vec4  camRight;    // Camera right direction (normalized)
-    vec4  camUp;       // Camera up direction (normalized)
-    float aspectRatio; // Screen aspect ratio (width / height)
-    float tanHalfFovY; // Field of view in radians (vertical)
-    float time_alive;
+    uint8_t global_data_offset;
 }
 in_push_constants;
 
 void main()
 {
-    const float fovScale = in_push_constants.tanHalfFovY;
+    const GlobalGpuData globalData = in_global_gpu_data[in_push_constants.global_data_offset].data;
 
     const vec3 rayDir = normalize(
-        vec3(in_push_constants.camForward)
-        + ndc.x * vec3(in_push_constants.camRight) * in_push_constants.aspectRatio * fovScale
-        + ndc.y * vec3(in_push_constants.camUp) * fovScale);
+        vec3(globalData.camera_forward_vector.xyz)
+        + ndc.x * vec3(globalData.camera_right_vector.xyz) * globalData.aspect_ratio * globalData.tan_half_fov_y
+        + ndc.y * vec3(globalData.camera_up_vector) * globalData.tan_half_fov_y);
 
-    out_color = vec4(Sky(vec3(0.0), rayDir, in_push_constants.time_alive), 1.0);
+    out_color = vec4(Sky(vec3(0.0), rayDir, globalData.time_alive), 1.0);
 }

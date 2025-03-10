@@ -34,14 +34,12 @@ namespace gfx
 
     glm::mat4 Camera::getPerspectiveMatrix(const Transform& transform_) const
     {
-        const glm::mat4 projection = InfiniteReversedPerspective(this->fov_y, this->aspect_ratio, 0.1f);
-
-        return projection * this->getViewMatrix() * transform_.asModelMatrix();
+        return this->getProjectionMatrix() * this->getViewMatrix() * transform_.asModelMatrix();
     }
 
-    glm::mat4 Camera::getModelMatrix() const
+    glm::mat4 Camera::getProjectionMatrix() const
     {
-        return this->transform.asModelMatrix();
+        return InfiniteReversedPerspective(this->fov_y, this->aspect_ratio, 0.1f);
     }
 
     glm::mat4 Camera::getViewMatrix() const

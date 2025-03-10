@@ -2,6 +2,7 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/image.hpp"
 
 namespace gfx
@@ -58,5 +59,22 @@ namespace gfx
         FrameDescriptors createFrameDescriptors();
 
         FrameDescriptors frame_descriptors;
+
+        struct GlobalGpuData
+        {
+            glm::mat4 view_matrix;
+            glm::mat4 projection_matrix;
+            glm::mat4 view_projection_matrix;
+            glm::vec4 camera_forward_vector;
+            glm::vec4 camera_right_vector;
+            glm::vec4 camera_up_vector;
+            glm::vec4 camera_position;
+            float     fov_y;
+            float     tan_half_fov_y;
+            float     aspect_ratio;
+            float     time_alive;
+        };
+
+        gfx::core::vulkan::WriteOnlyBuffer<GlobalGpuData> global_gpu_data;
     };
 } // namespace gfx

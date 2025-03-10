@@ -28,7 +28,10 @@ namespace gfx::generators::imgui
         ImguiRenderer& operator= (ImguiRenderer&&)      = delete;
 
         // this interface is useless lmao
-        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
+        void renderIntoCommandBuffer(
+            vk::CommandBuffer,
+            const Camera&,
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
         void renderImageCopyIntoCommandBuffer(
             vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage>);
     private:

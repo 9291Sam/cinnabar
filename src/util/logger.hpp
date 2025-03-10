@@ -109,10 +109,10 @@ namespace assert
 template<class... Ts>
 struct panic /* NOLINT */
 {
-    panic(/* NOLINT*/
-          fmt::format_string<Ts...> fmt,
-          Ts&&... args,
-          const std::source_location& location = std::source_location::current())
+    [[noreturn]] panic(/* NOLINT*/
+                       fmt::format_string<Ts...> fmt,
+                       Ts&&... args,
+                       const std::source_location& location = std::source_location::current())
     {
         spdlog::default_logger_raw()->log(
             spdlog::source_loc {location.file_name(), static_cast<int>(location.line()), location.function_name()},

@@ -22,7 +22,10 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
+        void renderIntoCommandBuffer(
+            vk::CommandBuffer,
+            const Camera&,
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
 
     private:
         const core::Renderer*                                renderer;

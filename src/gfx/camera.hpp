@@ -29,7 +29,7 @@ namespace gfx
         Camera& operator= (Camera&&)      = default;
 
         [[nodiscard]] glm::mat4 getPerspectiveMatrix(const Transform&) const;
-        [[nodiscard]] glm::mat4 getModelMatrix() const;
+        [[nodiscard]] glm::mat4 getProjectionMatrix() const;
         [[nodiscard]] glm::mat4 getViewMatrix() const;
 
         [[nodiscard]] glm::vec3 getForwardVector() const;

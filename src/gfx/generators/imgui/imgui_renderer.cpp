@@ -212,7 +212,10 @@ namespace gfx::generators::imgui
         ImGui_ImplVulkan_Shutdown();
     }
 
-    void ImguiRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera& camera)
+    void ImguiRenderer::renderIntoCommandBuffer(
+        vk::CommandBuffer                                                  commandBuffer,
+        const Camera&                                                      camera,
+        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -325,7 +328,10 @@ namespace gfx::generators::imgui
 
             for (const auto& [descriptorType, descriptors] : allDescriptors)
             {
-                allDescriptorsRepresentation += std::format("{}\n", vk::to_string(descriptorType));
+                allDescriptorsRepresentation += std::format(
+                    "{} ({})\n",
+                    vk::to_string(descriptorType),
+                    gfx::core::vulkan::getShaderBindingLocation(descriptorType));
 
                 for (auto dr : descriptors)
                 {

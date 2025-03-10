@@ -4,7 +4,6 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/generator.hpp"
-#include "gfx/transform.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 
 namespace gfx::generators::triangle
@@ -28,7 +27,10 @@ namespace gfx::generators::triangle
 
         void updateTriangle(const Triangle&, glm::vec3);
 
-        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&) override;
+        void renderIntoCommandBuffer(
+            vk::CommandBuffer,
+            const Camera&,
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
 
 
     private:

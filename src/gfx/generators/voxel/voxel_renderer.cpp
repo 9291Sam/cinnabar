@@ -32,7 +32,10 @@ namespace gfx::generators::voxel
         this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->pipeline));
     }
 
-    void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera& camera)
+    void VoxelRenderer::renderIntoCommandBuffer(
+        vk::CommandBuffer                                                  commandBuffer,
+        const Camera&                                                      camera,
+        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
     {
         struct PushConstants
         {

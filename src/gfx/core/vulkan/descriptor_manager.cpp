@@ -4,9 +4,11 @@
 #include "device.hpp"
 #include "util/allocators/index_allocator.hpp"
 #include <algorithm>
+#include <exception>
 #include <limits>
 #include <ranges>
 #include <source_location>
+#include <utility>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -36,6 +38,31 @@ namespace gfx::core::vulkan
     };
 
     static constexpr std::array<u32, 5> ShaderBindingLocations {0, 1, 2, 3, 4};
+
+    namespace
+    {
+        constexpr u32 acquireShaderBindingLocation(vk::DescriptorType t)
+        {
+            decltype(SupportedDescriptors)::const_iterator thisDescriptorBindingLocation =
+                std::ranges::find(SupportedDescriptors, t);
+
+            if (thisDescriptorBindingLocation == SupportedDescriptors.cend())
+            {
+                panic("erm what");
+                std::terminate();
+            }
+            else
+            {
+                return ShaderBindingLocations[static_cast<usize>(
+                    thisDescriptorBindingLocation - SupportedDescriptors.cbegin())];
+            }
+        }
+    } // namespace
+
+    u32 getShaderBindingLocation(vk::DescriptorType t)
+    {
+        return acquireShaderBindingLocation(t);
+    }
 
     DescriptorManager::DescriptorManager(const Device& d)
         : device {d.getDevice()}
@@ -218,21 +245,6 @@ namespace gfx::core::vulkan
 
                 criticalSection.debug_descriptor_names.at(D).at(shouldBeStoredId) = std::move(name);
 
-                constexpr u32 ShaderBindingLocation = [] consteval
-                {
-                    constexpr decltype(SupportedDescriptors)::const_iterator ThisDescriptorBindingLocation =
-                        std::ranges::find(SupportedDescriptors, D);
-
-                    if (ThisDescriptorBindingLocation == SupportedDescriptors.cend())
-                    {
-                        panic("erm what");
-                    }
-                    else
-                    {
-                        return ShaderBindingLocations[ThisDescriptorBindingLocation - SupportedDescriptors.cbegin()];
-                    }
-                }();
-
                 vk::DescriptorImageInfo descriptorImageInfo {.sampler {nullptr}, .imageView {nullptr}, .imageLayout {}};
                 vk::DescriptorBufferInfo descriptorBufferInfo {.buffer {nullptr}, .offset {0}, .range {vk::WholeSize}};
 
@@ -258,7 +270,7 @@ namespace gfx::core::vulkan
                     .sType {vk::StructureType::eWriteDescriptorSet},
                     .pNext {nullptr},
                     .dstSet {this->bindless_descriptor_set},
-                    .dstBinding {ShaderBindingLocation},
+                    .dstBinding {acquireShaderBindingLocation(D)},
                     .dstArrayElement {shouldBeStoredId},
                     .descriptorCount {1},
                     .descriptorType {D},
