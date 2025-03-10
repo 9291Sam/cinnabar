@@ -36,7 +36,7 @@ struct TemporaryGameState : game::Game::GameState
         , voxel_renderer {this->game->getRenderer()}
     {
         std::mt19937                          gen {std::random_device {}()};
-        std::uniform_real_distribution<float> dist {-32.0f, 32.0f};
+        std::uniform_real_distribution<float> dist {-16.0f, 16.0f};
 
         for (int i = 0; i < 38; ++i)
         {

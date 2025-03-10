@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string_view>
+#include <vector>
 
 using u8    = std::uint8_t;   // NOLINT
 using u16   = std::uint16_t;  // NOLINT

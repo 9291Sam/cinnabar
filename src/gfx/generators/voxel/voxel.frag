@@ -69,8 +69,6 @@ bool getVoxel(ivec3 c)
 
 bool getBlockVoxel(ivec3 c)
 {
-    c += 4;
-
     if (any(lessThan(c, ivec3(0))) || any(greaterThan(c, ivec3(7))))
     {
         return false;
@@ -181,15 +179,15 @@ void main()
     vec3       origin = in_world_position;
     const vec3 dir    = normalize(in_world_position - in_push_constants.camera_position.xyz);
 
-    const WorldTraceResult result = traceBrick(in_uvw * 8 - 4, dir);
+    const WorldTraceResult result = traceBrick(in_uvw * 8, dir);
 
-    out_color = vec4(result.local_voxel_uvw, 1.0);
+    out_color = vec4(in_uvw, 1.0);
     // out_color = vec4(, 1.0);
 
     // TODO: integrate tracing with proper fragment position
 
     vec4 clipPos = in_push_constants.model_view_proj
-                 * vec4(result.brick_local_fragment_position + in_cube_center_location, float(1.0));
+                 * vec4(result.brick_local_fragment_position + in_cube_center_location - 4, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 
     // out_color = vec4(in_uvw, 1.0);
