@@ -170,13 +170,6 @@ namespace gfx::core::vulkan
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
         options.SetTargetSpirv(shaderc_spirv_version_1_5);
 
-        if constexpr (CINNABAR_DEBUG_BUILD)
-        {
-            options.SetOptimizationLevel(shaderc_optimization_level_zero);
-        }
-        else
-        {}
-
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
         options.SetGenerateDebugInfo();
 

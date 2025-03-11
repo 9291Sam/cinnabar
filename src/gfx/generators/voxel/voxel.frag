@@ -26,9 +26,11 @@ const int MAX_RAY_STEPS = 256;
 
 bool getBlockVoxel(ivec3 c)
 {
+    vec3 f = vec3(c);
+
     if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
     {
-        return c.x + c.y < c.z;
+        return sin(f.x / 16) * 16 + cos(-1.25 + f.z / 16) * 16 > c.y - 10;
     }
 
     return false;
@@ -72,7 +74,9 @@ WorldTraceResult traceBrick(vec3 rayPos, vec3 rayDir)
 
     for (int i = 0; i < MAX_RAY_STEPS; i++)
     {
-        if (getBlockVoxel(ivec3(mapPos)))
+        const ivec3 integerPos = ivec3(mapPos);
+
+        if (getBlockVoxel(integerPos))
         {
             // Okay, we've struck a voxel, let's do a ray-cube intersection to determine other parameters)
             vec3  mini                              = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
@@ -100,6 +104,11 @@ WorldTraceResult traceBrick(vec3 rayPos, vec3 rayDir)
             }
 
             return WorldTraceResult(intersectionPositionBrick, normal, voxelLocalUVW3D);
+        }
+
+        if (any(lessThan(integerPos, ivec3(-1))) || any(greaterThan(integerPos, ivec3(64))))
+        {
+            discard;
         }
 
         mask = stepMask(sideDist);
