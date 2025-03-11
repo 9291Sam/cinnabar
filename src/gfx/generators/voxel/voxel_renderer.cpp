@@ -18,7 +18,7 @@ namespace gfx::generators::voxel
                   .topology {vk::PrimitiveTopology::eTriangleList}, // remove
                   .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
                   .cull_mode {vk::CullModeFlagBits::eBack},
-                  .front_face {vk::FrontFace::eCounterClockwise}, // remove
+                  .front_face {vk::FrontFace::eClockwise}, // remove
                   .depth_test_enable {vk::True},
                   .depth_write_enable {vk::True},
                   .depth_compare_op {vk::CompareOp::eGreater}, // remove

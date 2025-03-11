@@ -22,83 +22,19 @@ layout(set = 0, binding = 4) readonly buffer GlobalGpuBricks
 }
 in_global_bricks[];
 
-const int MAX_RAY_STEPS = 64;
-
-#define B8(x)                                                                                                          \
-    (bool(x & 0x0000000F) ? 1 : 0) + (bool(x & 0x000000F0) ? 2 : 0) + (bool(x & 0x00000F00) ? 4 : 0)                   \
-        + (bool(x & 0x0000F000) ? 8 : 0) + (bool(x & 0x000F0000) ? 16 : 0) + (bool(x & 0x00F00000) ? 32 : 0)           \
-        + (bool(x & 0x0F000000) ? 64 : 0) + (bool(x & 0xF0000000) ? 128 : 0)
-
-#define B32(x0, x1, x2, x3) (B8(x3) << 0x18) + (B8(x2) << 0x10) + (B8(x1) << 0x08) + (B8(x0) << 0x00)
-
-int block[8 * 2] = int[](
-    B32(0x11111111, 0x10000001, 0x10000001, 0x10000001),
-    B32(0x10000001, 0x10000001, 0x10000001, 0x11111111),
-
-    B32(0x10000001, 0x01000010, 0x00000000, 0x00000000),
-    B32(0x00000000, 0x00000000, 0x01000010, 0x10000001),
-
-    B32(0x10000001, 0x00000000, 0x00100100, 0x00000000),
-    B32(0x00000000, 0x00100100, 0x00000000, 0x10000001),
-
-    B32(0x10000001, 0x00000000, 0x00000000, 0x00011000),
-    B32(0x00011000, 0x00000000, 0x00000000, 0x10000001),
-
-    B32(0x10000001, 0x00000000, 0x00000000, 0x00011000),
-    B32(0x00011000, 0x00000000, 0x00000000, 0x10000001),
-
-    B32(0x10000001, 0x00000000, 0x00100100, 0x00000000),
-    B32(0x00000000, 0x00100100, 0x00000000, 0x10000001),
-
-    B32(0x10000001, 0x01000010, 0x00000000, 0x00000000),
-    B32(0x00000000, 0x00000000, 0x01000010, 0x10000001),
-
-    B32(0x11111111, 0x10000001, 0x10000001, 0x10000001),
-    B32(0x10000001, 0x10000001, 0x10000001, 0x11111111));
-
-float sdSphere(vec3 p, float d)
-{
-    return length(p) - d;
-}
-
-float sdBox(vec3 p, vec3 b)
-{
-    vec3 d = abs(p) - b;
-
-    return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
-}
-
-bool getVoxel(ivec3 c)
-{
-    vec3  p           = vec3(c) + vec3(0.5);
-    float outerSphere = sdSphere(p, 25.0);
-    float d           = min(max(-sdSphere(p, 4.6), sdBox(p, vec3(4.0))), -outerSphere);
-
-    if (outerSphere > 0.0)
-    {
-        discard;
-    }
-
-    return d < 0.0;
-}
+const int MAX_RAY_STEPS = 256;
 
 bool getBlockVoxel(ivec3 c)
 {
-    if (any(lessThan(c, ivec3(0))) || any(greaterThan(c, ivec3(7))))
+    if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
     {
-        return false;
+        return c.x + c.y < c.z;
     }
 
-    int index = c.y * 8 * 8 + c.z * 8 + c.x;
-    return ((in_global_bricks[in_push_constants.brick_data_offset].data[index / 32] >> (index % 32)) & 1) != 0;
-}
+    return false;
 
-vec2 rotate2d(vec2 v, float a)
-{
-    float sinA = sin(a);
-    float cosA = cos(a);
-
-    return vec2(v.x * cosA - v.y * sinA, v.y * cosA + v.x * sinA);
+    // int index = c.y * 8 * 8 + c.z * 8 + c.x;
+    // return ((in_global_bricks[in_push_constants.brick_data_offset].data[index / 32] >> (index % 32)) & 1) != 0;
 }
 
 vec3 stepMask(vec3 sideDist)
@@ -201,24 +137,184 @@ layout(location = 2) in vec3 in_cube_corner_location;
 
 layout(location = 0) out vec4 out_color;
 
-layout(depth_any) out float gl_FragDepth;
+layout(depth_greater) out float gl_FragDepth;
+
+#define VERDIGRIS_EPSILON_MULTIPLIER 0.00001
+
+bool isApproxEqual(const float a, const float b)
+{
+    const float maxMagnitude = max(abs(a), abs(b));
+    const float epsilon      = maxMagnitude * VERDIGRIS_EPSILON_MULTIPLIER * 0.1;
+
+    return abs(a - b) < epsilon;
+}
+
+struct IntersectionResult
+{
+    bool  intersection_occurred;
+    float maybe_distance;
+    vec3  maybe_hit_point;
+    vec3  maybe_normal;
+    vec4  maybe_color;
+};
+
+IntersectionResult IntersectionResult_getMiss()
+{
+    IntersectionResult result;
+    result.intersection_occurred = false;
+
+    return result;
+}
+
+struct Cube
+{
+    vec3  center;
+    float edge_length;
+};
+
+struct Ray
+{
+    vec3 origin;
+    vec3 direction;
+};
+
+vec3 Ray_at(in Ray self, in float t)
+{
+    return self.origin + self.direction * t;
+}
+
+IntersectionResult Cube_tryIntersectFast(const Cube self, in Ray ray)
+{
+    float tmin, tmax, tymin, tymax, tzmin, tzmax;
+
+    vec3 invdir = 1 / ray.direction;
+
+    vec3 bounds[2] = vec3[2](self.center - self.edge_length / 2, self.center + self.edge_length / 2);
+
+    tmin  = (bounds[int(invdir[0] < 0)].x - ray.origin.x) * invdir.x;
+    tmax  = (bounds[1 - int(invdir[0] < 0)].x - ray.origin.x) * invdir.x;
+    tymin = (bounds[int(invdir[1] < 0)].y - ray.origin.y) * invdir.y;
+    tymax = (bounds[1 - int(invdir[1] < 0)].y - ray.origin.y) * invdir.y;
+
+    if ((tmin > tymax) || (tymin > tmax))
+    {
+        return IntersectionResult_getMiss();
+    }
+
+    if (tymin > tmin)
+    {
+        tmin = tymin;
+    }
+    if (tymax < tmax)
+    {
+        tmax = tymax;
+    }
+
+    tzmin = (bounds[int(invdir[2] < 0)].z - ray.origin.z) * invdir.z;
+    tzmax = (bounds[1 - int(invdir[2] < 0)].z - ray.origin.z) * invdir.z;
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+    {
+        return IntersectionResult_getMiss();
+    }
+
+    if (tzmin > tmin)
+    {
+        tmin = tzmin;
+    }
+    if (tzmax < tmax)
+    {
+        tmax = tzmax;
+    }
+
+    if (tmin < 0.0)
+    {
+        // The intersection point is behind the ray's origin, consider it a miss
+        return IntersectionResult_getMiss();
+    }
+
+    IntersectionResult result;
+    result.intersection_occurred = true;
+
+    // Calculate the normal vector based on which face is hit
+    vec3 hit_point         = ray.origin + tmin * ray.direction; // TODO: inverse?
+    result.maybe_hit_point = hit_point;
+
+    result.maybe_distance = length(ray.origin - hit_point);
+    vec3 normal;
+
+    if (isApproxEqual(hit_point.x, bounds[1].x))
+    {
+        normal = vec3(-1.0, 0.0, 0.0); // Hit right face
+    }
+    else if (isApproxEqual(hit_point.x, bounds[0].x))
+    {
+        normal = vec3(1.0, 0.0, 0.0); // Hit left face
+    }
+    else if (isApproxEqual(hit_point.y, bounds[1].y))
+    {
+        normal = vec3(0.0, -1.0, 0.0); // Hit top face
+    }
+    else if (isApproxEqual(hit_point.y, bounds[0].y))
+    {
+        normal = vec3(0.0, 1.0, 0.0); // Hit bottom face
+    }
+    else if (isApproxEqual(hit_point.z, bounds[1].z))
+    {
+        normal = vec3(0.0, 0.0, -1.0); // Hit front face
+    }
+    else if (isApproxEqual(hit_point.z, bounds[0].z))
+    {
+        normal = vec3(0.0, 0.0, 1.0); // Hit back face
+    }
+
+    result.maybe_normal = normal;
+    result.maybe_color  = vec4(0.0, 1.0, 1.0, 1.0);
+
+    return result;
+}
+
+bool Cube_contains(const Cube self, const vec3 point)
+{
+    const vec3 p0 = self.center - (self.edge_length / 2);
+    const vec3 p1 = self.center + (self.edge_length / 2);
+
+    if (all(lessThan(p0, point)) && all(lessThan(point, p1)))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 void main()
 {
-    vec3       origin = in_world_position;
-    const vec3 dir    = normalize(
+    const Cube c = Cube(in_cube_corner_location + 32, 64);
+
+    const vec3 camera_position = in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz;
+
+    const vec3 dir = normalize(
         in_world_position - in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz);
 
-    const WorldTraceResult result = traceBrick(in_uvw * 8, dir);
+    Ray ray = Ray(camera_position, dir);
+
+    IntersectionResult res = Cube_tryIntersectFast(c, ray);
+
+    const vec3 box_corner_negative = in_cube_corner_location;
+    const vec3 box_corner_positive = in_cube_corner_location + 64;
+
+    const bool is_camera_inside_box = Cube_contains(c, camera_position);
+
+    const vec3 traversalRayOrigin =
+        is_camera_inside_box ? (camera_position - box_corner_negative) : (res.maybe_hit_point - box_corner_negative);
+
+    const WorldTraceResult result = traceBrick(traversalRayOrigin, dir);
 
     out_color = vec4(result.local_voxel_uvw, 1.0);
-    // out_color = vec4(, 1.0);
-
-    // TODO: integrate tracing with proper fragment position
 
     vec4 clipPos = in_global_gpu_data[in_push_constants.global_data_offset].data.view_projection_matrix
                  * vec4(result.brick_local_fragment_position + in_cube_corner_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
-
-    // out_color = vec4(in_uvw, 1.0);
 }

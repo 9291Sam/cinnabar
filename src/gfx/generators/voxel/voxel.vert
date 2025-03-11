@@ -17,7 +17,7 @@ struct GlobalGpuData
     float time_alive;
 };
 
-layout(set = 0, binding = 3) readonly buffer GlobalGpuDataBuffer
+layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
 {
     GlobalGpuData data;
 }
@@ -26,6 +26,7 @@ in_global_gpu_data[];
 layout(location = 0) out vec3 out_uvw;
 layout(location = 1) out vec3 out_world_position;
 layout(location = 2) out vec3 out_cube_center_location;
+layout(location = 3) out vec3 out_ray_start_position;
 
 vec3 CUBE_TRIANGLE_LIST[] = {
     // Front face
@@ -85,7 +86,7 @@ in_push_constants;
 void main()
 {
     const vec3  center_location = vec3(8.0, 8.2, -12.24);
-    const float voxel_size      = 8.0;
+    const float voxel_size      = 64.0;
     const vec4  voxel_color     = vec4(1.0, 0.0, 0.0, 1.0);
 
     const vec3 box_corner_negative = center_location - vec3(voxel_size) / 2;
