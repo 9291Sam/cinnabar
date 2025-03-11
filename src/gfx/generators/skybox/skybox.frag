@@ -290,7 +290,7 @@ struct GlobalGpuData
     float time_alive;
 };
 
-layout(set = 0, binding = 4) buffer GlobalGpuDataBuffer
+layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
 {
     GlobalGpuData data;
 }
@@ -319,4 +319,6 @@ void main()
     const vec3 atmosphereColor = atmosphere(vec3(0.0), rayDir, sunDir);
 
     out_color = vec4(atmosphereColor * cloudColor, 1.0);
+
+    // out_color = vec4(rayDir, 1.0);
 }

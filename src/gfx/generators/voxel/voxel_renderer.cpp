@@ -44,7 +44,7 @@ namespace gfx::generators::voxel
     void VoxelRenderer::renderIntoCommandBuffer(
         vk::CommandBuffer commandBuffer,
         const Camera&,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
+        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
     {
         BooleanBrick brick {};
 

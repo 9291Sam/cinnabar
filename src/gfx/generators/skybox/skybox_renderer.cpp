@@ -36,7 +36,7 @@ namespace gfx::generators::skybox
     void SkyboxRenderer::renderIntoCommandBuffer(
         vk::CommandBuffer                                                  commandBuffer,
         const gfx::Camera&                                                 camera,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
+        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
     {
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));

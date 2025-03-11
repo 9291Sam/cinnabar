@@ -13,6 +13,6 @@ namespace gfx::generators
         virtual void renderIntoCommandBuffer(
             vk::CommandBuffer,
             const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) = 0;
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) = 0;
     };
 } // namespace gfx::generators

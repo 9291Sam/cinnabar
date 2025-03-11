@@ -215,7 +215,7 @@ namespace gfx::generators::imgui
     void ImguiRenderer::renderIntoCommandBuffer(
         vk::CommandBuffer                                                  commandBuffer,
         const Camera&                                                      camera,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo)
+        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();

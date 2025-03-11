@@ -22,7 +22,7 @@ namespace gfx::generators::skybox
         void renderIntoCommandBuffer(
             vk::CommandBuffer commandBuffer,
             const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
 
     private:
         const core::Renderer*                           renderer;

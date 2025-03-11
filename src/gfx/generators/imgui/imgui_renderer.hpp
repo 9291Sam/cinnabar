@@ -31,7 +31,7 @@ namespace gfx::generators::imgui
         void renderIntoCommandBuffer(
             vk::CommandBuffer,
             const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
         void renderImageCopyIntoCommandBuffer(
             vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage>);
     private:

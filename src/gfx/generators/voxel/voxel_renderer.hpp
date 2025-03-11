@@ -32,7 +32,7 @@ namespace gfx::generators::voxel
         void renderIntoCommandBuffer(
             vk::CommandBuffer,
             const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageBuffer> globalDescriptorInfo) override;
+            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
 
     private:
         const core::Renderer*                                renderer;

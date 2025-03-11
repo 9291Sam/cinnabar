@@ -35,7 +35,7 @@ struct GlobalGpuData
     float time_alive;
 };
 
-layout(set = 0, binding = 4) readonly buffer GlobalGpuDataBuffer
+layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
 {
     GlobalGpuData data;
 }
