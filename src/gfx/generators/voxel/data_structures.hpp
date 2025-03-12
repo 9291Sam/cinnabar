@@ -2,6 +2,10 @@
 
 namespace voxel
 {
-    struct Brick
-    {};
+    // struct Chunk
+    // {
+
+    // }
+    // struct Brick
+    // {};
 } // namespace voxel
