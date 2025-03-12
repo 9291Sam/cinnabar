@@ -87,8 +87,19 @@ namespace gfx::core
         log::trace("Created renderer");
     }
 
+    namespace
+    {
+        void foo(std::string&& s)
+        {
+            std::vector<std::string> strings {};
+
+            strings.push_back(s);
+        }
+    } // namespace
+
     Renderer::~Renderer() noexcept
     {
+        foo("");
         this->device->getDevice().waitIdle();
     }
 

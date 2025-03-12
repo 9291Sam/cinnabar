@@ -88,15 +88,42 @@ namespace util
                     }
                 }
 
-                const std::string_view realFilenameView = fileName.substr(idx);
+                {
+                    const std::string_view realFilenameView = fileName.substr(idx);
 
-                dest.append(realFilenameView);
+                    static constexpr usize MaxFilenameLength = 128;
 
-                char integerFormatDigits[std::numeric_limits<int>::digits10 + 3];
+                    std::array<char, MaxFilenameLength> buffer {};
 
-                const char* finishIter = std::format_to(&integerFormatDigits[0], ":{}", fileLine);
+                    assert::critical(
+                        realFilenameView.size() < MaxFilenameLength,
+                        "Tried to construct a filename string with length {}, which is larger than the maximum {}",
+                        realFilenameView.size(),
+                        MaxFilenameLength);
 
-                dest.append(&integerFormatDigits[0], finishIter);
+                    std::ranges::copy(realFilenameView, buffer.begin());
+
+                    for (usize i = 0; i < realFilenameView.size(); ++i)
+                    {
+                        char& c = buffer[i];
+
+                        if (c == '\\')
+                        {
+                            c = '/';
+                        }
+                    }
+
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                    dest.append(buffer.data(), buffer.data() + realFilenameView.size());
+                }
+
+                {
+                    std::array<char, std::numeric_limits<int>::digits10 + 3> integerFormatDigits {};
+
+                    const char* finishIter = std::format_to(integerFormatDigits.data(), ":{}", fileLine);
+
+                    dest.append(integerFormatDigits.data(), finishIter);
+                }
             }
 
             std::unique_ptr<custom_flag_formatter> clone() const override
