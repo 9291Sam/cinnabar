@@ -143,6 +143,7 @@ namespace gfx::core::vulkan
         , image {other.image}
         , memory {other.memory}
         , view {std::move(other.view)}
+        , name {std::move(other.name)}
     {
         other.renderer                              = nullptr;
         other.extent                                = vk::Extent2D {};
@@ -153,6 +154,7 @@ namespace gfx::core::vulkan
         other.maybe_storage_image_descriptor_handle = std::nullopt;
         other.image                                 = nullptr;
         other.memory                                = nullptr;
+        other.name                                  = {};
     }
 
     Image2D& Image2D::operator= (Image2D&& other) noexcept
