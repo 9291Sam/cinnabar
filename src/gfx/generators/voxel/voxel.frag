@@ -13,14 +13,52 @@ layout(push_constant) uniform PushConstants
 {
     uint global_data_offset;
     uint brick_data_offset;
+    uint chunk_bricks_offset;
 }
 in_push_constants;
 
-layout(set = 0, binding = 4) readonly buffer GlobalGpuBricks
+struct GlobalGpuData
+{
+    mat4  view_matrix;
+    mat4  projection_matrix;
+    mat4  view_projection_matrix;
+    vec4  camera_forward_vector;
+    vec4  camera_right_vector;
+    vec4  camera_up_vector;
+    vec4  camera_position;
+    float fov_y;
+    float tan_half_fov_y;
+    float aspect_ratio;
+    float time_alive;
+};
+
+layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
+{
+    GlobalGpuData data;
+}
+in_global_gpu_data[];
+
+struct BooleanBrick
 {
     uint data[16];
+};
+
+layout(set = 0, binding = 4) readonly buffer GlobalGpuBricks
+{
+    BooleanBrick data[];
 }
 in_global_bricks[];
+
+struct ChunkBrickStorage
+{
+    uint16_t data[8][8][8];
+};
+
+layout(set = 0, binding = 4) readonly buffer GlobalChunkBrickStorage
+{
+    ChunkBrickStorage storage[];
+}
+in_global_chunk_bricks[];
 
 const int MAX_RAY_STEPS = 256;
 
@@ -30,7 +68,29 @@ bool getBlockVoxel(ivec3 c)
 
     if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
     {
-        return sin(f.x / 16) * 16 + cos(-1.25 + f.z / 16) * 16 > c.y - 10;
+        // return true;
+        uvec3 bC = c / 8;
+        uvec3 bP = c % 8;
+
+        const uint16_t brickPointer =
+            in_global_chunk_bricks[in_push_constants.chunk_bricks_offset].storage[0].data[bC.x][bC.y][bC.z];
+
+        // if (brickPointer == uint16_t(in_global_gpu_data[0].data.time_alive * 64) % 512)
+        // {
+        //     return true;
+        // }
+
+        uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
+        const uint idx         = linearIndex / 32;
+        const uint bit         = linearIndex % 32;
+
+        return (in_global_bricks[in_push_constants.brick_data_offset].data[uint(brickPointer)].data[idx] & (1u << bit))
+            != 0;
+
+        // return in_global_bricks[in_push_constants.brick_data_offset].data[uint(brickPointer)]
+
+        // return sin(f.x / 16) * 16 + cos(-1.25 + f.z / 16) * 16 > c.y - 10;
+        // return (c.z + c.z) / 2 > c.y;
     }
 
     return false;
@@ -117,27 +177,6 @@ WorldTraceResult traceBrick(vec3 rayPos, vec3 rayDir)
 
     discard;
 }
-
-struct GlobalGpuData
-{
-    mat4  view_matrix;
-    mat4  projection_matrix;
-    mat4  view_projection_matrix;
-    vec4  camera_forward_vector;
-    vec4  camera_right_vector;
-    vec4  camera_up_vector;
-    vec4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
-};
-
-layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
-{
-    GlobalGpuData data;
-}
-in_global_gpu_data[];
 
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;

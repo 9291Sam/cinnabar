@@ -23,8 +23,9 @@ namespace gfx::generators::voxel
         requires (V::length() == 3)
     struct VoxelCoordinateBase : V
     {
-        using Base       = VoxelCoordinateBase;
-        using VectorType = V;
+        using Base                           = VoxelCoordinateBase;
+        using VectorType                     = V;
+        static constexpr V::value_type Bound = MaxValidValue + 1;
 
         // NOLINTNEXTLINE(bugprone-crtp-constructor-accessibility)
         explicit VoxelCoordinateBase(V v)
@@ -70,11 +71,11 @@ namespace gfx::generators::voxel
         static Derived fromLinearIndex(std::size_t linearIndex)
         {
             static_assert(MinValidValue == 0, "I'm not dealing with that");
-            static_assert(MaxValidValue != static_cast<V::value_type>(-1));
+            static_assert(Bound != static_cast<V::value_type>(-1));
 
-            const typename V::type z = static_cast<V::type>(linearIndex / (MaxValidValue * MaxValidValue));
-            const typename V::type y = (linearIndex / MaxValidValue) % MaxValidValue;
-            const typename V::type x = linearIndex % MaxValidValue;
+            const typename V::value_type z = static_cast<V::value_type>(linearIndex / (Bound * Bound));
+            const typename V::value_type y = (linearIndex / Bound) % Bound;
+            const typename V::value_type x = linearIndex % Bound;
 
             return Derived {V {x, y, z}, UncheckedInDebugTag {}};
         }
@@ -87,9 +88,9 @@ namespace gfx::generators::voxel
         [[nodiscard]] std::size_t asLinearIndex() const noexcept
         {
             static_assert(MinValidValue == 0, "I'm not dealing with that");
-            static_assert(MaxValidValue != static_cast<V::value_type>(-1));
+            static_assert(Bound != static_cast<V::value_type>(-1));
 
-            return this->x + (MaxValidValue * this->y) + (MaxValidValue * MaxValidValue * this->z);
+            return this->x + (Bound * this->y) + (Bound * Bound * this->z);
         }
 
         constexpr std::strong_ordering operator<=> (const VoxelCoordinateBase& other) const
@@ -153,7 +154,6 @@ namespace gfx::generators::voxel
             return !this->isMaterial();
         }
 
-    private:
         u16 data;
     };
 
@@ -163,11 +163,44 @@ namespace gfx::generators::voxel
             std::array<std::array<MaybeBrickOffsetOrMaterialId, ChunkSizeBricks>, ChunkSizeBricks>,
             ChunkSizeBricks>
             data;
+
+        MaybeBrickOffsetOrMaterialId& modify(BrickCoordinate bC)
+        {
+            return this->data[bC.x][bC.y][bC.z];
+        }
     };
 
     struct BooleanBrick
     {
         std::array<u32, 16> data;
+
+        void write(BrickLocalPosition p, bool b)
+        {
+            const auto [idx, bit] = BooleanBrick::getIdxAndBit(p);
+
+            if (b)
+            {
+                this->data[idx] |= (1u << bit); // NOLINT
+            }
+            else
+            {
+                this->data[idx] &= ~(1u << bit); // NOLINT
+            }
+        }
+
+        [[nodiscard]] bool read(BrickLocalPosition p) const
+        {
+            const auto [idx, bit] = BooleanBrick::getIdxAndBit(p);
+
+            return (this->data[idx] & (1u << bit)) != 0; // NOLINT
+        }
+
+        [[nodiscard]] static std::pair<usize, usize> getIdxAndBit(BrickLocalPosition p)
+        {
+            const usize linearIndex = p.asLinearIndex();
+
+            return {linearIndex / std::numeric_limits<u32>::digits, linearIndex % std::numeric_limits<u32>::digits};
+        }
     };
 
     // struct Chunk

@@ -3,6 +3,8 @@
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/generators/generator.hpp"
+#include "gfx/generators/voxel/data_structures.hpp"
+#include <glm/gtx/string_cast.hpp>
 #include <random>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -40,7 +42,41 @@ namespace gfx::generators::voxel
               512,
               "Temporary Boolean Bricks")
         , generator {std::random_device {}()}
-    {}
+    {
+        std::vector<BooleanBrick> newBricks {};
+        ChunkBrickStorage         newChunk {};
+
+        newBricks.resize(512);
+        for (usize i = 0; i < 512; ++i)
+        {
+            const BrickCoordinate bC = BrickCoordinate::fromLinearIndex(i);
+
+            newChunk.modify(bC) = MaybeBrickOffsetOrMaterialId {static_cast<u16>(i)};
+        }
+
+        for (u8 x = 0; x < ChunkSizeVoxels; ++x)
+        {
+            for (u8 y = 0; y < ChunkSizeVoxels; ++y)
+            {
+                for (u8 z = 0; z < ChunkSizeVoxels; ++z)
+                {
+                    const ChunkLocalPosition cP {x, y, z};
+                    const auto [bC, bP] = cP.split();
+
+                    MaybeBrickOffsetOrMaterialId& thisBrickOffset = newChunk.modify(bC);
+                    BooleanBrick&                 thisBrick       = newBricks.at(thisBrickOffset.data);
+
+                    const bool shouldBeSolid = (z + x) / 2 > y;
+                    // const bool shouldBeSolid = true;
+
+                    thisBrick.write(bP, shouldBeSolid);
+                }
+            }
+        }
+
+        this->renderer->getStager().enqueueTransfer(this->bricks, 0, {newBricks.data(), 512});
+        this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
+    }
 
     VoxelRenderer::~VoxelRenderer()
     {
@@ -52,23 +88,26 @@ namespace gfx::generators::voxel
         const Camera&,
         core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
     {
-        BooleanBrick brick {};
+        // BooleanBrick brick {};
 
-        for (u32& d : brick.data)
-        {
-            d = this->generator();
-        }
+        // for (u32& d : brick.data)
+        // {
+        //     d = this->generator();
+        // }
 
-        this->renderer->getStager().enqueueTransfer(this->bricks, 0, {&brick, 1});
+        // this->renderer->getStager().enqueueTransfer(this->bricks, 0, {&brick, 1});
 
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 2>>(
+        commandBuffer.pushConstants<std::array<u32, 3>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            std::array<u32, 2> {globalDescriptorInfo.getOffset(), this->bricks.getStorageDescriptor().getOffset()});
+            std::array<u32, 3> {
+                globalDescriptorInfo.getOffset(),
+                this->bricks.getStorageDescriptor().getOffset(),
+                this->chunk_bricks.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);
     }
