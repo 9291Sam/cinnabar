@@ -3,6 +3,8 @@
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
+#include "util/util.hpp"
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <shaderc/shaderc.h>
@@ -14,7 +16,80 @@
 
 namespace gfx::core::vulkan
 {
+
     static constexpr u32 MaxPipelines = 512;
+
+    namespace
+    {
+        struct ShaderCommonIncluder : shaderc::CompileOptions::IncluderInterface
+        {
+            shaderc_include_result* GetInclude(
+                const char*          requestedSource,
+                shaderc_include_type type,
+                const char*          requestingSource,
+                size_t               includeDepth) override
+            {
+                assert::critical(
+                    includeDepth < 1000,
+                    "Include Infinite loop detected. |{}| is requesting |{}|",
+                    requestingSource,
+                    requestedSource);
+
+                std::ignore = type;
+
+                const std::filesystem::path searchPath = getCanonicalPathOfShaderFile("src/gfx/shader_common");
+
+                assert::critical(std::filesystem::is_directory(searchPath), "oops");
+
+                std::filesystem::path requestedPath = searchPath / requestedSource;
+                requestedPath.make_preferred();
+
+                assert::warn(
+                    std::filesystem::exists(requestedPath),
+                    "Compilation of |{}| has requested |{}| which does not exist!",
+                    requestingSource,
+                    requestedPath.c_str());
+
+                assert::warn(
+                    std::filesystem::is_regular_file(requestedPath),
+                    "Compilation of |{}| has requested |{}| which is not a regular file!",
+                    requestingSource,
+                    requestedPath.c_str());
+
+                const std::string_view       foundSourceName    = requestedPath.native();
+                const std::vector<std::byte> foundSourceContent = loadEntireFileFromPath(requestedPath);
+
+                std::string sourceNameOwned {foundSourceName};
+                std::string sourceContentOwned {};
+
+                sourceContentOwned.resize(foundSourceContent.size());
+                std::memcpy(sourceContentOwned.data(), foundSourceContent.data(), foundSourceContent.size());
+
+                shaderc_include_result localNewResult {
+                    .source_name {sourceNameOwned.data()},
+                    .source_name_length {sourceNameOwned.size()},
+                    .content {sourceContentOwned.data()},
+                    .content_length {sourceContentOwned.size()},
+                    .user_data {this}};
+
+                this->lifetime_extension_storage.push_back(std::move(sourceNameOwned));
+                this->lifetime_extension_storage.push_back(std::move(sourceContentOwned));
+
+                // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                return new shaderc_include_result {localNewResult};
+            }
+
+            void ReleaseInclude(shaderc_include_result* oldResult) override
+            {
+                // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                delete oldResult;
+            }
+
+            ~ShaderCommonIncluder() override = default;
+
+            std::deque<std::string> lifetime_extension_storage;
+        };
+    } // namespace
 
     PipelineManager::PipelineManager(const Device& device_, vk::PipelineLayout bindlessPipelineLayout)
         : device {device_.getDevice()}
@@ -169,6 +244,7 @@ namespace gfx::core::vulkan
         options.SetSourceLanguage(shaderc_source_language_glsl);
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
         options.SetTargetSpirv(shaderc_spirv_version_1_5);
+        options.SetIncluder(std::make_unique<ShaderCommonIncluder>());
 
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
         options.SetGenerateDebugInfo();

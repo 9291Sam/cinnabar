@@ -1,5 +1,7 @@
 #version 460
 
+#include "types.glsl"
+
 #extension GL_EXT_shader_explicit_arithmetic_types : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
@@ -74,11 +76,6 @@ bool getBlockVoxel(ivec3 c)
 
         const uint16_t brickPointer =
             in_global_chunk_bricks[in_push_constants.chunk_bricks_offset].storage[0].data[bC.x][bC.y][bC.z];
-
-        // if (brickPointer == uint16_t(in_global_gpu_data[0].data.time_alive * 64) % 512)
-        // {
-        //     return true;
-        // }
 
         uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
         const uint idx         = linearIndex / 32;
