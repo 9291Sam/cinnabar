@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <exception>
 #include <limits>
+#include <map>
 #include <ranges>
 #include <source_location>
 #include <utility>
@@ -183,10 +184,10 @@ namespace gfx::core::vulkan
         }
     }
 
-    std::unordered_map<vk::DescriptorType, std::vector<DescriptorManager::DescriptorReport>>
+    std::map<vk::DescriptorType, std::vector<DescriptorManager::DescriptorReport>>
     DescriptorManager::getAllDescriptorsDebugInfo() const
     {
-        std::unordered_map<vk::DescriptorType, std::vector<DescriptorReport>> output {};
+        std::map<vk::DescriptorType, std::vector<DescriptorReport>> output {};
 
         this->critical_section.lock(
             [&](CriticalSection& criticalSection)

@@ -14,7 +14,6 @@
 #include <imgui.h>
 #include <iterator>
 #include <misc/freetype/imgui_freetype.h>
-#include <unordered_map>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_to_string.hpp>
@@ -321,7 +320,7 @@ namespace gfx::generators::imgui
             //     100.0f * static_cast<float>(facesVisible) / static_cast<float>(facesPossible),
             //     fly);
 
-            std::unordered_map<vk::DescriptorType, std::vector<core::vulkan::DescriptorManager::DescriptorReport>>
+            std::map<vk::DescriptorType, std::vector<core::vulkan::DescriptorManager::DescriptorReport>>
                 allDescriptors = this->renderer->getDescriptorManager()->getAllDescriptorsDebugInfo();
 
             std::string allDescriptorsRepresentation {};

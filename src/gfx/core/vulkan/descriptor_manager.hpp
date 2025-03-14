@@ -3,6 +3,7 @@
 #include "util/allocators/index_allocator.hpp"
 #include "util/threads.hpp"
 #include "util/util.hpp"
+#include <map>
 #include <source_location>
 #include <unordered_map>
 #include <vulkan/vulkan.hpp>
@@ -96,7 +97,7 @@ namespace gfx::core::vulkan
             std::string name;
         };
 
-        std::unordered_map<vk::DescriptorType, std::vector<DescriptorReport>> getAllDescriptorsDebugInfo() const;
+        std::map<vk::DescriptorType, std::vector<DescriptorReport>> getAllDescriptorsDebugInfo() const;
 
         [[nodiscard]] vk::DescriptorSet  getGlobalDescriptorSet() const;
         [[nodiscard]] vk::PipelineLayout getGlobalPipelineLayout() const;

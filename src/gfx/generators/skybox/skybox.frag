@@ -219,7 +219,7 @@ vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
     vec3 tr = vec3(0.0);
     // DEBUG
 
-    const float viewStepCount  = 4.0 - 1.0;
+    const float viewStepCount  = 48.0 - 1.0;
     float       viewOdRayleigh = 0.0, viewOdMie = 0.0;
     vec3        viewStart = (atmosphereSphere.x >= 0.0) ? (ro + rd * atmosphereSphere.x) : ro, viewEnd = ro + rd * end;
     float       viewSize = distance(viewStart, viewEnd) / viewStepCount;
@@ -234,7 +234,7 @@ vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
         viewOdRayleigh += viewSampleOdRayleigh;
         viewOdMie += viewSampleOdMie;
 
-        const float sunStepCount  = 2.0 - 1.0;
+        const float sunStepCount  = 8.0 - 1.0;
         float       sunOdRayleigh = 0.0, sunOdMie = 0.0;
         float       sunAtmosphereDistance = traceSphere(viewSample, sd, atmospherePosition, atmosphereHeight).y;
 
@@ -269,7 +269,7 @@ vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
     return /*color * clamp(tr, 0.0, 1.0) + */ (
                rayleighTotalScattering * rayleighScatteringCoefficients * rayleighPhase
                + mieTotalScattering * mieScatteringCoefficient * miePhase)
-         * 1.0;
+         * 32.0;
 }
 
 layout(location = 0) in vec2 ndc;
@@ -312,7 +312,7 @@ void main()
         + ndc.y * vec3(globalData.camera_up_vector) * globalData.tan_half_fov_y);
 
     vec3  sunDir = normalize(vec3(-1.0, 0.0, 0.0));
-    float time   = globalData.time_alive / 5.0;
+    float time   = globalData.time_alive / 12.0;
     sunDir       = normalize(vec3(0.0, sin(time), -cos(time)));
 
     const vec3 cloudColor      = Sky(vec3(0.0), rayDir, globalData.time_alive, sunDir);

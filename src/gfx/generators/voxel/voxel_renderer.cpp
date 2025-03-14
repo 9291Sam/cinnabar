@@ -27,13 +27,19 @@ namespace gfx::generators::voxel
                   .blend_enable {vk::True},
                   .name {"Voxel pipeline"},
               })}
-        , bricks {
+        , chunk_bricks(
               this->renderer->getAllocator(),
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
-              "Temporary Boolean Bricks"}
-        , generator {std::random_device{}()}
+              "Chunk Bricks")
+        , bricks(
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              512,
+              "Temporary Boolean Bricks")
+        , generator {std::random_device {}()}
     {}
 
     VoxelRenderer::~VoxelRenderer()

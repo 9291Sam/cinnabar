@@ -57,10 +57,9 @@ vec3 stepMask(vec3 sideDist)
 
 struct WorldTraceResult
 {
-    vec3 brick_local_fragment_position;
-    vec3 normal;
+    vec3 chunk_local_fragment_position;
+    vec3 voxel_normal;
     vec3 local_voxel_uvw;
-    // TODO: normal
     // TODO: brick UV
 };
 
@@ -321,9 +320,9 @@ void main()
 
     const WorldTraceResult result = traceBrick(traversalRayOrigin, dir);
 
-    out_color = vec4(result.local_voxel_uvw, 1.0);
+    out_color = vec4(result.voxel_normal / 2 + 0.5, 1.0);
 
     vec4 clipPos = in_global_gpu_data[in_push_constants.global_data_offset].data.view_projection_matrix
-                 * vec4(result.brick_local_fragment_position + in_cube_corner_location, float(1.0));
+                 * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 }
