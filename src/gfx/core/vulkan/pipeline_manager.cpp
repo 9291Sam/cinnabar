@@ -37,7 +37,7 @@ namespace gfx::core::vulkan
 
                 std::ignore = type;
 
-                const std::filesystem::path searchPath = getCanonicalPathOfShaderFile("src/gfx/shader_common");
+                const std::filesystem::path searchPath = util::getCanonicalPathOfShaderFile("src/gfx/shader_common");
 
                 assert::critical(std::filesystem::is_directory(searchPath), "oops");
 
@@ -57,7 +57,7 @@ namespace gfx::core::vulkan
                     requestedPath.c_str());
 
                 const std::string_view       foundSourceName    = requestedPath.native();
-                const std::vector<std::byte> foundSourceContent = loadEntireFileFromPath(requestedPath);
+                const std::vector<std::byte> foundSourceContent = util::loadEntireFileFromPath(requestedPath);
 
                 std::string sourceNameOwned {foundSourceName};
                 std::string sourceContentOwned {};
@@ -263,7 +263,7 @@ namespace gfx::core::vulkan
             panic("unsupported!");
         }
 
-        const std::filesystem::path canonicalPath = getCanonicalPathOfShaderFile(shaderString);
+        const std::filesystem::path canonicalPath = util::getCanonicalPathOfShaderFile(shaderString);
 
         std::ifstream inFile;
         inFile.open(canonicalPath);

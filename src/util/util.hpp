@@ -48,20 +48,22 @@ namespace util
         seed_ ^= hash_;
     }
 
+    inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
+    {
+        using namespace std::literals;
+
+        const std::string_view prepend {"../"sv};
+
+        const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
+        std::filesystem::path       canonicalPath {std::filesystem::weakly_canonical(totalPath)};
+
+        canonicalPath.make_preferred(); // non const member function
+
+        return canonicalPath;
+    }
+
+    std::vector<std::byte> loadEntireFileFromPath(const std::filesystem::path& path);
+
+    std::size_t getMemoryUsage();
+
 } // namespace util
-
-inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
-{
-    using namespace std::literals;
-
-    const std::string_view prepend {"../"sv};
-
-    const std::filesystem::path totalPath {std::filesystem::current_path() / prepend / file};
-    std::filesystem::path       canonicalPath {std::filesystem::weakly_canonical(totalPath)};
-
-    canonicalPath.make_preferred(); // non const member function
-
-    return canonicalPath;
-}
-
-std::vector<std::byte> loadEntireFileFromPath(const std::filesystem::path& path);

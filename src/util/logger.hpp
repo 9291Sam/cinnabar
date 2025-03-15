@@ -106,6 +106,9 @@ namespace assert
 
 } // namespace assert
 
+// Sometimes causes issues on macos, opt out macro
+#ifndef NO_PANIC
+
 template<class... Ts>
 struct panic /* NOLINT */
 {
@@ -127,3 +130,5 @@ template<class... Ts> /* NOLINTNEXTLINE*/
 panic(fmt::format_string<Ts...>, Ts&&...) -> panic<Ts...>;
 template<class... J> /* NOLINTNEXTLINE*/
 panic(fmt::format_string<J...>, J&&..., std::source_location) -> panic<J...>;
+
+#endif // NO_PANIC

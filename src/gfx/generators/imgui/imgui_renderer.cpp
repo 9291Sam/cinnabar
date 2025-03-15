@@ -156,9 +156,10 @@ namespace gfx::generators::imgui
                     fontConfigUnifont.SizePixels           = 64;
                     fontConfigUnifont.FontDataOwnedByAtlas = false;
 
-                    const std::filesystem::path unifontPath = getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
+                    const std::filesystem::path unifontPath =
+                        util::getCanonicalPathOfShaderFile("res/unifont-16.0.01.otf");
 
-                    std::vector<std::byte> buffer = loadEntireFileFromPath(unifontPath);
+                    std::vector<std::byte> buffer = util::loadEntireFileFromPath(unifontPath);
 
                     log::trace("Loaded Text font. Size: {}", buffer.size());
 
@@ -185,9 +186,9 @@ namespace gfx::generators::imgui
                     // cfg.GlyphOffset          = ImVec2(0.0, -2.0);
 
                     const std::filesystem::path emojiPath =
-                        getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
+                        util::getCanonicalPathOfShaderFile("res/OpenMoji-color-colr1_svg.ttf");
 
-                    std::vector<std::byte> buffer = loadEntireFileFromPath(emojiPath);
+                    std::vector<std::byte> buffer = util::loadEntireFileFromPath(emojiPath);
 
                     log::trace("Loaded Emojis. Size: {}", buffer.size());
 

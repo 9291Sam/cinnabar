@@ -34,7 +34,7 @@ in_global_gpu_data[];
 // Not a bikeshed
 // https://godbolt.org/z/9G9MG6d4G
 // https://discord.com/channels/318590007881236480/591343919598534681/1350287992970809354
-#define GlobalData in_global_gpu_data[0].data;
+#define GlobalData in_global_gpu_data[0].data
 
 struct BooleanBrick
 {
@@ -335,7 +335,7 @@ void main()
 {
     const Cube c = Cube(in_cube_corner_location + 32, 64);
 
-    const vec3 camera_position = REAL_GLOBAL_VAR.camera_position.xyz;
+    const vec3 camera_position = GlobalData.camera_position.xyz;
 
     const vec3 dir = normalize(
         in_world_position - in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz);
