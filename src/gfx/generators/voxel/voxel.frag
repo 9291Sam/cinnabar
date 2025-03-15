@@ -141,12 +141,12 @@ VoxelTraceResult traceChunkNaive(uint chunk, vec3 rayPos, vec3 rayDir, float tMa
 
         if (rayTraversalDistanceSinceFragment > tMax)
         {
-            return VoxelTraceResult_getMiss(i);
+            break;
         }
 
         if (any(lessThan(integerPos, ivec3(-1))) || any(greaterThan(integerPos, ivec3(64))))
         {
-            return VoxelTraceResult_getMiss(i);
+            break;
         }
 
         const uint maybeThisBrick = tryLoadBrickFromChunkAndCoordinate(chunk, integerPos / 8);
@@ -158,10 +158,10 @@ VoxelTraceResult traceChunkNaive(uint chunk, vec3 rayPos, vec3 rayDir, float tMa
             vec3 intersectionPositionBrick = rayPos + rayDir * rayTraversalDistanceSinceFragment;
             vec3 voxelLocalUVW3D           = intersectionPositionBrick - mapPos;
 
-            // if (mapPos == floor(rayPos)) // Handle edge case where camera origin is inside of block
-            // {
-            //     voxelLocalUVW3D = rayPos - mapPos;
-            // }
+            if (mapPos == floor(rayPos)) // Handle edge case where camera origin is inside of block
+            {
+                voxelLocalUVW3D = rayPos - mapPos;
+            }
 
             vec3 normal = vec3(0.0);
             if (mini.x > mini.y && mini.x > mini.z)
@@ -207,10 +207,15 @@ VoxelTraceResult traceChunkNaive(uint chunk, vec3 rayPos, vec3 rayDir, float tMa
 
 //         if (rayTraversalDistanceSinceFragment > tMax)
 //         {
-//             return VoxelTraceResult_getMiss(i);
+//             break;
 //         }
 
-//         if (getBlockVoxel(integerPos))
+//         if (any(lessThan(integerPos, ivec3(-1))) || any(greaterThan(integerPos, ivec3(8))))
+//         {
+//             break;
+//         }
+
+//         if (loadVoxelFromBrick(brick, integerPos))
 //         {
 //             // Okay, we've struck a voxel, let's do a ray-cube intersection to determine other parameters)
 
@@ -240,9 +245,59 @@ VoxelTraceResult traceChunkNaive(uint chunk, vec3 rayPos, vec3 rayDir, float tMa
 //                 true, intersectionPositionBrick, normal, voxelLocalUVW3D, rayTraversalDistanceSinceFragment, i);
 //         }
 
+//         mask = stepMask(sideDist);
+//         mapPos += mask * raySign;
+//         sideDist += mask * raySign * deltaDist;
+//     }
+
+//     return VoxelTraceResult_getMiss(i);
+// }
+
+// /// Traces a chunk in brick space and then traces the underlying bricks
+// VoxelTraceResult traceChunk(uint chunk, vec3 rayPos, vec3 rayDir, float tMax)
+// {
+//     rayPos /= 8;
+//     vec3       mapPos    = floor(rayPos);
+//     vec3       raySign   = sign(rayDir);
+//     const vec3 deltaDist = 1.0 / rayDir;
+//     vec3       sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
+//     vec3       mask      = stepMask(sideDist);
+
+//     int i;
+//     for (i = 0; i < MAX_RAY_STEPS; i++)
+//     {
+//         const ivec3 integerPos = ivec3(mapPos);
+
+//         vec3  mini                              = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
+//         float rayTraversalDistanceSinceFragment = max(mini.x, max(mini.y, mini.z));
+
+//         if (rayTraversalDistanceSinceFragment > tMax)
+//         {
+//             break;
+//         }
+
 //         if (any(lessThan(integerPos, ivec3(-1))) || any(greaterThan(integerPos, ivec3(64))))
 //         {
 //             break;
+//         }
+
+//         const uint maybeThisBrick = tryLoadBrickFromChunkAndCoordinate(chunk, uvec3(integerPos));
+
+//         if (maybeThisBrick != -1)
+//         {
+//             const VoxelTraceResult brickTraceResult = traceBrick(maybeThisBrick, fract(mapPos) * 8, rayDir, tMax
+//             / 8.0);
+
+//             if (brickTraceResult.intersect_occur)
+//             {
+//                 return VoxelTraceResult(
+//                     true,
+//                     mapPos + brickTraceResult.chunk_local_fragment_position,
+//                     brickTraceResult.voxel_normal,
+//                     brickTraceResult.local_voxel_uvw,
+//                     8 * rayTraversalDistanceSinceFragment + brickTraceResult.t,
+//                     i + brickTraceResult.steps);
+//             }
 //         }
 
 //         mask = stepMask(sideDist);
@@ -253,6 +308,80 @@ VoxelTraceResult traceChunkNaive(uint chunk, vec3 rayPos, vec3 rayDir, float tMa
 //     return VoxelTraceResult_getMiss(i);
 // }
 
+bool traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask, float max_dist)
+{
+    rayPos         = clamp(rayPos, vec3(0.0001), vec3(7.9999));
+    vec3 mapPos    = floor(rayPos);
+    vec3 raySign   = sign(rayDir);
+    vec3 deltaDist = 1.0 / rayDir;
+    vec3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
+    vec3 mask      = iMask;
+
+    for (int i = 0; i < 27 && all(lessThanEqual(mapPos, vec3(7.0))) && all(greaterThanEqual(mapPos, vec3(0.0)))
+                    && length(mapPos - rayPos) <= max_dist;
+         ++i)
+    {
+        if (loadVoxelFromBrick(brick, ivec3(mapPos)))
+        {
+            return true;
+        }
+
+        mask = stepMask(sideDist);
+        mapPos += mask * raySign;
+        sideDist += mask * raySign * deltaDist;
+    }
+
+    return false;
+}
+
+bool traceWorld(vec3 rayPos, vec3 rayDir, float max_dist)
+{
+    vec3 mapPos    = floor(rayPos);
+    vec3 raySign   = sign(rayDir);
+    vec3 deltaDist = 1.0 / rayDir;
+    vec3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
+    vec3 mask      = stepMask(sideDist);
+
+    for (int i = 0; i < 32 && length(mapPos - rayPos) < max_dist; i++)
+    {
+        u32 brick = tryLoadBrickFromChunkAndCoordinate(0, ivec3(mapPos));
+        if (brick != ~0u)
+        {
+            vec3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * vec3(raySign)) * deltaDist;
+            float d         = max(mini.x, max(mini.y, mini.z));
+            vec3  intersect = rayPos + rayDir * d;
+            vec3  uv3d      = intersect - mapPos;
+
+            if (mapPos == floor(rayPos)) // Handle edge case where camera origin is inside ofblock block
+            {
+                uv3d = rayPos - mapPos;
+            }
+
+            bool hit = traceBlock(brick, uv3d * 8.0, rayDir, mask, (max_dist - length(mapPos - rayPos)) * 8.0);
+
+            if (hit)
+            {
+                return true;
+            }
+        }
+
+        mask = stepMask(sideDist);
+        mapPos += mask * raySign;
+        sideDist += mask * raySign * deltaDist;
+    }
+
+    return false;
+}
+
+bool traceDDARay(vec3 start, vec3 end)
+{
+    if (distance(end, start) > 512)
+    {
+        return true;
+    }
+
+    return traceWorld(start / 8.0, normalize(end - start), length(end - start) / 8.0);
+}
 layout(location = 0) in vec3 in_uvw;
 layout(location = 1) in vec3 in_world_position;
 layout(location = 2) in vec3 in_cube_corner_location;
@@ -281,24 +410,33 @@ void main()
     const vec3 traversalRayOrigin =
         is_camera_inside_box ? (camera_position - box_corner_negative) : (res.maybe_hit_point - box_corner_negative);
 
-    const VoxelTraceResult result = traceChunkNaive(0, traversalRayOrigin, dir, 128.0);
+    const bool intersected = traceDDARay(traversalRayOrigin, traversalRayOrigin + dir * 128.0);
 
-    const bool showTrace = false;
+    // const bool showTrace = false;
 
-    if (showTrace)
+    // if (showTrace)
+    // {
+    //     out_color = vec4(plasma_quintic(float(result.steps) / 128.0), 1.0);
+    // }
+    // else
+    // {
+    //     if (!result.intersect_occur)
+    //     {
+    //         discard;
+    //     }
+    //     out_color = vec4(result.local_voxel_uvw, 1.0);
+    // }
+
+    // vec4 clipPos = GlobalData.view_projection_matrix
+    //              * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
+    // gl_FragDepth = (clipPos.z / clipPos.w);
+
+    if (intersected)
     {
-        out_color = vec4(plasma_quintic(float(result.steps) / 128.0), 1.0);
+        out_color = vec4(1.0);
     }
     else
     {
-        if (!result.intersect_occur)
-        {
-            discard;
-        }
-        out_color = vec4(result.local_voxel_uvw, 1.0);
+        discard;
     }
-
-    vec4 clipPos = GlobalData.view_projection_matrix
-                 * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
-    gl_FragDepth = (clipPos.z / clipPos.w);
 }
