@@ -35,8 +35,6 @@ layout(set = 0, binding = 4) readonly buffer GlobalChunkBrickStorage
 }
 in_global_chunk_bricks[];
 
-const int MAX_RAY_STEPS = 256;
-
 bool getBlockVoxel(ivec3 c)
 {
     if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
@@ -241,7 +239,7 @@ layout(location = 2) in vec3 in_cube_corner_location;
 
 layout(location = 0) out vec4 out_color;
 
-layout(depth_greater) out float gl_FragDepth;
+// layout(depth_greater) out float gl_FragDepth;
 
 void main()
 {
@@ -265,11 +263,18 @@ void main()
 
     const VoxelTraceResult result = traceDDARay(traversalRayOrigin, traversalRayOrigin + dir * 96.0);
 
-    const bool showTrace = false;
+    vec3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_corner_location;
+
+    if (!result.intersect_occur)
+    {
+        worldStrikePosition = ray.origin + ray.direction * res.t_far;
+    }
+
+    const bool showTrace = true;
 
     if (showTrace)
     {
-        out_color = vec4(plasma_quintic(float(result.steps) / 128.0), 1.0);
+        out_color = vec4(plasma_quintic(float(result.steps) / 32.0), 1.0);
     }
     else
     {
@@ -277,10 +282,14 @@ void main()
         {
             discard;
         }
+        else
+        {
+            vec4 clipPos = GlobalData.view_projection_matrix
+                         * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
+
+            gl_FragDepth = (clipPos.z / clipPos.w);
+        }
+
         out_color = vec4(result.local_voxel_uvw, 1.0);
     }
-
-    vec4 clipPos = GlobalData.view_projection_matrix
-                 * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
-    gl_FragDepth = (clipPos.z / clipPos.w);
 }

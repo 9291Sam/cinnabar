@@ -17,6 +17,7 @@ struct IntersectionResult
     float maybe_distance;
     vec3  maybe_hit_point;
     vec3  maybe_normal;
+    float t_far;
 };
 
 IntersectionResult IntersectionResult_getMiss()
@@ -100,6 +101,8 @@ IntersectionResult Cube_tryIntersectFast(const Cube self, in Ray ray)
     // Calculate the normal vector based on which face is hit
     vec3 hit_point         = ray.origin + tmin * ray.direction;
     result.maybe_hit_point = hit_point;
+
+    result.t_far = tmax;
 
     result.maybe_distance = length(ray.origin - hit_point);
     vec3 normal;
