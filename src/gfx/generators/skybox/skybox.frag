@@ -1,6 +1,6 @@
 #version 460
 
-#extension GL_EXT_nonuniform_qualifier : require
+#include "globals.glsl"
 
 vec4 permute(vec4 x)
 {
@@ -42,7 +42,7 @@ float noise(vec2 P)
     vec2  fade_xy = fade(Pf.xy);
     vec2  n_x     = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
     float n_xy    = mix(n_x.x, n_x.y, fade_xy.y);
-    return 2.3 * n_xy;
+    return 2.4 * n_xy;
 }
 
 #define OCTAVES 4
@@ -272,50 +272,27 @@ vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
          * 32.0;
 }
 
-layout(location = 0) in vec2 ndc;
-layout(location = 0) out vec4 out_color;
-
-struct GlobalGpuData
-{
-    mat4  view_matrix;
-    mat4  projection_matrix;
-    mat4  view_projection_matrix;
-    vec4  camera_forward_vector;
-    vec4  camera_right_vector;
-    vec4  camera_up_vector;
-    vec4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
-};
-
-layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
-{
-    GlobalGpuData data;
-}
-in_global_gpu_data[];
-
 layout(push_constant) uniform Camera
 {
     uint global_data_offset;
 }
 in_push_constants;
 
+layout(location = 0) in vec2 ndc;
+layout(location = 0) out vec4 out_color;
+
 void main()
 {
-    const GlobalGpuData globalData = in_global_gpu_data[in_push_constants.global_data_offset].data;
-
     const vec3 rayDir = normalize(
-        vec3(globalData.camera_forward_vector.xyz)
-        + ndc.x * vec3(globalData.camera_right_vector.xyz) * globalData.aspect_ratio * globalData.tan_half_fov_y
-        + ndc.y * vec3(globalData.camera_up_vector) * globalData.tan_half_fov_y);
+        vec3(GlobalData.camera_forward_vector.xyz)
+        + ndc.x * vec3(GlobalData.camera_right_vector.xyz) * GlobalData.aspect_ratio * GlobalData.tan_half_fov_y
+        + ndc.y * vec3(GlobalData.camera_up_vector) * GlobalData.tan_half_fov_y);
 
     vec3  sunDir = normalize(vec3(-1.0, 0.0, 0.0));
-    float time   = globalData.time_alive / 12.0;
+    float time   = mod(GlobalData.time_alive / 10, 3.14);
     sunDir       = normalize(vec3(0.0, sin(time), -cos(time)));
 
-    const vec3 cloudColor      = Sky(vec3(0.0), rayDir, globalData.time_alive, sunDir);
+    const vec3 cloudColor      = Sky(vec3(0.0), rayDir, GlobalData.time_alive, sunDir);
     const vec3 atmosphereColor = atmosphere(vec3(0.0), rayDir, sunDir);
 
     out_color = vec4(atmosphereColor * cloudColor, 1.0);

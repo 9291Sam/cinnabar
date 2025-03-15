@@ -1,6 +1,7 @@
 #version 460
 
 #include "types.glsl"
+#include "globals.glsl"
 
 layout(push_constant) uniform PushConstants
 {
@@ -9,32 +10,6 @@ layout(push_constant) uniform PushConstants
     uint chunk_bricks_offset;
 }
 in_push_constants;
-
-struct GlobalGpuData
-{
-    mat4  view_matrix;
-    mat4  projection_matrix;
-    mat4  view_projection_matrix;
-    vec4  camera_forward_vector;
-    vec4  camera_right_vector;
-    vec4  camera_up_vector;
-    vec4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
-};
-
-layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
-{
-    GlobalGpuData data;
-}
-in_global_gpu_data[];
-
-// Not a bikeshed
-// https://godbolt.org/z/9G9MG6d4G
-// https://discord.com/channels/318590007881236480/591343919598534681/1350287992970809354
-#define GlobalData in_global_gpu_data[0].data
 
 struct BooleanBrick
 {
@@ -338,7 +313,7 @@ void main()
     const vec3 camera_position = GlobalData.camera_position.xyz;
 
     const vec3 dir = normalize(
-        in_world_position - in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz);
+        in_world_position - GlobalData.camera_position.xyz);
 
     Ray ray = Ray(camera_position, dir);
 
@@ -356,7 +331,7 @@ void main()
 
     out_color = vec4(result.voxel_normal / 2 + 0.5, 1.0);
 
-    vec4 clipPos = in_global_gpu_data[in_push_constants.global_data_offset].data.view_projection_matrix
+    vec4 clipPos = GlobalData.view_projection_matrix
                  * vec4(result.chunk_local_fragment_position + in_cube_corner_location, float(1.0));
     gl_FragDepth = (clipPos.z / clipPos.w);
 }

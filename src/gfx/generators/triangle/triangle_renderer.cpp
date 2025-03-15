@@ -72,7 +72,6 @@ namespace gfx::generators::triangle
         struct PushConstants
         {
             u32 position_buffer;
-            u32 global_buffer;
         };
 
         commandBuffer.bindPipeline(
@@ -82,7 +81,7 @@ namespace gfx::generators::triangle
 
         const PushConstants pushConstants {
             .position_buffer {this->triangle_gpu_data.getStorageDescriptor().getOffset()},
-            .global_buffer {globalDescriptorInfo.getOffset()}};
+        };
 
         commandBuffer.pushConstants<PushConstants>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
