@@ -46,13 +46,7 @@ namespace gfx::generators::voxel
         std::vector<BooleanBrick> newBricks {};
         ChunkBrickStorage         newChunk {};
 
-        newBricks.resize(512);
-        for (usize i = 0; i < 512; ++i)
-        {
-            const BrickCoordinate bC = BrickCoordinate::fromLinearIndex(i);
-
-            newChunk.modify(bC) = MaybeBrickOffsetOrMaterialId {static_cast<u16>(i)};
-        }
+        u16 nextBrickIndex = 0;
 
         for (u8 x = 0; x < ChunkSizeVoxels; ++x)
         {
@@ -63,13 +57,27 @@ namespace gfx::generators::voxel
                     const ChunkLocalPosition cP {x, y, z};
                     const auto [bC, bP] = cP.split();
 
-                    MaybeBrickOffsetOrMaterialId& thisBrickOffset = newChunk.modify(bC);
-                    BooleanBrick&                 thisBrick       = newBricks.at(thisBrickOffset.data);
+                    MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
                     const bool shouldBeSolid = (z + x) / 2 > y;
-                    // const bool shouldBeSolid = true;
 
-                    thisBrick.write(bP, shouldBeSolid);
+                    if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
+                    {
+                        maybeThisBrickOffset.data = nextBrickIndex;
+
+                        log::trace("inserted new brick {}", maybeThisBrickOffset.data);
+
+                        newBricks.push_back(BooleanBrick {});
+
+                        nextBrickIndex += 1;
+                    }
+
+                    if (shouldBeSolid)
+                    {
+                        BooleanBrick& thisBrick = newBricks.at(maybeThisBrickOffset.data);
+
+                        thisBrick.write(bP, shouldBeSolid);
+                    }
                 }
             }
         }

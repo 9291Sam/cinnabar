@@ -155,11 +155,16 @@ namespace gfx::generators::voxel
             return !this->isMaterial();
         }
 
-        u16 data;
+        u16 data = static_cast<u16>(~0u);
     };
 
     struct ChunkBrickStorage
     {
+        ChunkBrickStorage()
+            : data {}
+        {
+            std::memset(static_cast<void*>(data.data()->data()->data()), -1, sizeof(this->data));
+        }
         std::array<
             std::array<std::array<MaybeBrickOffsetOrMaterialId, ChunkSizeBricks>, ChunkSizeBricks>,
             ChunkSizeBricks>
