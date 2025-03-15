@@ -1,9 +1,9 @@
 #pragma once
 
 #include "data_structures.hpp"
+#include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include "gfx/generators/generator.hpp"
 #include <random>
 
 namespace gfx::core
@@ -13,22 +13,19 @@ namespace gfx::core
 
 namespace gfx::generators::voxel
 {
-    class VoxelRenderer : Generator
+    class VoxelRenderer
     {
     public:
 
         explicit VoxelRenderer(const core::Renderer*);
-        ~VoxelRenderer() override;
+        ~VoxelRenderer();
 
         VoxelRenderer(const VoxelRenderer&)             = delete;
         VoxelRenderer(VoxelRenderer&&)                  = delete;
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        void renderIntoCommandBuffer(
-            vk::CommandBuffer,
-            const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
+        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
     private:
         const core::Renderer*                                renderer;

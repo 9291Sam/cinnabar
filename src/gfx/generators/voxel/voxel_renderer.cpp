@@ -2,7 +2,6 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
-#include "gfx/generators/generator.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include <glm/gtx/string_cast.hpp>
 #include <random>
@@ -65,8 +64,6 @@ namespace gfx::generators::voxel
                     {
                         maybeThisBrickOffset.data = nextBrickIndex;
 
-                        log::trace("inserted new brick {}", maybeThisBrickOffset.data);
-
                         newBricks.push_back(BooleanBrick {});
 
                         nextBrickIndex += 1;
@@ -91,10 +88,7 @@ namespace gfx::generators::voxel
         this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->pipeline));
     }
 
-    void VoxelRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer commandBuffer,
-        const Camera&,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
+    void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
         // BooleanBrick brick {};
 
@@ -108,12 +102,11 @@ namespace gfx::generators::voxel
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 3>>(
+        commandBuffer.pushConstants<std::array<u32, 2>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            std::array<u32, 3> {
-                globalDescriptorInfo.getOffset(),
+            std::array<u32, 2> {
                 this->bricks.getStorageDescriptor().getOffset(),
                 this->chunk_bricks.getStorageDescriptor().getOffset()});
 

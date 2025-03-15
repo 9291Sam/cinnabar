@@ -3,26 +3,22 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include "gfx/generators/generator.hpp"
 #include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::generators::skybox
 {
-    class SkyboxRenderer : Generator
+    class SkyboxRenderer
     {
     public:
         explicit SkyboxRenderer(const core::Renderer*);
-        ~SkyboxRenderer() override;
+        ~SkyboxRenderer();
 
         SkyboxRenderer(const SkyboxRenderer&)             = delete;
         SkyboxRenderer(SkyboxRenderer&&)                  = delete;
         SkyboxRenderer& operator= (const SkyboxRenderer&) = delete;
         SkyboxRenderer& operator= (SkyboxRenderer&&)      = delete;
 
-        void renderIntoCommandBuffer(
-            vk::CommandBuffer commandBuffer,
-            const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
+        void renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&);
 
     private:
         const core::Renderer*                           renderer;

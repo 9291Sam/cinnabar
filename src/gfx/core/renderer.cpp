@@ -13,12 +13,15 @@
 #include <atomic>
 #include <map>
 #include <memory>
+#include <optional>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core
 {
 
     Renderer::Renderer()
+        : desired_present_mode {std::nullopt}
     {
 #ifdef __APPLE__
 
@@ -81,25 +84,13 @@ namespace gfx::core
             std::make_unique<vulkan::Allocator>(*this->instance, &*this->device, &*this->descriptor_manager);
         this->stager = std::make_unique<vulkan::BufferStager>(&*this->allocator);
 
-        this->critical_section =
-            util::Mutex {Renderer::makeCriticalSection(*this->device, *this->surface, *this->window)};
+        this->critical_section = util::Mutex {this->makeCriticalSection()};
 
         log::trace("Created renderer");
     }
 
-    namespace
-    {
-        void foo(std::string&& s)
-        {
-            std::vector<std::string> strings {};
-
-            strings.push_back(s);
-        }
-    } // namespace
-
     Renderer::~Renderer() noexcept
     {
-        foo("");
         this->device->getDevice().waitIdle();
     }
 
@@ -120,13 +111,14 @@ namespace gfx::core
                         },
                         *this->stager);
 
-                if (!drawFrameResult.has_value())
+                if (!drawFrameResult.has_value()
+                    || this->should_resize_occur.exchange(false, std::memory_order_acq_rel))
                 {
                     this->device->getDevice().waitIdle();
 
                     lockedCriticalSection.reset();
 
-                    lockedCriticalSection = Renderer::makeCriticalSection(*this->device, *this->surface, *this->window);
+                    lockedCriticalSection = this->makeCriticalSection();
 
                     resizeOcurred = true;
                 }
@@ -146,14 +138,16 @@ namespace gfx::core
         return this->window->shouldClose();
     }
 
-    std::unique_ptr<Renderer::RenderingCriticalSection>
-    Renderer::makeCriticalSection(const vulkan::Device& device, vk::SurfaceKHR surface, const Window& window)
+    std::unique_ptr<Renderer::RenderingCriticalSection> Renderer::makeCriticalSection() const
     {
-        std::unique_ptr<vulkan::Swapchain> swapchain =
-            std::make_unique<vulkan::Swapchain>(device, surface, window.getFramebufferSize());
+        std::unique_ptr<vulkan::Swapchain> swapchain = std::make_unique<vulkan::Swapchain>(
+            *this->device,
+            *this->surface,
+            this->window->getFramebufferSize(),
+            this->desired_present_mode.load(std::memory_order_acquire));
 
         std::unique_ptr<vulkan::FrameManager> frameManager =
-            std::make_unique<vulkan::FrameManager>(device, **swapchain);
+            std::make_unique<vulkan::FrameManager>(*this->device, **swapchain);
 
         return std::make_unique<RenderingCriticalSection>(RenderingCriticalSection {
             .frame_manager {std::move(frameManager)},
@@ -204,5 +198,11 @@ namespace gfx::core
     float Renderer::getTimeAlive() const noexcept
     {
         return this->time_alive.load(std::memory_order_seq_cst);
+    }
+
+    void Renderer::setDesiredPresentMode(vk::PresentModeKHR newPresentMode) const noexcept
+    {
+        this->desired_present_mode.store(newPresentMode, std::memory_order_release);
+        this->should_resize_occur.store(true, std::memory_order_release);
     }
 } // namespace gfx::core

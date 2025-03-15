@@ -1,21 +1,20 @@
 #pragma once
 
+#include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
-#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include "gfx/generators/generator.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 
 namespace gfx::generators::triangle
 {
-    class TriangleRenderer : Generator
+    class TriangleRenderer
     {
     public:
         using Triangle = util::OpaqueHandle<"TriangleRenderer::Triangle", u8>;
     public:
 
         explicit TriangleRenderer(const core::Renderer*);
-        ~TriangleRenderer() override;
+        ~TriangleRenderer();
 
         TriangleRenderer(const TriangleRenderer&)             = delete;
         TriangleRenderer(TriangleRenderer&&)                  = delete;
@@ -27,10 +26,7 @@ namespace gfx::generators::triangle
 
         void updateTriangle(const Triangle&, glm::vec3);
 
-        void renderIntoCommandBuffer(
-            vk::CommandBuffer,
-            const Camera&,
-            core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo) override;
+        void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
 
     private:

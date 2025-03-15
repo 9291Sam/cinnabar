@@ -7,7 +7,6 @@
 
 layout(push_constant) uniform PushConstants
 {
-    uint global_data_offset;
     uint brick_data_offset;
     uint chunk_bricks_offset;
 }

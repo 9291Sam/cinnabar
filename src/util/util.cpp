@@ -30,11 +30,12 @@ namespace util
 
 #ifdef WIN32
         const errno_t errnoVal = ::fopen_s(&file, stringPath.c_str(), "rb");
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         assert::critical(errnoVal == 0, "Failed to open file |{}| error code: {}", stringPath, errnoVal);
 #else
+        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         file = std::fopen(stringPath.c_str(), "rb");
 #endif // WIN32
-       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         assert::critical(file != nullptr, "Failed to load file |{}|", stringPath);
 
         std::vector<std::byte> buffer {};

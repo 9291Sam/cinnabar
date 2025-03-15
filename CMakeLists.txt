@@ -59,8 +59,6 @@ add_executable(cinnabar
 
     src/gfx/generators/voxel/voxel_renderer.cpp
 
-    src/gfx/generators/generator.cpp
-
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp
     src/gfx/transform.cpp

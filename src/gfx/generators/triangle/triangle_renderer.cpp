@@ -64,10 +64,7 @@ namespace gfx::generators::triangle
         this->triangle_gpu_data.uploadImmediate(this->triangle_allocator.getValueOfHandle(t), {&newPosition, 1});
     }
 
-    void TriangleRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer commandBuffer,
-        const Camera&,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
+    void TriangleRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
         struct PushConstants
         {

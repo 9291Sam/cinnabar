@@ -272,12 +272,6 @@ vec3 atmosphere(in vec3 ro, in vec3 rd, in vec3 sd)
          * 32.0;
 }
 
-layout(push_constant) uniform Camera
-{
-    uint global_data_offset;
-}
-in_push_constants;
-
 layout(location = 0) in vec2 ndc;
 layout(location = 0) out vec4 out_color;
 

@@ -270,8 +270,7 @@ namespace gfx
 
                     if (generators.maybe_imgui_renderer)
                     {
-                        generators.maybe_imgui_renderer->renderIntoCommandBuffer(
-                            commandBuffer, camera, this->global_gpu_data.getUniformDescriptor());
+                        generators.maybe_imgui_renderer->renderIntoCommandBuffer(commandBuffer, camera, swapchain);
 
                         commandBuffer.setViewport(0, {renderViewport});
                         commandBuffer.setScissor(0, {scissor});
@@ -358,20 +357,17 @@ namespace gfx
 
                     if (generators.maybe_triangle_renderer)
                     {
-                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(
-                            commandBuffer, camera, this->global_gpu_data.getUniformDescriptor());
+                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     if (generators.maybe_voxel_renderer)
                     {
-                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(
-                            commandBuffer, camera, this->global_gpu_data.getUniformDescriptor());
+                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     if (generators.maybe_skybox_renderer)
                     {
-                        generators.maybe_skybox_renderer->renderIntoCommandBuffer(
-                            commandBuffer, camera, this->global_gpu_data.getUniformDescriptor());
+                        generators.maybe_skybox_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     if (generators.maybe_imgui_renderer)

@@ -6,6 +6,7 @@
 #include <memory>
 #include <util/threads.hpp>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core
@@ -67,6 +68,8 @@ namespace gfx::core
         [[nodiscard]] u32                              getFrameNumber() const noexcept;
         [[nodiscard]] float                            getTimeAlive() const noexcept;
 
+        void setDesiredPresentMode(vk::PresentModeKHR) const noexcept;
+
     private:
         struct RenderingCriticalSection
         {
@@ -74,8 +77,7 @@ namespace gfx::core
             std::unique_ptr<vulkan::Swapchain>    swapchain;
         };
 
-        static std::unique_ptr<RenderingCriticalSection>
-        makeCriticalSection(const vulkan::Device&, vk::SurfaceKHR, const Window&);
+        std::unique_ptr<RenderingCriticalSection> makeCriticalSection() const;
 
         std::unique_ptr<Window> window;
 
@@ -91,5 +93,8 @@ namespace gfx::core
 
         mutable std::atomic<float> time_alive;
         mutable std::atomic<u32>   frame_number;
+
+        mutable std::atomic<std::optional<vk::PresentModeKHR>> desired_present_mode;
+        mutable std::atomic<bool>                              should_resize_occur;
     };
 } // namespace gfx::core

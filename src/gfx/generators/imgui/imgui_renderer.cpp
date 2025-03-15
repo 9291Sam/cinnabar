@@ -4,17 +4,15 @@
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/frame_manager.hpp"
 #include "gfx/core/vulkan/instance.hpp"
+#include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
-#include <cstdio>
-#include <fstream>
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
-#include <iterator>
 #include <misc/freetype/imgui_freetype.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -214,10 +212,9 @@ namespace gfx::generators::imgui
         ImGui_ImplVulkan_Shutdown();
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void ImguiRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer commandBuffer,
-        const Camera&     camera,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer>)
+        vk::CommandBuffer commandBuffer, const Camera& camera, const core::vulkan::Swapchain& swapchain)
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -270,59 +267,6 @@ namespace gfx::generators::imgui
             ImGui::PushFont(this->font);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(WindowPadding, WindowPadding));
 
-            // auto facesVisible = numberOfFacesVisible.load();
-            // auto facesOnGpu     = numberOfFacesOnGpu.load();
-            // auto facesPossible  = numberOfFacesPossible.load();
-            // auto facesAllocated = numberOfFacesAllocated.load();
-
-            // auto chunks         = numberOfChunksAllocated.load();
-            // auto chunksPossible = numberOfChunksPossible.load();
-
-            // auto bricks         = numberOfBricksAllocated.load();
-            // auto bricksPossible = numberOfBricksPossible.load();
-
-            // auto fly = flySpeed.load();
-
-            // f32 tickDeltaTime = std::bit_cast<f32>(f32TickDeltaTime.load());
-
-            // const std::string menuText = std::format(
-            //     "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\n"
-            //     "Camera: {{{:.3f}, {:.3f}, {:.3f}}} {:.3f} {:.3f}\n"
-            //     "FPS: {:.3f} / {:.3f}ms\n"
-            //     "TPS: {} / {:.3f}ms\n"
-            //     "Ram: {}\n"
-            //     "Vram: {}\n"
-            //     "Staging Usage: {}\n"
-            //     "Chunks {} / {} | {:.3f}%\n"
-            //     "Bricks {} / {} | {:.3f}%\n"
-            //     "Faces {} / {} / {} / {} | {:.3f}%\n"
-            //     "Fly Speed {}",
-            //     camera.getPosition().x,
-            //     camera.getPosition().y,
-            //     camera.getPosition().z,
-            //     camera.getPitch(),
-            //     camera.getYaw(),
-            //     1.0f / deltaTime,
-            //     1000.0f * deltaTime,
-            //     1.0f / tickDeltaTime,
-            //     1000.0f * tickDeltaTime,
-            //     util::bytesAsSiNamed(util::getMemoryUsage()),
-            //     util::bytesAsSiNamed(gfx::core::vulkan::bufferBytesAllocated.load(std::memory_order_relaxed)),
-            //     util::bytesAsSiNamed(renderer->getStager().getUsage().first),
-
-            //     chunks,
-            //     chunksPossible,
-            //     100.0f * static_cast<float>(chunks) / static_cast<float>(chunksPossible),
-            //     bricks,
-            //     bricksPossible,
-            //     100.0f * static_cast<float>(bricks) / static_cast<float>(bricksPossible),
-            //     facesVisible,
-            //     facesOnGpu,
-            //     facesAllocated,
-            //     facesPossible,
-            //     100.0f * static_cast<float>(facesVisible) / static_cast<float>(facesPossible),
-            //     fly);
-
             std::map<vk::DescriptorType, std::vector<core::vulkan::DescriptorManager::DescriptorReport>>
                 allDescriptors = this->renderer->getDescriptorManager()->getAllDescriptorsDebugInfo();
 
@@ -365,6 +309,50 @@ namespace gfx::generators::imgui
             if (ImGui::Button("Attach Cursor"))
             {
                 renderer->getWindow()->attachCursor();
+            }
+
+            if (this->owned_present_mode_strings.empty())
+            {
+                std::span<const vk::PresentModeKHR> presentModes = swapchain.getPresentModes();
+                for (vk::PresentModeKHR p : presentModes)
+                {
+                    this->owned_present_mode_strings.push_back(vk::to_string(p));
+                }
+
+                for (const std::string& s : this->owned_present_mode_strings)
+                {
+                    this->raw_present_mode_strings.push_back(s.data());
+                }
+
+                const vk::PresentModeKHR activePresentMode = swapchain.getActivePresentMode();
+
+                // I LOVE DEFICIENT STDLIB IMPLEMENTATIONS!
+                const std::add_const_t<decltype(presentModes)::iterator> activePresentModeIterator =
+                    std::ranges::find(presentModes, activePresentMode);
+
+                assert::critical(activePresentModeIterator != presentModes.end(), "literally how");
+
+                this->present_mode_combo_box_value = static_cast<int>(activePresentModeIterator - presentModes.begin());
+            }
+
+            // ImGui::BeginCom
+
+            if (ImGui::Combo(
+                    "Present Mode",
+                    &this->present_mode_combo_box_value,
+                    raw_present_mode_strings.data(),
+                    static_cast<int>(raw_present_mode_strings.size())))
+            {
+                std::span<const vk::PresentModeKHR> presentModes = swapchain.getPresentModes();
+
+                const vk::PresentModeKHR newPresentMode =
+                    presentModes[static_cast<usize>(this->present_mode_combo_box_value)];
+
+                log::info(
+                    "Requesting new Present mode {}",
+                    raw_present_mode_strings.at(static_cast<usize>(this->present_mode_combo_box_value)));
+
+                this->renderer->setDesiredPresentMode(newPresentMode);
             }
 
             ImGui::PopStyleVar();

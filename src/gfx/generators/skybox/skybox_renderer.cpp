@@ -33,19 +33,10 @@ namespace gfx::generators::skybox
         this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->pipeline));
     }
 
-    void SkyboxRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer commandBuffer,
-        const gfx::Camera&,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
+    void SkyboxRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const gfx::Camera&)
     {
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
-
-        commandBuffer.pushConstants<u32>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            globalDescriptorInfo.getOffset());
 
         commandBuffer.draw(3, 1, 0, 0);
 

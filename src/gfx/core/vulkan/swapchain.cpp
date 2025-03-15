@@ -3,6 +3,7 @@
 #include "gfx/core/renderer.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <algorithm>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -11,8 +12,13 @@
 
 namespace gfx::core::vulkan
 {
-    Swapchain::Swapchain(const Device& device, vk::SurfaceKHR surface, vk::Extent2D extent_)
-        : extent {extent_}
+    Swapchain::Swapchain(
+        const Device&                     device,
+        vk::SurfaceKHR                    surface,
+        vk::Extent2D                      extent_,
+        std::optional<vk::PresentModeKHR> maybeDesiredPresetMode)
+        : active_present_mode {vk::PresentModeKHR::eFifo}
+        , extent {extent_}
     {
         const std::vector<vk::SurfaceFormatKHR> availableSurfaceFormats =
             device.getPhysicalDevice().getSurfaceFormatsKHR(surface);
@@ -23,29 +29,41 @@ namespace gfx::core::vulkan
             vk::to_string(Renderer::ColorFormat.format),
             vk::to_string(Renderer::ColorFormat.colorSpace));
 
-        const std::array desiredPresentModes {
-            vk::PresentModeKHR::eMailbox,
-            vk::PresentModeKHR::eImmediate,
-            vk::PresentModeKHR::eFifo,
-        };
+        this->present_modes = device.getPhysicalDevice().getSurfacePresentModesKHR(surface);
 
-        const std::vector<vk::PresentModeKHR> availablePresentModes =
-            device.getPhysicalDevice().getSurfacePresentModesKHR(surface);
-
-        vk::PresentModeKHR selectedPresentMode = vk::PresentModeKHR::eFifo;
-
-        for (vk::PresentModeKHR desiredPresentMode : desiredPresentModes)
+        if (maybeDesiredPresetMode.has_value())
         {
-            if (std::ranges::find(availablePresentModes, desiredPresentMode) != availablePresentModes.cend())
+            if (std::ranges::contains(this->present_modes, *maybeDesiredPresetMode))
             {
-                selectedPresentMode = desiredPresentMode;
-                break;
+                this->active_present_mode = *maybeDesiredPresetMode;
+            }
+            else
+            {
+                log::warn("Requested present mode {} was not available", vk::to_string(*maybeDesiredPresetMode));
+            }
+        }
+
+        if (!maybeDesiredPresetMode)
+        {
+            const std::array backupPresentModes {
+                vk::PresentModeKHR::eMailbox,
+                vk::PresentModeKHR::eImmediate,
+                vk::PresentModeKHR::eFifo,
+            };
+
+            for (vk::PresentModeKHR desiredPresentMode : backupPresentModes)
+            {
+                if (std::ranges::find(this->present_modes, desiredPresentMode) != this->present_modes.cend())
+                {
+                    this->active_present_mode = desiredPresentMode;
+                    break;
+                }
             }
         }
 
         log::trace(
             "Selected {} as present mode with inital size of {}x{}",
-            vk::to_string(selectedPresentMode),
+            vk::to_string(this->active_present_mode),
             this->extent.width,
             this->extent.height);
 
@@ -70,7 +88,7 @@ namespace gfx::core::vulkan
             .pQueueFamilyIndices {nullptr},
             .preTransform {surfaceCapabilities.currentTransform},
             .compositeAlpha {vk::CompositeAlphaFlagBitsKHR::eOpaque},
-            .presentMode {selectedPresentMode},
+            .presentMode {this->active_present_mode},
             .clipped {vk::True},
             .oldSwapchain {nullptr},
         };
@@ -169,8 +187,20 @@ namespace gfx::core::vulkan
         return *this->swapchain;
     }
 
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     vk::Format Swapchain::getFormat() const noexcept
     {
         return Renderer::ColorFormat.format;
     }
+
+    std::span<const vk::PresentModeKHR> Swapchain::getPresentModes() const noexcept
+    {
+        return this->present_modes;
+    }
+
+    vk::PresentModeKHR Swapchain::getActivePresentMode() const noexcept
+    {
+        return this->active_present_mode;
+    }
+
 } // namespace gfx::core::vulkan

@@ -179,7 +179,7 @@ namespace gfx::core::vulkan
             if (!this->maybe_uniform_descriptor_handle.has_value())
             {
                 assert::critical(
-                    static_cast<bool>(this->usage | vk::BufferUsageFlagBits::eUniformBuffer),
+                    static_cast<bool>(this->usage & vk::BufferUsageFlagBits::eUniformBuffer),
                     "Tried to access a non Uniform Buffer as a Uniform Buffer!");
 
                 this->maybe_uniform_descriptor_handle =
@@ -195,7 +195,7 @@ namespace gfx::core::vulkan
             if (!this->maybe_storage_descriptor_handle.has_value())
             {
                 assert::critical(
-                    static_cast<bool>(this->usage | vk::BufferUsageFlagBits::eStorageBuffer),
+                    static_cast<bool>(this->usage & vk::BufferUsageFlagBits::eStorageBuffer),
                     "Tried to access a non Storage Buffer as a Storage Buffer!");
 
                 this->maybe_storage_descriptor_handle =
