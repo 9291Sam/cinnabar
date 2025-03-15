@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/util.hpp"
+#include <array>
 #include <glm/vec4.hpp>
 
 namespace gfx::generators::voxel

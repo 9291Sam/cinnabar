@@ -44,19 +44,20 @@ namespace gfx::core::vulkan
                 std::filesystem::path requestedPath = searchPath / requestedSource;
                 requestedPath.make_preferred();
 
+                const std::string foundSourceName = requestedPath.string();
+
                 assert::warn(
                     std::filesystem::exists(requestedPath),
                     "Compilation of |{}| has requested |{}| which does not exist!",
                     requestingSource,
-                    requestedPath.c_str());
+                    foundSourceName);
 
                 assert::warn(
                     std::filesystem::is_regular_file(requestedPath),
                     "Compilation of |{}| has requested |{}| which is not a regular file!",
                     requestingSource,
-                    requestedPath.c_str());
+                    foundSourceName);
 
-                const std::string_view       foundSourceName    = requestedPath.native();
                 const std::vector<std::byte> foundSourceContent = util::loadEntireFileFromPath(requestedPath);
 
                 std::string sourceNameOwned {foundSourceName};

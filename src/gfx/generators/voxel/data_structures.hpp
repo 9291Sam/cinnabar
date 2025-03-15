@@ -3,6 +3,7 @@
 #include "material.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <array>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/vec3.hpp>
 #include <limits>

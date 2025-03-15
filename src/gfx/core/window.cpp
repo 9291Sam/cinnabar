@@ -398,12 +398,16 @@ namespace gfx::core
 
     void Window::windowFocusCallback(GLFWwindow* glfwWindow, int isFocused)
     {
-        // gfx::core::Window* window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
+        gfx::core::Window* window = static_cast<gfx::core::Window*>(glfwGetWindowUserPointer(glfwWindow));
 
-        // if (static_cast<bool>(isFocused))
-        // {
-        //     window->attachCursor();
-        // }
+        if (static_cast<bool>(isFocused))
+        {
+            window->attachCursor();
+        }
+        else
+        {
+            window->detachCursor();
+        }
     }
 
     void Window::errorCallback(int errorCode, const char* message)

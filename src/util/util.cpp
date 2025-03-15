@@ -1,9 +1,10 @@
 
 
+#include "util/logger.hpp"
 #if defined(_WIN32)
 #include <Windows.h>
 #include <debugapi.h>
-//
+// include orderer
 #include <Psapi.h>
 #elif defined(__APPLE__)
 #include <mach/mach.h>
@@ -13,9 +14,12 @@
 #include <unistd.h>
 #endif
 
+#ifndef WIN32
 #define NO_PANIC
+#endif // WIN32
 #include "logger.hpp"
 #include "util.hpp"
+#include <array>
 #include <cstdio>
 
 namespace util
@@ -25,8 +29,15 @@ namespace util
     {
         const std::string stringPath = path.string();
 
-        // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-        std::FILE* file = std::fopen(stringPath.c_str(), "rb");
+        std::FILE* file = nullptr;
+
+#ifdef WIN32
+        const errno_t errnoVal = ::fopen_s(&file, stringPath.c_str(), "rb");
+        assert::critical(errnoVal == 0, "Failed to open file |{}| error code: {}", stringPath, errnoVal);
+#else
+        file = std::fopen(stringPath.c_str(), "rb");
+#endif // WIN32
+       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
         assert::critical(file != nullptr, "Failed to load file |{}|", stringPath);
 
         std::vector<std::byte> buffer {};

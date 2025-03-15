@@ -65,8 +65,8 @@ namespace gfx::generators::triangle
     }
 
     void TriangleRenderer::renderIntoCommandBuffer(
-        vk::CommandBuffer                                                  commandBuffer,
-        const Camera&                                                      camera,
+        vk::CommandBuffer commandBuffer,
+        const Camera&,
         core::vulkan::DescriptorHandle<vk::DescriptorType::eUniformBuffer> globalDescriptorInfo)
     {
         struct PushConstants
