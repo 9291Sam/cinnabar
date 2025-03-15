@@ -1,6 +1,5 @@
 
 
-#include "util/logger.hpp"
 #if defined(_WIN32)
 #include <Windows.h>
 #include <debugapi.h>
@@ -14,9 +13,7 @@
 #include <unistd.h>
 #endif
 
-#ifndef WIN32
 #define NO_PANIC
-#endif // WIN32
 #include "logger.hpp"
 #include "util.hpp"
 #include <array>

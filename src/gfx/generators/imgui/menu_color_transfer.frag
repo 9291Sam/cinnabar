@@ -4,13 +4,13 @@
 
 layout(set = 0, binding = 2, rgba32f) uniform image2D menu_transfer_image[];
 
-layout(location = 0) out vec4 out_color;
-
 layout(push_constant) uniform PushConstants
 {
     uint menuTransferImageId;
 }
 in_push_constants;
+
+layout(location = 0) out vec4 out_color;
 
 void main()
 {

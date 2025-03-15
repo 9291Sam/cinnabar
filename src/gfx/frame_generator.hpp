@@ -35,6 +35,8 @@ namespace gfx
             generators::imgui::ImguiRenderer*       maybe_imgui_renderer;
             generators::voxel::VoxelRenderer*       maybe_voxel_renderer;
         };
+
+
     public:
         explicit FrameGenerator(const core::Renderer*);
         ~FrameGenerator() = default;

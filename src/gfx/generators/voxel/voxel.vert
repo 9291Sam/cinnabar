@@ -1,34 +1,8 @@
 #version 460
 
-#extension GL_EXT_nonuniform_qualifier : require
+#include "globals.glsl"
 
-struct GlobalGpuData
-{
-    mat4  view_matrix;
-    mat4  projection_matrix;
-    mat4  view_projection_matrix;
-    vec4  camera_forward_vector;
-    vec4  camera_right_vector;
-    vec4  camera_up_vector;
-    vec4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
-};
-
-layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
-{
-    GlobalGpuData data;
-}
-in_global_gpu_data[];
-
-layout(location = 0) out vec3 out_uvw;
-layout(location = 1) out vec3 out_world_position;
-layout(location = 2) out vec3 out_cube_center_location;
-layout(location = 3) out vec3 out_ray_start_position;
-
-vec3 CUBE_TRIANGLE_LIST[] = {
+const vec3 CUBE_TRIANGLE_LIST[] = {
     // Front face
     vec3(-0.5f, -0.5f, 0.5f),
     vec3(0.5f, -0.5f, 0.5f),
@@ -83,11 +57,15 @@ layout(push_constant) uniform PushConstants
 }
 in_push_constants;
 
+layout(location = 0) out vec3 out_uvw;
+layout(location = 1) out vec3 out_world_position;
+layout(location = 2) out vec3 out_cube_center_location;
+layout(location = 3) out vec3 out_ray_start_position;
+
 void main()
 {
     const vec3  center_location = vec3(8.0, 8.2, -12.24);
     const float voxel_size      = 64.0;
-    const vec4  voxel_color     = vec4(1.0, 0.0, 0.0, 1.0);
 
     const vec3 box_corner_negative = center_location - vec3(voxel_size) / 2;
     const vec3 box_corner_positive = center_location + vec3(voxel_size) / 2;
