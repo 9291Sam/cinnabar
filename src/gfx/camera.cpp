@@ -39,7 +39,7 @@ namespace gfx
 
     glm::mat4 Camera::getProjectionMatrix() const
     {
-        return InfiniteReversedPerspective(this->fov_y, this->aspect_ratio, 0.001f);
+        return InfiniteReversedPerspective(this->fov_y, this->aspect_ratio, 0.1f);
     }
 
     glm::mat4 Camera::getViewMatrix() const

@@ -4,7 +4,7 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include <random>
+#include "gfx/generators/voxel/material.hpp"
 
 namespace gfx::core
 {
@@ -33,7 +33,6 @@ namespace gfx::generators::voxel
 
         gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage> chunk_bricks;
         gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>      bricks;
-        std::mt19937                                        generator;
+        gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
     };
-
 } // namespace gfx::generators::voxel

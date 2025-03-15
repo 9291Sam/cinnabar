@@ -9,6 +9,7 @@ layout(push_constant) uniform PushConstants
 {
     uint brick_data_offset;
     uint chunk_bricks_offset;
+    uint material_buffer_offset;
 }
 in_push_constants;
 
@@ -34,25 +35,64 @@ layout(set = 0, binding = 4) readonly buffer GlobalChunkBrickStorage
 }
 in_global_chunk_bricks[];
 
-bool getBlockVoxel(ivec3 c)
+struct VoxelMaterial
 {
-    if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
-    {
-        uvec3 bC = c / 8;
-        uvec3 bP = c % 8;
+    vec4  ambient_color;
+    vec4  diffuse_color;
+    vec4  specular_color;
+    vec4  emissive_color_power;
+    vec4  coat_color_power;
+    float diffuse_subsurface_weight;
+    float specular;
+    float roughness;
+    float metallic;
+};
 
-        const uint16_t brickPointer =
-            in_global_chunk_bricks[in_push_constants.chunk_bricks_offset].storage[0].data[bC.x][bC.y][bC.z];
+layout(set = 0, binding = 4) readonly buffer VoxelMaterialsStorage
+{
+    VoxelMaterial materials[];
+}
+in_voxel_materials[];
 
-        uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
-        const uint idx         = linearIndex / 32;
-        const uint bit         = linearIndex % 32;
+u32 gpu_hashU32(u32 x)
+{
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
 
-        return (in_global_bricks[in_push_constants.brick_data_offset].data[uint(brickPointer)].data[idx] & (1u << bit))
-            != 0;
-    }
+    return x;
+}
 
-    return false;
+u32 rotate_right(u32 x, u32 r)
+{
+    return (x >> r) | (x << (32u - r));
+}
+
+u32 gpu_hashCombineU32(u32 a, u32 h)
+{
+    a *= 0xcc9e2d51u;
+    a = rotate_right(a, 17u);
+    a *= 0x1b873593u;
+    h ^= a;
+    h = rotate_right(h, 19u);
+    return h * 5u + 0xe6546b64u;
+}
+
+VoxelMaterial getMaterialFromPosition(uint brickPointer, uvec3 bP)
+{
+    u32 val = 0;
+
+    val = gpu_hashCombineU32(val, brickPointer);
+    val = gpu_hashCombineU32(val, bP.x);
+    val = gpu_hashCombineU32(val, bP.y);
+    val = gpu_hashCombineU32(val, bP.z);
+
+    return in_voxel_materials[in_push_constants.material_buffer_offset].materials[val % 17 + 1];
+    // return in_voxel_materials[in_push_constants.material_buffer_offset].materials[12];
 }
 
 uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uvec3 bC)
@@ -289,6 +329,13 @@ void main()
             gl_FragDepth = (clipPos.z / clipPos.w);
         }
 
-        out_color = vec4(result.local_voxel_uvw, 1.0);
+        const uvec3 positionInChunk = uvec3(floor(result.chunk_local_fragment_position + -0.01 * result.voxel_normal));
+        const uvec3 bC              = positionInChunk / 8;
+        const uvec3 bP              = positionInChunk % 8;
+
+        const uint          shouldBeBrick = tryLoadBrickFromChunkAndCoordinate(0, bC);
+        const VoxelMaterial material      = getMaterialFromPosition(shouldBeBrick, bP);
+
+        out_color = vec4(material.diffuse_color.xyz, 1.0);
     }
 }

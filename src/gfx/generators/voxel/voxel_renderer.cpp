@@ -3,8 +3,8 @@
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
+#include "gfx/generators/voxel/material.hpp"
 #include <glm/gtx/string_cast.hpp>
-#include <random>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -40,7 +40,7 @@ namespace gfx::generators::voxel
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
               "Temporary Boolean Bricks")
-        , generator {std::random_device {}()}
+        , materials {generateMaterialBuffer(this->renderer)}
     {
         std::vector<BooleanBrick> newBricks {};
         ChunkBrickStorage         newChunk {};
@@ -90,25 +90,17 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
-        // BooleanBrick brick {};
-
-        // for (u32& d : brick.data)
-        // {
-        //     d = this->generator();
-        // }
-
-        // this->renderer->getStager().enqueueTransfer(this->bricks, 0, {&brick, 1});
-
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 2>>(
+        commandBuffer.pushConstants<std::array<u32, 3>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            std::array<u32, 2> {
+            std::array<u32, 3> {
                 this->bricks.getStorageDescriptor().getOffset(),
-                this->chunk_bricks.getStorageDescriptor().getOffset()});
+                this->chunk_bricks.getStorageDescriptor().getOffset(),
+                this->materials.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);
     }

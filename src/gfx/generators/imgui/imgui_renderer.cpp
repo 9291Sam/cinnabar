@@ -327,7 +327,7 @@ namespace gfx::generators::imgui
                 const vk::PresentModeKHR activePresentMode = swapchain.getActivePresentMode();
 
                 // I LOVE DEFICIENT STDLIB IMPLEMENTATIONS!
-                const std::add_const_t<decltype(presentModes)::iterator> activePresentModeIterator =
+                const decltype(presentModes)::iterator activePresentModeIterator =
                     std::ranges::find(presentModes, activePresentMode);
 
                 assert::critical(activePresentModeIterator != presentModes.end(), "literally how");
