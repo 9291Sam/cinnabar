@@ -239,7 +239,7 @@ layout(location = 2) in vec3 in_cube_corner_location;
 
 layout(location = 0) out vec4 out_color;
 
-// layout(depth_greater) out float gl_FragDepth;
+layout(depth_greater) out float gl_FragDepth;
 
 void main()
 {
@@ -270,7 +270,7 @@ void main()
         worldStrikePosition = ray.origin + ray.direction * res.t_far;
     }
 
-    const bool showTrace = true;
+    const bool showTrace = false;
 
     if (showTrace)
     {
