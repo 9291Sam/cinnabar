@@ -2,15 +2,6 @@
 
 #include "types.glsl"
 
-#extension GL_EXT_shader_explicit_arithmetic_types : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
-
-#extension GL_EXT_nonuniform_qualifier : require
-#extension GL_EXT_shader_explicit_arithmetic_types_float32 : require
-
 layout(push_constant) uniform PushConstants
 {
     uint global_data_offset;
@@ -40,6 +31,11 @@ layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
 }
 in_global_gpu_data[];
 
+// Not a bikeshed
+// https://godbolt.org/z/9G9MG6d4G
+// https://discord.com/channels/318590007881236480/591343919598534681/1350287992970809354
+#define GlobalData in_global_gpu_data[0].data;
+
 struct BooleanBrick
 {
     uint data[16];
@@ -67,6 +63,8 @@ const int MAX_RAY_STEPS = 256;
 bool getBlockVoxel(ivec3 c)
 {
     vec3 f = vec3(c);
+
+    u32 a = 4;
 
     if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(63))))
     {
@@ -337,7 +335,7 @@ void main()
 {
     const Cube c = Cube(in_cube_corner_location + 32, 64);
 
-    const vec3 camera_position = in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz;
+    const vec3 camera_position = REAL_GLOBAL_VAR.camera_position.xyz;
 
     const vec3 dir = normalize(
         in_world_position - in_global_gpu_data[in_push_constants.global_data_offset].data.camera_position.xyz);

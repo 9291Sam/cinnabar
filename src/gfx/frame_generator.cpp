@@ -8,6 +8,7 @@
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "util/logger.hpp"
 #include <vulkan/vulkan_enums.hpp>
 
 namespace gfx
@@ -19,10 +20,14 @@ namespace gfx
         , global_gpu_data {
               this->renderer->getAllocator(),
               vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
-              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Global Data"}
-    {}
+    {
+        const u8 offset = this->global_gpu_data.getUniformDescriptor().getOffset();
+
+        assert::critical(offset == 0, "Global Gpu Data is always at uniform slot 0");
+    }
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
     {
