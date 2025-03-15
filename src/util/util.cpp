@@ -109,4 +109,77 @@ namespace util
 #endif
     }
 
+    namespace
+    {
+        const std::array<std::string_view, 11>& getSuffixes(SuffixType t)
+        {
+            static std::array<std::string_view, 11> full {
+                "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB", "RiB", "QiB"};
+
+            static std::array<std::string_view, 11> tiny {"B", "K", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"};
+
+            static std::array<std::string_view, 11> null {};
+
+            switch (t)
+            {
+            case SuffixType::Full:
+                return full;
+            case SuffixType::Short:
+                return tiny;
+            default:
+                return null;
+            }
+        }
+    } // namespace
+
+    std::string bytesAsSiNamed(std::size_t bytes, SuffixType t)
+    {
+        return bytesAsSiNamed(static_cast<long double>(bytes), t);
+    }
+
+    std::string bytesAsSiNamed(long double bytes, SuffixType type)
+    {
+        const long double unit = 1024.0;
+
+        switch (std::fpclassify(bytes))
+        {
+        case FP_INFINITE:
+            return "Infinity Bytes";
+        case FP_NAN:
+            return "NaN Bytes";
+        case FP_ZERO:
+            return "0 B";
+        default:
+            return "unknown";
+        case FP_NORMAL:
+            [[fallthrough]];
+        case FP_SUBNORMAL:
+            break;
+        }
+
+        const long double base  = std::log10(bytes) / std::log10(unit);
+        const long double value = std::pow(unit, base - std::floor(base));
+        std::string       prefix {std::format("{:.3f}", value)};
+
+        if (std::string_view {prefix}.ends_with(".0"))
+        {
+            prefix.resize(prefix.size() - 2);
+        }
+
+        const std::string_view suffix = getSuffixes(type).at(static_cast<std::size_t>(std::floor(base)));
+
+        prefix.push_back(' ');
+        prefix.append(suffix);
+
+        for (char& c : prefix)
+        {
+            if (c == '\0')
+            {
+                c = '?';
+            }
+        }
+
+        return prefix;
+    }
+
 } // namespace util

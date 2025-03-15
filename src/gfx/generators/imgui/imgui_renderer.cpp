@@ -1,11 +1,13 @@
 #include "imgui_renderer.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/frame_manager.hpp"
 #include "gfx/core/vulkan/instance.hpp"
 #include "gfx/core/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <atomic>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <cstdio>
@@ -346,7 +348,9 @@ namespace gfx::generators::imgui
             }
 
             const std::string menuText = std::format(
-                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nFPS {}: {}\n{}\n{}",
+                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nRAM Usage: {} | VRAM Usage: {}\nFPS {}: {}\n{}\n{}",
+                util::bytesAsSiNamed(util::getMemoryUsage()),
+                util::bytesAsSiNamed(gfx::core::vulkan::bufferBytesAllocated.load(std::memory_order_acquire)),
                 getDeltaTimeEmoji(deltaTime),
                 1.0f / deltaTime,
                 glm::to_string(camera.getPosition()),

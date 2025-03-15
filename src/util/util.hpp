@@ -66,4 +66,13 @@ namespace util
 
     std::size_t getMemoryUsage();
 
+    enum class SuffixType : u8
+    {
+        Short,
+        Full
+    };
+
+    std::string bytesAsSiNamed(std::size_t, SuffixType = SuffixType::Full);
+    std::string bytesAsSiNamed(long double bytes, SuffixType = SuffixType::Full);
+
 } // namespace util
