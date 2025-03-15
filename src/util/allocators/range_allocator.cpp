@@ -66,9 +66,9 @@ namespace OffsetAllocator
         Allocation allocate(uint32 size);
         void       free(Allocation allocation);
 
-        uint32            allocationSize(Allocation allocation) const;
-        StorageReport     storageReport() const;
-        StorageReportFull storageReportFull() const;
+        uint32                                                allocationSize(Allocation allocation) const;
+        StorageReport                                         storageReport() const;
+        StorageReportFull                                     storageReportFull() const;
         [[nodiscard]] std::pair<std::uint32_t, std::uint32_t> getUsedAndTotal() const
         {
             return {this->m_size - this->storageReport().totalFreeSpace, this->m_size};
@@ -187,8 +187,7 @@ namespace OffsetAllocator
                     }
                 }
 
-                return (exp << MANTISSA_BITS)
-                     + mantissa; // + allows mantissa->exp overflow for round up
+                return (exp << MANTISSA_BITS) + mantissa; // + allows mantissa->exp overflow for round up
             }
 
             uint32 uintToFloatRoundDown(uint32 size)
@@ -508,8 +507,7 @@ namespace OffsetAllocator
 #ifdef DEBUG_VERBOSE
         printf("Getting node %u from freelist[%u]\n", nodeIndex, m_freeOffset + 1);
 #endif
-        m_nodes[nodeIndex] = {
-            .dataOffset = dataOffset, .dataSize = size, .binListNext = topNodeIndex};
+        m_nodes[nodeIndex] = {.dataOffset = dataOffset, .dataSize = size, .binListNext = topNodeIndex};
         if (topNodeIndex != Node::unused)
         {
             m_nodes[topNodeIndex].binListPrev = nodeIndex;
@@ -570,8 +568,7 @@ namespace OffsetAllocator
 
         // Insert the node to freelist
 #ifdef DEBUG_VERBOSE
-        printf(
-            "Putting node %u into freelist[%u] (removeNodeFromBin)\n", nodeIndex, m_freeOffset + 1);
+        printf("Putting node %u into freelist[%u] (removeNodeFromBin)\n", nodeIndex, m_freeOffset + 1);
 #endif
         m_freeNodes[++m_freeOffset] = nodeIndex;
 
@@ -608,8 +605,7 @@ namespace OffsetAllocator
             {
                 uint32 topBinIndex  = 31 - lzcnt_nonzero(m_usedBinsTop);
                 uint32 leafBinIndex = 31 - lzcnt_nonzero(m_usedBins[topBinIndex]);
-                largestFreeRegion =
-                    SmallFloat::floatToUint((topBinIndex << TOP_BINS_INDEX_SHIFT) | leafBinIndex);
+                largestFreeRegion   = SmallFloat::floatToUint((topBinIndex << TOP_BINS_INDEX_SHIFT) | leafBinIndex);
                 ASSERT(freeStorage >= largestFreeRegion);
             }
         }
@@ -658,7 +654,7 @@ namespace util
 
         if (!result.has_value())
         {
-            log::trace<>("RangeAllocator::OutOfBlocks", l);
+            log::error<>("RangeAllocator::OutOfBlocks", l);
 
             throw OutOfBlocks {};
         }
@@ -666,8 +662,7 @@ namespace util
         return *result;
     }
 
-    std::expected<RangeAllocation, RangeAllocator::OutOfBlocks>
-    RangeAllocator::tryAllocate(u32 size)
+    std::expected<RangeAllocation, RangeAllocator::OutOfBlocks> RangeAllocator::tryAllocate(u32 size)
     {
         OffsetAllocator::Allocation workingAllocation = this->internal_allocator->allocate(size);
 
@@ -677,15 +672,14 @@ namespace util
         }
         else
         {
-            return RangeAllocation {
-                .offset {workingAllocation.offset}, .metadata {workingAllocation.metadata}};
+            return RangeAllocation {.offset {workingAllocation.offset}, .metadata {workingAllocation.metadata}};
         }
     }
 
     [[nodiscard]] u32 RangeAllocator::getSizeOfAllocation(RangeAllocation allocation) const
     {
-        return this->internal_allocator->allocationSize(OffsetAllocator::Allocation {
-            .offset {allocation.offset}, .metadata {allocation.metadata}});
+        return this->internal_allocator->allocationSize(
+            OffsetAllocator::Allocation {.offset {allocation.offset}, .metadata {allocation.metadata}});
     }
 
     std::pair<u32, u32> RangeAllocator::getStorageInfo() const
@@ -695,8 +689,8 @@ namespace util
 
     void RangeAllocator::free(RangeAllocation allocation)
     {
-        this->internal_allocator->free(OffsetAllocator::Allocation {
-            .offset {allocation.offset}, .metadata {allocation.metadata}});
+        this->internal_allocator->free(
+            OffsetAllocator::Allocation {.offset {allocation.offset}, .metadata {allocation.metadata}});
     }
 
 } // namespace util

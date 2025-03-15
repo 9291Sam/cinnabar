@@ -199,7 +199,7 @@ namespace gfx::core::vulkan
                             {
                                 pipelineStorage = std::move(*result);
 
-                                log::trace("Reloaded {}", pipelineStorage.descriptor.name);
+                                log::debug("Reloaded {}", pipelineStorage.descriptor.name);
 
                                 numberOfReloadedPipelines += 1;
                             }

@@ -98,7 +98,7 @@ namespace gfx::core::vulkan
             panic("Required extension {} was not available!", requestedExtension);
         next_extension: {}
 
-            log::trace("Requesting instance extension {}", requestedExtension);
+            log::debug("Requesting instance extension {}", requestedExtension);
         }
 
         static vk::PFN_DebugUtilsMessengerCallbackEXT debugMessengerCallback =
@@ -182,7 +182,7 @@ namespace gfx::core::vulkan
         }
 #endif // CINNABAR_DEBUG_BUILD
 
-        log::trace("Created instance");
+        log::debug("Created instance");
     }
 
     u32 Instance::getVulkanVersion() const noexcept

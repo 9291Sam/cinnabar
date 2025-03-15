@@ -225,7 +225,7 @@ namespace gfx::core::vulkan
         , flying_frames {Frame {device_, swapchain, 0}, Frame {device_, swapchain, 1}, Frame {device_, swapchain, 2}}
         , flying_frame_index {0}
     {
-        log::trace("Created Frame Manager");
+        log::debug("Created Frame Manager");
     }
 
     FrameManager::~FrameManager() noexcept = default;

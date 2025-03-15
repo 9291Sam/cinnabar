@@ -106,7 +106,7 @@ namespace gfx::core::vulkan
             }
         };
 
-        log::trace(
+        log::debug(
             "Discovered queues! | Graphics: {} | Async Compute: {} | Async "
             "Transfer: {}",
             getStringOfFamily(graphicsFamily),
@@ -168,7 +168,7 @@ namespace gfx::core::vulkan
             });
         }
 
-        log::trace(
+        log::debug(
             "Instantiating queues! | Graphics: {} | Async Compute: {} | Async "
             "Transfer: {}",
             numberOfGraphicsQueues,
@@ -238,7 +238,7 @@ namespace gfx::core::vulkan
 
         for (const char* e : requiredExtensions)
         {
-            log::trace("Requesting device extension {}", e);
+            log::debug("Requesting device extension {}", e);
         }
 
         this->device = this->physical_device.createDeviceUnique(deviceCreateInfo);
@@ -323,7 +323,7 @@ namespace gfx::core::vulkan
         this->queues[static_cast<std::size_t>(QueueType::AsyncCompute)]  = std::move(asyncComputeQueues);
         this->queues[static_cast<std::size_t>(QueueType::AsyncTransfer)] = std::move(asyncTransferQueues);
 
-        log::trace("Created device");
+        log::debug("Created device");
     }
 
     std::optional<u32> Device::getFamilyOfQueueType(QueueType t) const noexcept

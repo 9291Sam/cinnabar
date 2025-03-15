@@ -61,8 +61,8 @@ namespace gfx::core::vulkan
             }
         }
 
-        log::trace(
-            "Selected {} as present mode with inital size of {}x{}",
+        log::info(
+            "Selected {} as present mode with a swapchain size of {}x{}",
             vk::to_string(this->active_present_mode),
             this->extent.width,
             this->extent.height);

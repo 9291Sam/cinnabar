@@ -494,11 +494,6 @@ namespace gfx::core::vulkan
             // return std::move(this->flushes);
             std::vector<util::InclusiveRange> mergedRanges = std::move(this->flushes);
 
-            // if (this->flushes.size() > 58000)
-            // {
-            //     log::trace("{}", this->name);
-            // }
-
             // mergedRanges = util::mergeDownRanges, 128);
 
             std::vector<FlushData> newFlushes {};

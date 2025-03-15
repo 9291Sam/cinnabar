@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "util/logger.hpp"
 #include "util/threads.hpp"
 #include "vulkan/allocator.hpp"
 #include "vulkan/buffer.hpp"
@@ -86,7 +87,7 @@ namespace gfx::core
 
         this->critical_section = util::Mutex {this->makeCriticalSection()};
 
-        log::trace("Created renderer");
+        log::debug("Created renderer");
     }
 
     Renderer::~Renderer() noexcept

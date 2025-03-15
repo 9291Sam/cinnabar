@@ -103,7 +103,7 @@ namespace gfx::core
                 std::memory_order_release);
         }
 
-        log::trace("Initalized window");
+        log::debug("Initalized window");
     }
 
     Window::~Window()
