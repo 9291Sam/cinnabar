@@ -6,6 +6,7 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <atomic>
 #include <source_location>
 #include <type_traits>
 #include <utility>
@@ -122,7 +123,7 @@ namespace gfx::core::vulkan
                 });
             }
 
-            bufferBytesAllocated += (this->elements * sizeof(T));
+            bufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
         }
         ~GpuOnlyBuffer()
         {
@@ -184,7 +185,7 @@ namespace gfx::core::vulkan
 
                 this->maybe_uniform_descriptor_handle =
                     this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
-                        {.buffer {this->buffer}}, this->name);
+                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
             }
 
             return this->maybe_uniform_descriptor_handle.value();
@@ -200,7 +201,7 @@ namespace gfx::core::vulkan
 
                 this->maybe_storage_descriptor_handle =
                     this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
-                        {.buffer {this->buffer}}, this->name);
+                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
             }
 
             return this->maybe_storage_descriptor_handle.value();
@@ -217,7 +218,7 @@ namespace gfx::core::vulkan
 
             ::vmaDestroyBuffer(**this->allocator, this->buffer, this->allocation);
 
-            bufferBytesAllocated -= (this->elements * sizeof(T));
+            bufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);
         }
 
         std::string          name;

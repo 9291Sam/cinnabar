@@ -178,7 +178,7 @@ namespace gfx::core::vulkan
                     {
                         criticalSection.binding_allocators.insert({descriptorType, util::IndexAllocator {maxAmount}});
 
-                        criticalSection.debug_descriptor_names[descriptorType].resize(maxAmount);
+                        criticalSection.debug_descriptor_info[descriptorType].resize(maxAmount);
                     }
                 });
         }
@@ -199,7 +199,10 @@ namespace gfx::core::vulkan
                         {
                             output[descriptorType].push_back(DescriptorReport {
                                 .offset {validBinding},
-                                .name {criticalSection.debug_descriptor_names.at(descriptorType).at(validBinding)}});
+                                .name {criticalSection.debug_descriptor_info.at(descriptorType).at(validBinding).name},
+                                .maybe_size_bytes {criticalSection.debug_descriptor_info.at(descriptorType)
+                                                       .at(validBinding)
+                                                       .size_bytes}});
                         });
                 }
             });
@@ -244,10 +247,11 @@ namespace gfx::core::vulkan
                     shouldBeStoredId,
                     *maybeNewId);
 
-                criticalSection.debug_descriptor_names.at(D).at(shouldBeStoredId) = std::move(name);
+                criticalSection.debug_descriptor_info.at(D).at(shouldBeStoredId) =
+                    DebugDescriptorInfo {.name {std::move(name)}, .size_bytes {}};
 
                 vk::DescriptorImageInfo descriptorImageInfo {.sampler {nullptr}, .imageView {nullptr}, .imageLayout {}};
-                vk::DescriptorBufferInfo descriptorBufferInfo {.buffer {nullptr}, .offset {0}, .range {vk::WholeSize}};
+                vk::DescriptorBufferInfo descriptorBufferInfo {.buffer {nullptr}, .offset {0}, .range {}};
 
                 if constexpr (D == vk::DescriptorType::eSampler)
                 {
@@ -261,6 +265,10 @@ namespace gfx::core::vulkan
                 else if constexpr (D == vk::DescriptorType::eUniformBuffer || D == vk::DescriptorType::eStorageBuffer)
                 {
                     descriptorBufferInfo.buffer = descriptorArgs.buffer;
+                    descriptorBufferInfo.range  = descriptorArgs.size_bytes;
+
+                    criticalSection.debug_descriptor_info.at(D).at(shouldBeStoredId).size_bytes =
+                        descriptorArgs.size_bytes;
                 }
                 else
                 {
@@ -304,7 +312,7 @@ namespace gfx::core::vulkan
         this->critical_section.lock(
             [&](CriticalSection& criticalSection)
             {
-                criticalSection.debug_descriptor_names.at(D).at(handle.getOffset()).clear();
+                criticalSection.debug_descriptor_info.at(D).at(handle.getOffset()) = {};
                 criticalSection.binding_allocators.at(D).free(handle.getOffset());
             });
     }

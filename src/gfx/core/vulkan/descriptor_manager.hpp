@@ -40,12 +40,14 @@ namespace gfx::core::vulkan
     struct RegisterDescriptorArgs<vk::DescriptorType::eUniformBuffer>
     {
         vk::Buffer buffer;
+        usize      size_bytes;
     };
 
     template<>
     struct RegisterDescriptorArgs<vk::DescriptorType::eStorageBuffer>
     {
         vk::Buffer buffer;
+        usize      size_bytes;
     };
 
     u32 getShaderBindingLocation(vk::DescriptorType);
@@ -93,8 +95,9 @@ namespace gfx::core::vulkan
 
         struct DescriptorReport
         {
-            u32         offset;
-            std::string name;
+            u32                  offset;
+            std::string          name;
+            std::optional<usize> maybe_size_bytes;
         };
 
         std::map<vk::DescriptorType, std::vector<DescriptorReport>> getAllDescriptorsDebugInfo() const;
@@ -117,10 +120,16 @@ namespace gfx::core::vulkan
         vk::UniquePipelineLayout      bindless_pipeline_layout;
         vk::DescriptorSet             bindless_descriptor_set;
 
+        struct DebugDescriptorInfo
+        {
+            std::string          name;
+            std::optional<usize> size_bytes;
+        };
+
         struct CriticalSection
         {
-            std::unordered_map<vk::DescriptorType, util::IndexAllocator>     binding_allocators;
-            std::unordered_map<vk::DescriptorType, std::vector<std::string>> debug_descriptor_names;
+            std::unordered_map<vk::DescriptorType, util::IndexAllocator>             binding_allocators;
+            std::unordered_map<vk::DescriptorType, std::vector<DebugDescriptorInfo>> debug_descriptor_info;
         };
 
         util::Mutex<CriticalSection> critical_section;

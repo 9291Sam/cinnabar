@@ -281,7 +281,12 @@ namespace gfx::generators::imgui
 
                 for (auto dr : descriptors)
                 {
-                    allDescriptorsRepresentation += std::format("    {} @ {}\n", dr.name, dr.offset);
+                    allDescriptorsRepresentation += std::format(
+                        "    {} @ {}{}\n",
+                        dr.name,
+                        dr.offset,
+                        dr.maybe_size_bytes.has_value() ? std::format(" {}", util::bytesAsSiNamed(*dr.maybe_size_bytes))
+                                                        : std::string {});
                 }
             }
 
