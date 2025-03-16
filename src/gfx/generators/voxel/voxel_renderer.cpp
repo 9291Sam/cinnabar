@@ -8,6 +8,7 @@
 #include "util/util.hpp"
 #include <bit>
 #include <cstddef>
+#include <glm/geometric.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
 #include <vulkan/vulkan_enums.hpp>
@@ -83,8 +84,19 @@ namespace gfx::generators::voxel
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            std::unique_ptr<std::array<std::array<u32, 64>, 64>> sensibleData {
-                new std::array<std::array<u32, 64>, 64> {}};
+            struct Color
+            {
+                glm::u8vec3 color;
+                u8          a;
+
+                [[nodiscard]] u32 asU32() const
+                {
+                    return std::bit_cast<u32>(*this);
+                }
+            };
+
+            std::unique_ptr<std::array<std::array<Color, 64>, 64>> sensibleData {
+                new std::array<std::array<Color, 64>, 64> {}};
 
             std::memcpy(sensibleData->data(), this->bad_apple->getFrameAtTime(this->time_in_video), 4UZ * 64UZ * 64UZ);
 
@@ -111,18 +123,6 @@ namespace gfx::generators::voxel
 
                         MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
-                        const bool shouldBeSolid = (x + z) / 2 > y;
-
-                        if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
-                        {
-                            maybeThisBrickOffset.data = nextBrickIndex;
-
-                            newVisbleBricks.push_back(BooleanBrick {});
-                            newMaterialBricks.push_back(MaterialBrick {});
-
-                            nextBrickIndex += 1;
-                        }
-
                         auto hash = [](u32 foo)
                         {
                             foo ^= foo >> 17;
@@ -136,6 +136,24 @@ namespace gfx::generators::voxel
                             return foo;
                         };
 
+                        const Color thisColor = (*sensibleData)[63 - x][z];
+                        const f32   length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+
+                        const bool shouldBeSolid = static_cast<f32>(y) < length;
+                        // (x + z) / 2 > y;
+
+                        if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
+                        {
+                            maybeThisBrickOffset.data = nextBrickIndex;
+
+                            newVisbleBricks.push_back(BooleanBrick {});
+                            newMaterialBricks.push_back(MaterialBrick {});
+
+                            nextBrickIndex += 1;
+                        }
+
+                        const Voxel v = static_cast<Voxel>((hash(y) % 17) + 1);
+
                         if (shouldBeSolid)
                         {
                             BooleanBrick&  thisVisiblityBrick = newVisbleBricks.at(maybeThisBrickOffset.data);
@@ -143,7 +161,6 @@ namespace gfx::generators::voxel
 
                             // log::trace("{:#10x}", (*sensibleData)[x][z]);
                             // const Voxel v = (*sensibleData)[63 - x][z] == 0xFF000000 ? Voxel::Basalt : Voxel::Marble;
-                            const Voxel v = static_cast<Voxel>(hash((*sensibleData)[63 - x][z]) % 17 + 1);
 
                             thisVisiblityBrick.write(bP, shouldBeSolid);
                             thisMaterialBrick.write(bP, v);
