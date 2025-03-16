@@ -6,6 +6,7 @@
 #include "gfx/core/vulkan/instance.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
+#include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
@@ -314,6 +315,11 @@ namespace gfx::generators::imgui
             if (ImGui::Button("Attach Cursor"))
             {
                 renderer->getWindow()->attachCursor();
+            }
+
+            if (ImGui::Button("Restart Bad Apple"))
+            {
+                voxel::VoxelRenderer::time_in_video = 0;
             }
 
             if (this->owned_present_mode_strings.empty())

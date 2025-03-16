@@ -317,7 +317,7 @@ void main()
     const vec3 traversalRayOrigin =
         is_camera_inside_box ? (camera_position - box_corner_negative) : (res.maybe_hit_point - box_corner_negative);
 
-    const VoxelTraceResult result = traceDDARay(traversalRayOrigin, traversalRayOrigin + dir * 96.0);
+    const VoxelTraceResult result = traceDDARay(traversalRayOrigin, traversalRayOrigin + dir * 110.0);
 
     vec3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_corner_location;
 

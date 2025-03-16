@@ -5,6 +5,8 @@
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "util/util.hpp"
+#include <bit>
 #include <cstddef>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
@@ -50,7 +52,20 @@ namespace gfx::generators::voxel
               512,
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
-    {}
+    {
+        std::vector<std::byte> data =
+            util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
+
+        this->bad_apple.emplace(reinterpret_cast<const u8*>(data.data()));
+
+        log::trace(
+            "loaded gif with {} frames of size {}x{}",
+            this->bad_apple->getNumFrames(),
+            this->bad_apple->getWidth(),
+            this->bad_apple->getHeight());
+    }
+
+    f32 VoxelRenderer::time_in_video = 0;
 
     VoxelRenderer::~VoxelRenderer()
     {
@@ -60,9 +75,21 @@ namespace gfx::generators::voxel
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
         this->time_since_color_change += this->renderer->getWindow()->getDeltaTimeSeconds();
+        this->time_in_video += this->renderer->getWindow()->getDeltaTimeSeconds();
 
-        if (this->time_since_color_change > 0.3f)
+        static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
+
+        this->bad_apple->getFrameAtTime(4.0f);
+
+        if (this->time_since_color_change > TimeBetweenFrames)
         {
+            std::unique_ptr<std::array<std::array<u32, 64>, 64>> sensibleData {
+                new std::array<std::array<u32, 64>, 64> {}};
+
+            std::memcpy(sensibleData->data(), this->bad_apple->getFrameAtTime(this->time_in_video), 4UZ * 64UZ * 64UZ);
+
+            // log::trace("Current Frame: {}", this->current_frame);
+
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
 
@@ -84,7 +111,7 @@ namespace gfx::generators::voxel
 
                         MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
-                        const bool shouldBeSolid = (z + x) / 2 > y;
+                        const bool shouldBeSolid = (x + z) / 2 > y;
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
                         {
@@ -96,13 +123,30 @@ namespace gfx::generators::voxel
                             nextBrickIndex += 1;
                         }
 
+                        auto hash = [](u32 foo)
+                        {
+                            foo ^= foo >> 17;
+                            foo *= 0xed5ad4bbU;
+                            foo ^= foo >> 11;
+                            foo *= 0xac4c1b51U;
+                            foo ^= foo >> 15;
+                            foo *= 0x31848babU;
+                            foo ^= foo >> 14;
+
+                            return foo;
+                        };
+
                         if (shouldBeSolid)
                         {
                             BooleanBrick&  thisVisiblityBrick = newVisbleBricks.at(maybeThisBrickOffset.data);
                             MaterialBrick& thisMaterialBrick  = newMaterialBricks.at(maybeThisBrickOffset.data);
 
+                            // log::trace("{:#10x}", (*sensibleData)[x][z]);
+                            // const Voxel v = (*sensibleData)[63 - x][z] == 0xFF000000 ? Voxel::Basalt : Voxel::Marble;
+                            const Voxel v = static_cast<Voxel>(hash((*sensibleData)[63 - x][z]) % 17 + 1);
+
                             thisVisiblityBrick.write(bP, shouldBeSolid);
-                            thisMaterialBrick.write(bP, static_cast<Voxel>(((x + y + z + seed) % 17) + 1));
+                            thisMaterialBrick.write(bP, v);
                         }
                     }
                 }

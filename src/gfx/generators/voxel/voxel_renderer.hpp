@@ -4,6 +4,7 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
+#include "gfx/generators/voxel/gif_read.h"
 #include "gfx/generators/voxel/material.hpp"
 
 namespace gfx::core
@@ -27,6 +28,8 @@ namespace gfx::generators::voxel
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
+        static f32 time_in_video;
+
     private:
         const core::Renderer*                                renderer;
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
@@ -37,5 +40,7 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
 
         float time_since_color_change;
+
+        std::optional<gif_read::GIF> bad_apple;
     };
 } // namespace gfx::generators::voxel
