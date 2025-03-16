@@ -169,11 +169,14 @@ namespace gfx::generators::voxel
                 }
             }
 
-            this->renderer->getStager().enqueueTransfer(
-                this->visible_bricks, 0, {newVisbleBricks.data(), newVisbleBricks.size()});
-            this->renderer->getStager().enqueueTransfer(
-                this->material_bricks, 0, {newMaterialBricks.data(), newMaterialBricks.size()});
-            this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
+            if (!newVisbleBricks.empty())
+            {
+                this->renderer->getStager().enqueueTransfer(
+                    this->visible_bricks, 0, {newVisbleBricks.data(), newVisbleBricks.size()});
+                this->renderer->getStager().enqueueTransfer(
+                    this->material_bricks, 0, {newMaterialBricks.data(), newMaterialBricks.size()});
+                this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
+            }
         }
 
         commandBuffer.bindPipeline(

@@ -116,7 +116,20 @@ namespace gfx::core::vulkan
 
         if (!shouldBeInternalRepresentation.has_value())
         {
-            panic("Failed to compile pipeline on startup! {}", shouldBeInternalRepresentation.error().error);
+            const std::string errorString = shouldBeInternalRepresentation.error().error;
+            std::string_view  errorView   = errorString;
+
+            while (errorView.starts_with('\n'))
+            {
+                errorView.remove_prefix(1);
+            }
+
+            while (errorView.ends_with('\n'))
+            {
+                errorView.remove_suffix(1);
+            }
+
+            panic("Failed to compile pipeline on startup!\n{}", errorView);
         }
 
         return this->critical_section.lock(
