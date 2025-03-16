@@ -243,6 +243,11 @@ VoxelTraceResult traceChunk(uint chunk, vec3 rayPos, vec3 rayDir, float max_dist
             }
         }
 
+        if (any(lessThan(mapPos, vec3(-1.1))) || any(greaterThan(mapPos, vec3(8.1))))
+        {
+            break;
+        }
+
         mask = stepMask(sideDist);
         mapPos += mask * raySign;
         sideDist += mask * raySign * deltaDist;

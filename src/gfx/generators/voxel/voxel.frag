@@ -74,7 +74,7 @@ void main()
         out_color = vec4(result.material.diffuse_color.xyz, 1.0);
     }
 
-    vec4 clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
-
-    gl_FragDepth = (clipPos.z / clipPos.w);
+    const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
+    const float depth   = (clipPos.z / clipPos.w);
+    gl_FragDepth        = showTrace ? max(depth, 0.000000000001) : depth;
 }
