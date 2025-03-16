@@ -32,7 +32,10 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
 
         gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage> chunk_bricks;
-        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>      bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>      visible_bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>     material_bricks;
         gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
+
+        float time_since_color_change;
     };
 } // namespace gfx::generators::voxel

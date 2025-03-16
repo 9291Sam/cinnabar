@@ -7,9 +7,10 @@
 
 layout(push_constant) uniform PushConstants
 {
-    uint brick_data_offset;
-    uint chunk_bricks_offset;
-    uint material_buffer_offset;
+    uint chunk_brick_maps_buffer_offset;
+    uint visibility_bricks_buffer_offset;
+    uint material_bricks_buffer_offset;
+    uint voxel_material_buffer_offset;
 }
 in_push_constants;
 
@@ -54,6 +55,17 @@ layout(set = 0, binding = 4) readonly buffer VoxelMaterialsStorage
 }
 in_voxel_materials[];
 
+struct MaterialBrick
+{
+    uint16_t data[8][8][8];
+};
+
+layout(set = 0, binding = 4) readonly buffer VoxelMaterialBricks
+{
+    MaterialBrick bricks[];
+}
+in_material_bricks[];
+
 u32 gpu_hashU32(u32 x)
 {
     x ^= x >> 17;
@@ -91,16 +103,20 @@ VoxelMaterial getMaterialFromPosition(uint brickPointer, uvec3 bP)
     val = gpu_hashCombineU32(val, bP.y);
     val = gpu_hashCombineU32(val, bP.z);
 
-    return in_voxel_materials[in_push_constants.material_buffer_offset].materials[val % 17 + 1];
-    // return in_voxel_materials[in_push_constants.material_buffer_offset].materials[12];
+    const uint16_t materialId =
+        in_material_bricks[in_push_constants.material_bricks_buffer_offset].bricks[brickPointer].data[bP.x][bP.y][bP.z];
+
+    // return in_voxel_materials[in_push_constants.voxel_material_buffer_offset].materials[materialId];
+    return in_voxel_materials[in_push_constants.voxel_material_buffer_offset].materials[uint(materialId)];
 }
 
 uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uvec3 bC)
 {
     if (all(greaterThanEqual(bC, ivec3(0))) && all(lessThanEqual(bC, ivec3(7))))
     {
-        const uint16_t brickPointer =
-            in_global_chunk_bricks[in_push_constants.chunk_bricks_offset].storage[chunk].data[bC.x][bC.y][bC.z];
+        const uint16_t brickPointer = in_global_chunk_bricks[in_push_constants.chunk_brick_maps_buffer_offset]
+                                          .storage[chunk]
+                                          .data[bC.x][bC.y][bC.z];
 
         if (brickPointer != u16(-1))
         {
@@ -121,7 +137,8 @@ bool loadVoxelFromBrick(uint brickPointer, ivec3 c)
         const uint idx         = linearIndex / 32;
         const uint bit         = linearIndex % 32;
 
-        const uint loadedIdx = in_global_bricks[in_push_constants.brick_data_offset].data[brickPointer].data[idx];
+        const uint loadedIdx =
+            in_global_bricks[in_push_constants.visibility_bricks_buffer_offset].data[brickPointer].data[idx];
 
         return (loadedIdx & (1u << bit)) != 0;
     }
@@ -333,8 +350,13 @@ void main()
         const uvec3 bC              = positionInChunk / 8;
         const uvec3 bP              = positionInChunk % 8;
 
-        const uint          shouldBeBrick = tryLoadBrickFromChunkAndCoordinate(0, bC);
-        const VoxelMaterial material      = getMaterialFromPosition(shouldBeBrick, bP);
+        const uint shouldBeBrick = tryLoadBrickFromChunkAndCoordinate(0, bC);
+
+        // const uint16_t materialId = in_material_bricks[in_push_constants.material_bricks_buffer_offset]
+        //                                 .bricks[shouldBeBrick]
+        //                                 .data[bP.x][bP.y][bP.z];
+
+        const VoxelMaterial material = getMaterialFromPosition(shouldBeBrick, bP);
 
         out_color = vec4(material.diffuse_color.xyz, 1.0);
     }

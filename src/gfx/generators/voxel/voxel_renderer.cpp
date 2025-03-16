@@ -2,9 +2,12 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include <cstddef>
 #include <glm/gtx/string_cast.hpp>
+#include <span>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -34,54 +37,20 @@ namespace gfx::generators::voxel
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Chunk Bricks")
-        , bricks(
+        , visible_bricks(
               this->renderer->getAllocator(),
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
-              "Temporary Boolean Bricks")
+              "Visible Bricks")
+        , material_bricks(
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              512,
+              "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
-    {
-        std::vector<BooleanBrick> newBricks {};
-        ChunkBrickStorage         newChunk {};
-
-        u16 nextBrickIndex = 0;
-
-        for (u8 x = 0; x < ChunkSizeVoxels; ++x)
-        {
-            for (u8 y = 0; y < ChunkSizeVoxels; ++y)
-            {
-                for (u8 z = 0; z < ChunkSizeVoxels; ++z)
-                {
-                    const ChunkLocalPosition cP {x, y, z};
-                    const auto [bC, bP] = cP.split();
-
-                    MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
-
-                    const bool shouldBeSolid = (z + x) / 2 > y;
-
-                    if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
-                    {
-                        maybeThisBrickOffset.data = nextBrickIndex;
-
-                        newBricks.push_back(BooleanBrick {});
-
-                        nextBrickIndex += 1;
-                    }
-
-                    if (shouldBeSolid)
-                    {
-                        BooleanBrick& thisBrick = newBricks.at(maybeThisBrickOffset.data);
-
-                        thisBrick.write(bP, shouldBeSolid);
-                    }
-                }
-            }
-        }
-
-        this->renderer->getStager().enqueueTransfer(this->bricks, 0, {newBricks.data(), 512});
-        this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
-    }
+    {}
 
     VoxelRenderer::~VoxelRenderer()
     {
@@ -90,16 +59,73 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
+        this->time_since_color_change += this->renderer->getWindow()->getDeltaTimeSeconds();
+
+        if (this->time_since_color_change > 0.3f)
+        {
+            this->time_since_color_change = 0.0f;
+            std::vector<BooleanBrick> newVisbleBricks {};
+
+            std::vector<MaterialBrick> newMaterialBricks {};
+            ChunkBrickStorage          newChunk {};
+
+            const usize seed = rand();
+
+            u16 nextBrickIndex = 0;
+
+            for (u8 x = 0; x < ChunkSizeVoxels; ++x)
+            {
+                for (u8 y = 0; y < ChunkSizeVoxels; ++y)
+                {
+                    for (u8 z = 0; z < ChunkSizeVoxels; ++z)
+                    {
+                        const ChunkLocalPosition cP {x, y, z};
+                        const auto [bC, bP] = cP.split();
+
+                        MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
+
+                        const bool shouldBeSolid = (z + x) / 2 > y;
+
+                        if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
+                        {
+                            maybeThisBrickOffset.data = nextBrickIndex;
+
+                            newVisbleBricks.push_back(BooleanBrick {});
+                            newMaterialBricks.push_back(MaterialBrick {});
+
+                            nextBrickIndex += 1;
+                        }
+
+                        if (shouldBeSolid)
+                        {
+                            BooleanBrick&  thisVisiblityBrick = newVisbleBricks.at(maybeThisBrickOffset.data);
+                            MaterialBrick& thisMaterialBrick  = newMaterialBricks.at(maybeThisBrickOffset.data);
+
+                            thisVisiblityBrick.write(bP, shouldBeSolid);
+                            thisMaterialBrick.write(bP, static_cast<Voxel>(((x + y + z + seed) % 17) + 1));
+                        }
+                    }
+                }
+            }
+
+            this->renderer->getStager().enqueueTransfer(
+                this->visible_bricks, 0, {newVisbleBricks.data(), newVisbleBricks.size()});
+            this->renderer->getStager().enqueueTransfer(
+                this->material_bricks, 0, {newMaterialBricks.data(), newMaterialBricks.size()});
+            this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
+        }
+
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 3>>(
+        commandBuffer.pushConstants<std::array<u32, 4>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            std::array<u32, 3> {
-                this->bricks.getStorageDescriptor().getOffset(),
+            std::array<u32, 4> {
                 this->chunk_bricks.getStorageDescriptor().getOffset(),
+                this->visible_bricks.getStorageDescriptor().getOffset(),
+                this->material_bricks.getStorageDescriptor().getOffset(),
                 this->materials.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);

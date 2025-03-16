@@ -209,6 +209,21 @@ namespace gfx::generators::voxel
         }
     };
 
+    struct MaterialBrick
+    {
+        std::array<std::array<std::array<Voxel, 8>, 8>, 8> data;
+
+        void write(BrickLocalPosition p, Voxel v)
+        {
+            this->data[p.x][p.y][p.z] = v;
+        }
+
+        [[nodiscard]] Voxel read(BrickLocalPosition p) const
+        {
+            return this->data[p.x][p.y][p.z];
+        }
+    };
+
     // struct Chunk
     // {
 

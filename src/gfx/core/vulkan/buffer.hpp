@@ -209,6 +209,8 @@ namespace gfx::core::vulkan
 
     protected:
 
+        friend class BufferStager;
+
         void free()
         {
             if (this->allocator == nullptr)
