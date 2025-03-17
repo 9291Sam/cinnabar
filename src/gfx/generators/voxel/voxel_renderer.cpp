@@ -139,8 +139,7 @@ namespace gfx::generators::voxel
                         const Color thisColor = (*sensibleData)[63 - x][z];
                         const f32   length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
 
-                        const bool shouldBeSolid = static_cast<f32>(y) < length;
-                        // (x + z) / 2 > y;
+                        const bool shouldBeSolid = (x + z) / 2 > y; // static_cast<f32>(y) < length;
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
                         {

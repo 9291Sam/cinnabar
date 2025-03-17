@@ -89,10 +89,17 @@ IntersectionResult Cube_tryIntersectFast(const Cube self, in Ray ray)
         tmax = tzmax;
     }
 
-    if (tmin < 0.0)
+    if (tmin < 0.0 && tmax < 0.0)
     {
         // The intersection point is behind the ray's origin, consider it a miss
         return IntersectionResult_getMiss();
+    }
+
+    if (tmin > tmax)
+    {
+        float temp = tmax;
+        tmax       = tmin;
+        tmin       = temp;
     }
 
     IntersectionResult result;

@@ -36,8 +36,13 @@ void main()
     const vec3 camera_position = GlobalData.camera_position.xyz;
     const vec3 dir             = normalize(in_world_position - GlobalData.camera_position.xyz);
 
-    const Ray                camera_ray                          = Ray(camera_position, dir);
-    const IntersectionResult chunkBoundingCubeIntersectionResult = Cube_tryIntersectFast(chunkBoundingCube, camera_ray);
+    const Ray                camera_ray                    = Ray(camera_position, dir);
+    const IntersectionResult WorldBoundingCubeIntersection = Cube_tryIntersectFast(chunkBoundingCube, camera_ray);
+
+    if (!WorldBoundingCubeIntersection.intersection_occurred)
+    {
+        discard;
+    }
 
     const vec3 box_corner_negative = in_cube_corner_location;
     const vec3 box_corner_positive = in_cube_corner_location + 64;
@@ -46,8 +51,10 @@ void main()
 
     const vec3 traversalRayStart = is_camera_inside_box
                                      ? (camera_position - box_corner_negative)
-                                     : (chunkBoundingCubeIntersectionResult.maybe_hit_point - box_corner_negative);
-    const vec3 traversalRayEnd   = traversalRayStart + dir * 110.0;
+                                     : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
+
+    // TODO: hone this further and see if you can get rid of some bounds checks in the traversal shader
+    const vec3 traversalRayEnd = traversalRayStart + dir * (WorldBoundingCubeIntersection.t_far + (8 * 1.73205080757));
 
     const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
 
@@ -55,7 +62,7 @@ void main()
 
     if (!result.intersect_occur)
     {
-        worldStrikePosition = Ray_at(camera_ray, chunkBoundingCubeIntersectionResult.t_far);
+        worldStrikePosition = Ray_at(camera_ray, WorldBoundingCubeIntersection.t_far);
     }
 
     const bool showTrace = true;

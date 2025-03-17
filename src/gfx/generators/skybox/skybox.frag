@@ -287,7 +287,7 @@ void main()
     sunDir       = normalize(vec3(0.0, sin(time), -cos(time)));
 
     const vec3 cloudColor      = Sky(vec3(0.0), rayDir, GlobalData.time_alive, sunDir);
-    const vec3 atmosphereColor = atmosphere(vec3(0.0), rayDir, sunDir);
+    const vec3 atmosphereColor = vec3(1.0); // atmosphere(vec3(0.0), rayDir, sunDir);
 
     out_color = vec4(atmosphereColor * cloudColor, 1.0);
 

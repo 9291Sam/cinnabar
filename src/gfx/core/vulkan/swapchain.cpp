@@ -16,7 +16,7 @@ namespace gfx::core::vulkan
         const Device&                     device,
         vk::SurfaceKHR                    surface,
         vk::Extent2D                      extent_,
-        std::optional<vk::PresentModeKHR> maybeDesiredPresetMode)
+        std::optional<vk::PresentModeKHR> maybeDesiredPresentMode)
         : active_present_mode {vk::PresentModeKHR::eFifo}
         , extent {extent_}
     {
@@ -31,19 +31,19 @@ namespace gfx::core::vulkan
 
         this->present_modes = device.getPhysicalDevice().getSurfacePresentModesKHR(surface);
 
-        if (maybeDesiredPresetMode.has_value())
+        if (maybeDesiredPresentMode.has_value())
         {
-            if (std::ranges::contains(this->present_modes, *maybeDesiredPresetMode))
+            if (std::ranges::contains(this->present_modes, *maybeDesiredPresentMode))
             {
-                this->active_present_mode = *maybeDesiredPresetMode;
+                this->active_present_mode = *maybeDesiredPresentMode;
             }
             else
             {
-                log::warn("Requested present mode {} was not available", vk::to_string(*maybeDesiredPresetMode));
+                log::warn("Requested present mode {} was not available", vk::to_string(*maybeDesiredPresentMode));
             }
         }
 
-        if (!maybeDesiredPresetMode)
+        if (!maybeDesiredPresentMode)
         {
             const std::array backupPresentModes {
                 vk::PresentModeKHR::eMailbox,

@@ -188,7 +188,6 @@ VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask, flo
                 normal.z = -raySign.z;
             }
 
-            // TODO: normal
             return VoxelTraceResult(true, intersect, normal, uv3d, d, i, getMaterialFromPosition(brick, uvec3(mapPos)));
         }
 

@@ -42,12 +42,6 @@ namespace util
         return name;
     }
 
-    constexpr inline void hashCombine(std::size_t& seed_, std::size_t hash_) noexcept
-    {
-        hash_ += 0x9e3779b9 + (seed_ << 6) + (seed_ >> 2);
-        seed_ ^= hash_;
-    }
-
     inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)
     {
         using namespace std::literals;
