@@ -288,3 +288,59 @@ VoxelTraceResult traceDDARay(uint chunkId, vec3 start, vec3 end)
 
     return result;
 }
+
+struct GpuRaytracedLight
+{
+    vec4 position_and_half_intensity_distance;
+    vec4 color_and_power;
+};
+
+struct CalculatedLightPower
+{
+    vec3 diffuse_strength;
+    vec3 specular_strength;
+};
+
+CalculatedLightPower newLightPower(
+    vec3 camera_position, vec3 voxel_position, vec3 voxel_normal, GpuRaytracedLight light, VoxelMaterial material)
+{
+    vec3 light_dir = normalize(light.position_and_half_intensity_distance.xyz - voxel_position);
+    vec3 view_dir  = normalize(camera_position - voxel_position);
+    vec3 half_dir  = normalize(light_dir + view_dir);
+
+    float diffuse_factor = max(dot(voxel_normal, light_dir), 0.0);
+    vec3  diffuse        = diffuse_factor * material.diffuse_color.xyz;
+
+    float roughness_sq = material.roughness * material.roughness;
+    float HdotN        = max(dot(half_dir, voxel_normal), 0.0);
+    float NDF = (roughness_sq) / (3.14159265358979323846264 * pow((HdotN * HdotN) * (roughness_sq - 1.0) + 1.0, 2.0));
+
+    float VdotH   = max(dot(view_dir, half_dir), 0.0);
+    vec3  F0      = mix(vec3(0.04), material.specular_color.xyz, material.metallic);
+    vec3  Fresnel = F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
+
+    float NdotV    = max(dot(voxel_normal, view_dir), 0.0);
+    float NdotL    = max(dot(voxel_normal, light_dir), 0.0);
+    float G1       = NdotV / (NdotV * (1.0 - roughness_sq) + roughness_sq);
+    float G2       = NdotL / (NdotL * (1.0 - roughness_sq) + roughness_sq);
+    float Geometry = G1 * G2;
+
+    vec3 specular = (NDF * Fresnel * Geometry) / (4.0 * NdotV * NdotL + 0.1); // div by zero bad
+
+    vec3  clear_coat_specular = material.coat_color_power.xyz * specular;
+    float clear_coat_factor   = material.coat_color_power.w;
+
+    float       dist        = length(light.position_and_half_intensity_distance.xyz - voxel_position);
+    const float light_power = light.color_and_power.w;
+
+    float light_intensity = pow(2.0, -1 / light.position_and_half_intensity_distance.w * dist) * light_power;
+
+    light_intensity  = max(light_intensity, 0.0);
+    vec3 light_color = light.color_and_power.xyz;
+
+    CalculatedLightPower lightPower;
+    lightPower.diffuse_strength  = diffuse * light_color * light_intensity * NdotL;
+    lightPower.specular_strength = (specular + clear_coat_specular * clear_coat_factor) * light_color * light_intensity;
+
+    return lightPower;
+}

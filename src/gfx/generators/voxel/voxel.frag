@@ -69,7 +69,7 @@ void main()
 
     if (showTrace)
     {
-        out_color = vec4(plasma_quintic(float(result.steps) / 128.0), 1.0);
+        out_color = vec4(plasma_quintic(float(result.steps) / 64.0), 1.0);
     }
     else
     {
@@ -78,7 +78,15 @@ void main()
             discard;
         }
 
-        out_color = vec4(result.material.diffuse_color.xyz, 1.0);
+        const GpuRaytracedLight light = GpuRaytracedLight(vec4(-22.0, 42.434, -9.32, 8.0), vec4(1.0, 1.0, 1.0, 4.0));
+
+        const CalculatedLightPower power =
+            newLightPower(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
+
+        const vec3 calculatedColor = result.material.diffuse_color.xyz * power.diffuse_strength
+                                   + result.material.specular_color.xyz * power.specular_strength;
+
+        out_color = vec4(calculatedColor, 1.0);
     }
 
     const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
