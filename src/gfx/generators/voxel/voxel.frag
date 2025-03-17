@@ -78,13 +78,23 @@ void main()
             discard;
         }
 
-        const GpuRaytracedLight light = GpuRaytracedLight(vec4(-22.0, 42.434, -9.32, 8.0), vec4(1.0, 1.0, 1.0, 4.0));
+        const GpuRaytracedLight light = GpuRaytracedLight(vec4(8.0, 36.434, -13.32, 32.0), vec4(1.0, 1.0, 1.0, 8.0));
 
         const CalculatedLightPower power =
             newLightPower(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
 
-        const vec3 calculatedColor = result.material.diffuse_color.xyz * power.diffuse_strength
-                                   + result.material.specular_color.xyz * power.specular_strength;
+        vec3 calculatedColor = result.material.diffuse_color.xyz * power.diffuse_strength
+                             + result.material.specular_color.xyz * power.specular_strength;
+
+        const VoxelTraceResult shadowResult = traceDDARay(
+            0,
+            light.position_and_half_intensity_distance.xyz - box_corner_negative,
+            result.chunk_local_fragment_position + result.voxel_normal - dir);
+
+        if (shadowResult.intersect_occur)
+        {
+            calculatedColor = result.material.ambient_color.xyz * 0.025;
+        }
 
         out_color = vec4(calculatedColor, 1.0);
     }
