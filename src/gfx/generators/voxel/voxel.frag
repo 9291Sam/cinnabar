@@ -65,7 +65,7 @@ void main()
         worldStrikePosition = Ray_at(camera_ray, WorldBoundingCubeIntersection.t_far);
     }
 
-    const bool showTrace = true;
+    const bool showTrace = false;
 
     if (showTrace)
     {

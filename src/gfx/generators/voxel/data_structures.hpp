@@ -145,6 +145,11 @@ namespace gfx::generators::voxel
     /// To get VoxelMaterial id
     struct MaybeBrickOffsetOrMaterialId
     {
+        [[nodiscard]] Voxel getMaterial() const
+        {
+            return static_cast<Voxel>(~this->data);
+        }
+
         [[nodiscard]] bool isMaterial() const
         {
             return this->data >= UINT16_C(512);

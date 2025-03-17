@@ -101,18 +101,18 @@ uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uvec3 bC)
 
 bool loadVoxelFromBrick(uint brickPointer, ivec3 c)
 {
-    if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(7))))
-    {
-        uvec3 bP = c;
+    // if (all(greaterThanEqual(c, ivec3(0))) && all(lessThanEqual(c, ivec3(7))))
+    // {
+    uvec3 bP = c;
 
-        uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
-        const uint idx         = linearIndex / 32;
-        const uint bit         = linearIndex % 32;
+    uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
+    const uint idx         = linearIndex / 32;
+    const uint bit         = linearIndex % 32;
 
-        const uint loadedIdx = in_global_bricks[VISIBILITY_BRICKS_OFFSET].data[brickPointer].data[idx];
+    const uint loadedIdx = in_global_bricks[VISIBILITY_BRICKS_OFFSET].data[brickPointer].data[idx];
 
-        return (loadedIdx & (1u << bit)) != 0;
-    }
+    return (loadedIdx & (1u << bit)) != 0;
+    // }
 
     return false;
 }
