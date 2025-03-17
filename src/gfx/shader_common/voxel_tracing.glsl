@@ -16,6 +16,8 @@
 #error "VOXEL_MATERIALS_OFFSET must be defined"
 #endif // VOXEL_MATERIALS_OFFSET
 
+const bool removeCheckLate = false;
+
 struct BooleanBrick
 {
     uint data[16];
@@ -84,7 +86,7 @@ VoxelMaterial getMaterialFromPosition(uint brickPointer, uvec3 bP)
 
 uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uvec3 bC)
 {
-    if (all(greaterThanEqual(bC, ivec3(0))) && all(lessThanEqual(bC, ivec3(7))))
+    if (removeCheckLate || (all(greaterThanEqual(bC, ivec3(0))) && all(lessThanEqual(bC, ivec3(7)))))
     {
         const uint16_t brickPointer = in_global_chunk_bricks[BRICK_MAPS_OFFSET].storage[chunk].data[bC.x][bC.y][bC.z];
 
@@ -135,6 +137,7 @@ struct VoxelTraceResult
 {
     bool          intersect_occur;
     vec3          chunk_local_fragment_position;
+    // ivec3 chunk_local_voxel_position;
     vec3          voxel_normal;
     vec3          local_voxel_uvw;
     float         t;
@@ -199,16 +202,18 @@ VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask, flo
     return VoxelTraceResult_getMiss(i);
 }
 
-VoxelTraceResult traceChunk(uint chunk, vec3 rayPos, vec3 rayDir, float max_dist)
+VoxelTraceResult traceChunkFallible(uint chunk, vec3 rayPos, vec3 rayDir, float max_dist)
 {
     rayPos /= 8.0;
     max_dist /= 8.0;
 
-    vec3 mapPos    = floor(rayPos);
+    vec3 mapPos    = floor(clamp(rayPos, vec3(0.0001), vec3(7.9999)));
     vec3 raySign   = sign(rayDir);
     vec3 deltaDist = 1.0 / rayDir;
     vec3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
     vec3 mask      = stepMask(sideDist);
+
+    uint extra_steps = 0;
 
     int i;
     for (i = 0; i < 32 && length(mapPos - rayPos) < max_dist; i++)
@@ -229,6 +234,8 @@ VoxelTraceResult traceChunk(uint chunk, vec3 rayPos, vec3 rayDir, float max_dist
             VoxelTraceResult result =
                 traceBlock(brick, uv3d * 8.0, rayDir, mask, (max_dist - length(mapPos - rayPos)) * 8.0);
 
+            extra_steps += result.steps;
+
             if (result.intersect_occur)
             {
                 return VoxelTraceResult(
@@ -237,7 +244,7 @@ VoxelTraceResult traceChunk(uint chunk, vec3 rayPos, vec3 rayDir, float max_dist
                     result.voxel_normal,
                     result.local_voxel_uvw,
                     result.t + d * 8.0,
-                    result.steps + i,
+                    extra_steps + i,
                     result.material);
             }
         }
@@ -268,5 +275,15 @@ VoxelTraceResult traceDDARay(uint chunkId, vec3 start, vec3 end)
         return VoxelTraceResult_getMiss(0);
     }
 
-    return traceChunk(chunkId, start, normalize(end - start), length(end - start));
+    const VoxelTraceResult result = traceChunkFallible(chunkId, start, normalize(end - start), length(end - start));
+
+    // TODO: use the ivec3 chunk local position thing to determine if the strike is in bounds
+    // if (result.intersect_occur
+    //     && (any(lessThanEqual(result.chunk_local_fragment_position, vec3(0.0)))
+    //         || any(greaterThanEqual(result.chunk_local_fragment_position, vec3(64.0)))))
+    // {
+    //     return VoxelTraceResult_getMiss(result.steps);
+    // }
+
+    return result;
 }
