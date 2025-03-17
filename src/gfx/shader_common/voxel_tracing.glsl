@@ -191,7 +191,8 @@ VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask, flo
                 normal.z = -raySign.z;
             }
 
-            return VoxelTraceResult(true, intersect, normal, uv3d, d, i, getMaterialFromPosition(brick, uvec3(mapPos)));
+            return VoxelTraceResult(
+                true, intersect, normal, uv3d, d, i + 1, getMaterialFromPosition(brick, uvec3(mapPos)));
         }
 
         mask = stepMask(sideDist);
@@ -244,7 +245,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, vec3 rayPos, vec3 rayDir, float 
                     result.voxel_normal,
                     result.local_voxel_uvw,
                     result.t + d * 8.0,
-                    extra_steps + i,
+                    extra_steps + i + 1,
                     result.material);
             }
         }
@@ -259,7 +260,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, vec3 rayPos, vec3 rayDir, float 
         sideDist += mask * raySign * deltaDist;
     }
 
-    return VoxelTraceResult_getMiss(i);
+    return VoxelTraceResult_getMiss(i + extra_steps);
 }
 
 // VoxelTraceResult VoxelChunk_traceBoundedRay(uint chunkID, Ray ray, t_max) {}

@@ -65,11 +65,11 @@ void main()
         worldStrikePosition = Ray_at(camera_ray, WorldBoundingCubeIntersection.t_far);
     }
 
-    const bool showTrace = false;
+    const bool showTrace = true;
 
     if (showTrace)
     {
-        out_color = vec4(plasma_quintic(float(result.steps) / 32.0), 1.0);
+        out_color = vec4(plasma_quintic(float(result.steps) / 128.0), 1.0);
     }
     else
     {

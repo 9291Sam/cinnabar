@@ -80,8 +80,6 @@ namespace gfx::generators::voxel
 
         static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
 
-        this->bad_apple->getFrameAtTime(4.0f);
-
         if (this->time_since_color_change > TimeBetweenFrames)
         {
             struct Color
@@ -100,7 +98,7 @@ namespace gfx::generators::voxel
 
             std::memcpy(sensibleData->data(), this->bad_apple->getFrameAtTime(this->time_in_video), 4UZ * 64UZ * 64UZ);
 
-            // log::trace("Current Frame: {}", this->current_frame);
+            // log::trace("Current Frame: {}", this->time_in_video);
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -139,7 +137,7 @@ namespace gfx::generators::voxel
                         const Color thisColor = (*sensibleData)[63 - x][z];
                         const f32   length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
 
-                        const bool shouldBeSolid = (x + z) / 2 > y; // static_cast<f32>(y) < length;
+                        const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y; //
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
                         {
