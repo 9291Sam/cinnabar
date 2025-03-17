@@ -3,7 +3,6 @@
 
 #include "types.glsl"
 
-
 struct GlobalGpuData
 {
     mat4  view_matrix;
@@ -25,7 +24,7 @@ layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
 }
 in_global_gpu_data[];
 
-// Not a bikeshed
+// Not a bikeshed, also this makes it uniform access
 // https://godbolt.org/z/9G9MG6d4G
 // https://discord.com/channels/318590007881236480/591343919598534681/1350287992970809354
 #define GlobalData in_global_gpu_data[0].data

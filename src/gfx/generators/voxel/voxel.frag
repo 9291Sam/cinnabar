@@ -78,7 +78,9 @@ void main()
             discard;
         }
 
-        const GpuRaytracedLight light = GpuRaytracedLight(vec4(8.0, 36.434, -13.32, 32.0), vec4(1.0, 1.0, 1.0, 8.0));
+        const GpuRaytracedLight light = GpuRaytracedLight(
+            vec4(sin(GlobalData.time_alive) * 24 + 8.0, 34.0, cos(GlobalData.time_alive) * 24.0 - 13.32, 32.0),
+            vec4(1.0, 1.0, 1.0, 8.0));
 
         const CalculatedLightPower power =
             newLightPower(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
