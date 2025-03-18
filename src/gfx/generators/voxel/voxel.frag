@@ -90,8 +90,8 @@ void main()
 
         const VoxelTraceResult shadowResult = traceDDARay(
             0,
-            light.position_and_half_intensity_distance.xyz - box_corner_negative,
-            result.chunk_local_fragment_position + result.voxel_normal - dir);
+            result.chunk_local_fragment_position + 0.5 * result.voxel_normal,
+            light.position_and_half_intensity_distance.xyz - box_corner_negative);
 
         if (shadowResult.intersect_occur)
         {

@@ -106,8 +106,6 @@ namespace gfx::generators::voxel
             std::vector<MaterialBrick> newMaterialBricks {};
             ChunkBrickStorage          newChunk {};
 
-            const usize seed = rand();
-
             u16 nextBrickIndex = 0;
 
             for (u8 x = 0; x < ChunkSizeVoxels; ++x)

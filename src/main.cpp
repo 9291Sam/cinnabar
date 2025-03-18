@@ -184,7 +184,7 @@ int main()
         //     const u16 iS = static_cast<u16>(iLong);
         //     const u16 iI = ~iS;
 
-        //     log::trace("{} -> {}", iS, iI);
+        //     log::trace("{} -> {} {}", iS, iI, magic_enum::enum_name(static_cast<gfx::generators::voxel::Voxel>(iI)));
         // }
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",
