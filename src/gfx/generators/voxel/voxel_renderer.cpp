@@ -5,6 +5,7 @@
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/model.hpp"
 #include "util/gif.hpp"
 #include "util/util.hpp"
 #include <bit>
@@ -58,7 +59,7 @@ namespace gfx::generators::voxel
         std::vector<std::byte> data =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
-        this->bad_apple = util::Gif {std::span {data}};
+        this->bad_apple = AnimatedVoxelModel::fromGif(util::Gif {std::span {data}});
     }
 
     f32 VoxelRenderer::time_in_video = 0;
@@ -77,7 +78,8 @@ namespace gfx::generators::voxel
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            auto sensibleData = this->bad_apple.getFrameAtTime(this->time_in_video);
+            log::debug("time in video: {}", this->time_in_video);
+            auto sensibleData = this->bad_apple.getFrame(this->time_in_video);
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -111,12 +113,9 @@ namespace gfx::generators::voxel
                             return foo;
                         };
 
-                        const util::Gif::Color thisColor = sensibleData[(63UZ - x), z];
-                        const f32              length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+                        const Voxel v = sensibleData[x, y, z];
 
-                        const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y; //
-
-                        if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && shouldBeSolid)
+                        if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {
                             maybeThisBrickOffset.data = nextBrickIndex;
 
@@ -126,17 +125,16 @@ namespace gfx::generators::voxel
                             nextBrickIndex += 1;
                         }
 
-                        const Voxel v = static_cast<Voxel>((hash(y) % 17) + 1);
-
-                        if (shouldBeSolid)
+                        if (v != Voxel::NullAirEmpty)
                         {
                             BooleanBrick&  thisVisiblityBrick = newVisbleBricks.at(maybeThisBrickOffset.data);
                             MaterialBrick& thisMaterialBrick  = newMaterialBricks.at(maybeThisBrickOffset.data);
 
                             // log::trace("{:#10x}", (*sensibleData)[x][z]);
-                            // const Voxel v = (*sensibleData)[63 - x][z] == 0xFF000000 ? Voxel::Basalt : Voxel::Marble;
+                            // const Voxel v = (*sensibleData)[63 - x][z] == 0xFF000000 ? Voxel::Basalt :
+                            // Voxel::Marble;
 
-                            thisVisiblityBrick.write(bP, shouldBeSolid);
+                            thisVisiblityBrick.write(bP, true);
                             thisMaterialBrick.write(bP, v);
                         }
                     }

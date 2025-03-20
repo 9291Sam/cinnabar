@@ -1,6 +1,7 @@
 #pragma once
 
 #include "material.hpp"
+#include "util/gif.hpp"
 #include "util/util.hpp"
 #include <glm/vec3.hpp>
 #include <mdspan>
@@ -10,9 +11,11 @@ namespace gfx::generators::voxel
     class StaticVoxelModel
     {
     public:
-        using ConstSpanType = std::mdspan<const Voxel, std::dextents<u16, 3>>;
+        using ConstSpanType   = std::mdspan<const Voxel, std::dextents<u16, 3>>;
+        using MutableSpanType = std::mdspan<Voxel, std::dextents<u16, 3>>;
     public:
         StaticVoxelModel();
+        StaticVoxelModel(glm::u16vec3 extent, Voxel fillVoxel);
         StaticVoxelModel(std::vector<Voxel>, glm::u16vec3 extent);
         // static StaticVoxelModel fromVoxFile(std::span<const std::byte>);
 
@@ -22,6 +25,8 @@ namespace gfx::generators::voxel
         StaticVoxelModel(StaticVoxelModel&&) noexcept;
         StaticVoxelModel& operator= (const StaticVoxelModel&) = delete;
         StaticVoxelModel& operator= (StaticVoxelModel&&) noexcept;
+
+        [[nodiscard]] MutableSpanType getModelMutable();
 
         [[nodiscard]] ConstSpanType getModel() const;
         [[nodiscard]] glm::u16vec3  getExtent() const;
@@ -49,7 +54,8 @@ namespace gfx::generators::voxel
     public:
         AnimatedVoxelModel();
         explicit AnimatedVoxelModel(std::vector<AnimatedVoxelModelFrame>);
-        // static StaticVoxelModel fromVoxFile(std::span<const std::byte>);
+        // static AnimatedVoxelModel fromVoxFile(std::span<const std::byte>);
+        static AnimatedVoxelModel fromGif(const util::Gif&);
 
         ~AnimatedVoxelModel() = default;
 

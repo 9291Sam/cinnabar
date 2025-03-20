@@ -1207,6 +1207,7 @@ namespace gif_read
 #pragma clang diagnostic pop
 
 #include "gif.hpp"
+#include "util/logger.hpp"
 #include <algorithm>
 #include <unordered_map>
 
@@ -1264,6 +1265,8 @@ namespace util
             std::memcpy(thisFrameStorage.data(), rawFrameData, sizeBytesOneFrame);
 
             this->frames.push_back(std::move(thisFrameStorage));
+
+            // log::trace("discovered frame start time of {}", frameStartTime);
         }
     }
 
@@ -1300,6 +1303,11 @@ namespace util
     float Gif::getTotalTime() const
     {
         return this->total_time;
+    }
+
+    std::span<const float> Gif::getAllStartTimes() const
+    {
+        return std::span<const float> {this->frame_start_times.data(), this->frame_start_times.size()};
     }
 
 } // namespace util

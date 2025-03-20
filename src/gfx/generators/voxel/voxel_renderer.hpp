@@ -5,6 +5,7 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/model.hpp"
 #include "util/gif.hpp"
 
 namespace gfx::core
@@ -44,6 +45,6 @@ namespace gfx::generators::voxel
 
         float time_since_color_change;
 
-        util::Gif bad_apple;
+        AnimatedVoxelModel bad_apple;
     };
 } // namespace gfx::generators::voxel

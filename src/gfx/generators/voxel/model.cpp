@@ -15,6 +15,14 @@ namespace gfx::generators::voxel
         : extent {}
     {}
 
+    StaticVoxelModel::StaticVoxelModel(glm::u16vec3 extent_, Voxel fillVoxel)
+        : StaticVoxelModel {
+              std::vector {
+                  static_cast<usize>(extent_.x) * static_cast<usize>(extent_.y) * static_cast<usize>(extent_.z),
+                  fillVoxel},
+              extent_}
+    {}
+
     StaticVoxelModel::StaticVoxelModel(std::vector<Voxel> data_, glm::u16vec3 extent_)
         : extent {extent_}
         , data {std::move(data_)}
@@ -51,6 +59,15 @@ namespace gfx::generators::voxel
         new (this) StaticVoxelModel {std::move(other)};
 
         return *this;
+    }
+
+    StaticVoxelModel::MutableSpanType StaticVoxelModel::getModelMutable()
+    {
+        return std::mdspan<Voxel, std::dextents<u16, 3>>(
+            this->data.data(),
+            static_cast<u16>(this->extent.x),
+            static_cast<u16>(this->extent.y),
+            static_cast<u16>(this->extent.z));
     }
 
     StaticVoxelModel::ConstSpanType StaticVoxelModel::getModel() const
@@ -136,6 +153,72 @@ namespace gfx::generators::voxel
         other.total_time = {};
     }
 
+    AnimatedVoxelModel AnimatedVoxelModel::fromGif(const util::Gif& gif)
+    {
+        std::span<const float> allFrameStartTimes = gif.getAllStartTimes();
+
+        std::vector<AnimatedVoxelModelFrame> frames {};
+        frames.resize(allFrameStartTimes.size());
+
+        for (u32 i = 0; i < frames.size(); ++i)
+        {
+            const auto [xExtent, zExtent] = gif.getExtents();
+            const u16 yExtent             = 64; // HACK
+
+            StaticVoxelModel thisFrameModel {glm::u16vec3 {xExtent, yExtent, zExtent}, Voxel::NullAirEmpty};
+
+            for (u32 x = 0; x < xExtent; ++x)
+            {
+                for (u32 y = 0; y < yExtent; ++y)
+                {
+                    for (u32 z = 0; z < zExtent; ++z)
+                    {
+                        const util::Gif::Color thisColor = gif.getFrame(i)[x, z];
+
+                        const f32 length = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+
+                        const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y;
+
+                        auto hash = [](u32 foo)
+                        {
+                            foo ^= foo >> 17U;
+                            foo *= 0xed5ad4bbU;
+                            foo ^= foo >> 11U;
+                            foo *= 0xac4c1b51U;
+                            foo ^= foo >> 15U;
+                            foo *= 0x31848babU;
+                            foo ^= foo >> 14U;
+
+                            return foo;
+                        };
+
+                        const Voxel v = static_cast<Voxel>((hash(y) % 17) + 1);
+
+                        if (shouldBeSolid)
+                        {
+                            thisFrameModel.getModelMutable()[x, y, z] = v;
+                        }
+                    }
+                }
+            }
+
+            const float thisFrameStartTime = allFrameStartTimes[i];
+            // HACK: assume 30fps last frame of a gif, we lack information
+            // TODO: FIX
+            const float nextFrameStartTime =
+                (i < allFrameStartTimes.size() - 1) ? allFrameStartTimes[i + 1] : allFrameStartTimes[i] + (1.0f / 30);
+
+            frames.at(i) = AnimatedVoxelModelFrame {
+                .start_time {thisFrameStartTime},
+                .duration {nextFrameStartTime - thisFrameStartTime},
+                .model {std::move(thisFrameModel)}};
+
+            log::trace("inserted frame {} -> {}", frames.at(i).start_time, frames.at(i).duration);
+        }
+
+        return AnimatedVoxelModel {std::move(frames)};
+    }
+
     AnimatedVoxelModel& AnimatedVoxelModel::operator= (AnimatedVoxelModel&& other) noexcept
     {
         if (this == &other)
@@ -168,7 +251,20 @@ namespace gfx::generators::voxel
             time = std::fmod(time, this->total_time);
         }
 
+        assert::critical(!this->frame_start_times.empty(), "no frames!");
+
         const std::vector<float>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
+
+        if (it == this->frame_start_times.cend())
+        {
+            log::critical("invalid time: {}", time);
+
+            for (float f : this->frame_start_times)
+            {
+                log::debug("{}", f);
+            }
+            panic("panic");
+        }
 
         return static_cast<FrameNumber>(it - this->frame_start_times.cbegin());
     }

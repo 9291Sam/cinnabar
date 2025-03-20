@@ -36,11 +36,12 @@ namespace util
 
         [[nodiscard]] std::mdspan<const Color, std::dextents<usize, 2>> getFrame(FrameNumber) const;
         [[nodiscard]] std::mdspan<const Color, std::dextents<usize, 2>>
-                                          getFrameAtTime(float, std::optional<Looping> = {}) const;
-        [[nodiscard]] FrameNumber         getFrameNumberAtTime(float, std::optional<Looping> = {}) const;
+                                             getFrameAtTime(float, std::optional<Looping> = {}) const;
+        [[nodiscard]] FrameNumber            getFrameNumberAtTime(float, std::optional<Looping> = {}) const;
         /// Width, height
-        [[nodiscard]] std::pair<u32, u32> getExtents() const;
-        [[nodiscard]] float               getTotalTime() const;
+        [[nodiscard]] std::pair<u32, u32>    getExtents() const;
+        [[nodiscard]] float                  getTotalTime() const;
+        [[nodiscard]] std::span<const float> getAllStartTimes() const;
 
     private:
         std::vector<float>              frame_start_times;
