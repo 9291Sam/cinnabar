@@ -279,22 +279,12 @@ namespace gfx::core::vulkan
 
         const std::filesystem::path canonicalPath = util::getCanonicalPathOfShaderFile(shaderString);
 
-        std::ifstream inFile;
-        inFile.open(canonicalPath);
-
-        assert::critical(
-            !inFile.fail(),
-            "oop {} {} {}",
-            std::filesystem::current_path().string(),
-            shaderString,
-            canonicalPath.string());
-
-        std::stringstream strStream;
-        strStream << inFile.rdbuf();
-        std::string source = strStream.str();
+        std::vector<std::byte> source = util::loadEntireFileFromPath(canonicalPath);
+        source.shrink_to_fit();
+        const char* sourceChar = reinterpret_cast<const char*>(source.data());
 
         shaderc::SpvCompilationResult compileResult =
-            this->shader_compiler.CompileGlslToSpv(source.c_str(), source.size(), kind, shaderString.c_str(), options);
+            this->shader_compiler.CompileGlslToSpv(sourceChar, source.size(), kind, shaderString.c_str(), options);
 
         if (compileResult.GetCompilationStatus() != shaderc_compilation_status_success)
         {

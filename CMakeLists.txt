@@ -59,7 +59,6 @@ add_executable(cinnabar
 
     src/gfx/generators/voxel/voxel_renderer.cpp
     src/gfx/generators/voxel/material.cpp
-    src/gfx/generators/voxel/gif_read.cpp
 
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp
@@ -68,6 +67,7 @@ add_executable(cinnabar
     src/util/allocators/index_allocator.cpp
     src/util/allocators/range_allocator.cpp
 
+    src/util/gif.cpp
     src/util/logger.cpp
     src/util/util.cpp
 
@@ -135,7 +135,6 @@ target_link_libraries(cinnabar
     spdlog::spdlog
     cpptrace::cpptrace
     VulkanMemoryAllocator
-    glfw
     glm
     Vulkan::shaderc_combined
     magic_enum::magic_enum
@@ -148,6 +147,8 @@ target_link_libraries(cinnabar
     Boost::pool
     imgui_build_target
 )
+
+
 
 
 
@@ -185,8 +186,16 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         # target_compile_options(cinnabar PUBLIC -gdwarf-4)
         # target_compile_options(cinnabar PUBLIC -g3)
 
-        # target_compile_options(cinnabar PUBLIC -fsanitize=thread)
-        # target_link_options(cinnabar PUBLIC -fsanitize=thread)
+        # Don't forget to run with ASAN_OPTIONS=detect_container_overflow=0 ./cinnabar
+        # because shaderc is built without asan and there are vector mismatch issues
+
+        # target_compile_options(cinnabar PUBLIC -fsanitize=address)
+        # target_link_options(cinnabar PUBLIC -fsanitize=address)
+
+        # target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
+        # target_link_options(imgui_build_target PUBLIC -fsanitize=address)
+
+        
 
     endif ()
 

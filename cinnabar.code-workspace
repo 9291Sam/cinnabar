@@ -46,6 +46,7 @@
 			"linalg",
 			"lldb",
 			"matricies",
+			"mdspan",
 			"meshgrid",
 			"mfmt",
 			"Moji",

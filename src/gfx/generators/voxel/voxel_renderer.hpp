@@ -4,8 +4,8 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
-#include "gfx/generators/voxel/gif_read.h"
 #include "gfx/generators/voxel/material.hpp"
+#include "util/gif.hpp"
 
 namespace gfx::core
 {
@@ -41,6 +41,6 @@ namespace gfx::generators::voxel
 
         float time_since_color_change;
 
-        std::optional<gif_read::GIF> bad_apple;
+        util::Gif bad_apple;
     };
 } // namespace gfx::generators::voxel

@@ -5,6 +5,7 @@
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "util/gif.hpp"
 #include "util/util.hpp"
 #include <bit>
 #include <cstddef>
@@ -57,13 +58,7 @@ namespace gfx::generators::voxel
         std::vector<std::byte> data =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
-        this->bad_apple.emplace(reinterpret_cast<const u8*>(data.data()));
-
-        log::trace(
-            "loaded gif with {} frames of size {}x{}",
-            this->bad_apple->getNumFrames(),
-            this->bad_apple->getWidth(),
-            this->bad_apple->getHeight());
+        this->bad_apple = util::Gif {std::span {data}};
     }
 
     f32 VoxelRenderer::time_in_video = 0;
@@ -82,23 +77,7 @@ namespace gfx::generators::voxel
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            struct Color
-            {
-                glm::u8vec3 color;
-                u8          a;
-
-                [[nodiscard]] u32 asU32() const
-                {
-                    return std::bit_cast<u32>(*this);
-                }
-            };
-
-            std::unique_ptr<std::array<std::array<Color, 64>, 64>> sensibleData {
-                new std::array<std::array<Color, 64>, 64> {}};
-
-            std::memcpy(sensibleData->data(), this->bad_apple->getFrameAtTime(this->time_in_video), 4UZ * 64UZ * 64UZ);
-
-            // log::trace("Current Frame: {}", this->time_in_video);
+            auto sensibleData = this->bad_apple.getFrameAtTime(this->time_in_video);
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -132,8 +111,8 @@ namespace gfx::generators::voxel
                             return foo;
                         };
 
-                        const Color thisColor = (*sensibleData)[63 - x][z];
-                        const f32   length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+                        const util::Gif::Color thisColor = sensibleData[(63UZ - x), z];
+                        const f32              length    = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
 
                         const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y; //
 

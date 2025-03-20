@@ -1,3 +1,104 @@
+
+//// BEGIN gif_read.hpp
+
+//
+//  Gif_read.h
+//  gif_read
+//
+//  Created by Kyle Halladay on 3/31/19.
+//  Copyright © 2019 Kyle Halladay. All rights reserved.
+//
+
+// currently only tested / used on OSX 10.14.3
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+
+#include <stdint.h> //if you hate stdint, replace this and the typedefs below with your own integer types
+
+// does not support interlaced or sorted gifs. Debug mode will assert if it encounters a gif like this,
+// all asserts are disabled in release mode, so it's recommended that you run at least once in debug to
+// verify your gifs are compatible
+namespace gif_read
+{
+    typedef uint16_t uint16;
+    typedef uint32_t uint32;
+    typedef uint8_t  uint8;
+    typedef int32_t  int32;
+
+    // make sure any replacement types are still the right size
+    static_assert(sizeof(uint16) == 2, "uint16 type is an incorrect size");
+    static_assert(sizeof(uint32) == 4, "uint32 type is an incorrect size");
+    static_assert(sizeof(uint8) == 1, "uint8 type is an incorrect size");
+    static_assert(sizeof(int32) == 4, "int32 type is an incorrect size");
+
+    // memory heavy GIF class that provides access to any frame of a GIF in arbitrary order
+    // keeps a uint8 rgb array of every frame in memory all the time, giving the fastest access to
+    // data at runtime, at a large memory cost.
+    class GIF
+    {
+    public:
+        // gifFileData is the binary contents of a .gif file. Ctor will memcpy
+        // out of this data, but doesn't need it after the ctor finishes.
+        // dealloc the gifFileData ptr yourself after constructing a GIF
+        GIF(const uint8* gifFileData);
+        ~GIF();
+
+        uint32 getWidth() const;
+        uint32 getHeight() const;
+        uint32 getNumFrames() const;
+
+        // returns an array of unsigned byte RGBA pixel data for a texture with the dimensions
+        // defined by the getWidth() and getHeight() function calls. Alpha will always be 255
+        const uint8* getFrame(uint32 frameIndex) const;
+        const uint8* getFrameAtTime(float time, bool looping = true) const;
+
+    private:
+        struct GIFImpl* _impl = nullptr;
+    };
+
+    // Instead of storing index streams, only the compressed gif data is stored, and is decompressed as new frames are
+    // needed To support multiple instances of a GIF displaying different frames, StreamingGIFs are accessed through
+    // gif-erators (my stupid name for gif iterators), which require an allocation of 1 frame of gif data each. The
+    // memory for all giferators is handled by the streamingGIF class they're allocated by, and accessed through a
+    // uint32
+    // handle.
+    class StreamingGIF
+    {
+    public:
+        // gifFileData is the binary contents of a .gif file. Ctor will memcpy
+        // out of this data, but doesn't need it after the ctor finishes.
+        // dealloc the gifFileData ptr yourself after construction
+        StreamingGIF(const uint8* gifFileData, uint32 maxIterators = 8);
+        ~StreamingGIF();
+        StreamingGIF(const StreamingGIF&)             = delete;
+        StreamingGIF& operator= (const StreamingGIF&) = delete;
+
+        uint32 getWidth() const;
+        uint32 getHeight() const;
+        uint32 getNumFrames() const;
+        float  getDurationInSeconds() const;
+
+        uint32 createIterator();
+        bool   isIteratorValid(uint32 iterator);
+        void   destroyIterator(uint32 iterator);
+
+        // returns true if time has advanced enough to get a new frame
+        bool tickSingleIterator(uint32 interator, float deltaTime);
+        void tick(float deltaTime); // ticks all iterators
+
+        const uint8* getFirstFrame() const;
+        const uint8* getCurrentFrame(uint32 interator) const;
+
+    protected:
+        struct StreamingGIFImpl* _impl = nullptr;
+    };
+} // namespace gif_read
+
+//// END gif_read.hpp
+
+/// BEGIN gif_read.cpp
+
 //
 //  gif_read.cpp
 //  gif_read
@@ -10,7 +111,6 @@
 // and http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
 // example gif parser implementation: https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art011
 
-#include "gif_read.h"
 #include <cstring>  //for memcpy
 #include <stdlib.h> //for malloc, calloc, realloc, free, and exit
 
@@ -704,15 +804,15 @@ namespace gif_read
             nextBlock = *ptr++;
         }
 
-        // GT_FREE(frameBuffer);
+        GT_FREE(frameBuffer);
 
-        // for (uint32 i = 0; i < gif.numFrames; ++i)
-        // {
-        //     if (gif.imageData[i].localColorTable)
-        //     {
-        //         GT_FREE(gif.imageData[i].localColorTable);
-        //     }
-        // }
+        for (uint32 i = 0; i < gif.numFrames; ++i)
+        {
+            if (gif.imageData[i].localColorTable)
+            {
+                GT_FREE(gif.imageData[i].localColorTable);
+            }
+        }
     }
 
     const uint8* GIF::getFrame(uint32 frameIndex) const
@@ -763,15 +863,15 @@ namespace gif_read
 
     GIF::~GIF()
     {
-        // if (_impl)
-        // {
-        //     GT_FREE(_impl->file.globalColorTable);
-        //     for (uint32 i = 0; i < _impl->file.numFrames; ++i)
-        //     {
-        //         GT_FREE(_impl->images[i]);
-        //     }
-        //     GT_FREE(_impl);
-        // }
+        if (_impl)
+        {
+            GT_FREE(_impl->file.globalColorTable);
+            for (uint32 i = 0; i < _impl->file.numFrames; ++i)
+            {
+                GT_FREE(_impl->images[i]);
+            }
+            GT_FREE(_impl);
+        }
     }
 } // namespace gif_read
 
@@ -1101,3 +1201,105 @@ namespace gif_read
 #undef GT_CALLOC
 #undef GT_FREE
 #undef GT_CHECK
+
+//// END gif_read.cpp
+
+#pragma clang diagnostic pop
+
+#include "gif.hpp"
+#include <algorithm>
+#include <unordered_map>
+
+namespace util
+{
+    Gif::Gif()
+        : total_time {}
+    {}
+    Gif::Gif(std::span<const std::byte> newFrameData)
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        gif_read::GIF gifLoader {reinterpret_cast<const u8*>(newFrameData.data())};
+
+        const u32 numberOfFrames = gifLoader.getNumFrames();
+
+        const usize width  = gifLoader.getWidth();
+        const usize height = gifLoader.getHeight();
+
+        this->extent = {static_cast<u32>(width), static_cast<u32>(height)};
+
+        std::unordered_map<const u8*, float> discoveredFramesToTimesMap;
+
+        static constexpr float ProbeTimeGranularity = 0.001f;
+
+        float thisProbeTime = 0.0f;
+        while (discoveredFramesToTimesMap.size() < numberOfFrames)
+        {
+            const u8* discoveredFramePointer = gifLoader.getFrameAtTime(thisProbeTime, false);
+
+            if (!discoveredFramesToTimesMap.contains(discoveredFramePointer))
+            {
+                discoveredFramesToTimesMap.insert({discoveredFramePointer, thisProbeTime});
+            }
+
+            thisProbeTime += ProbeTimeGranularity;
+        }
+
+        this->total_time = thisProbeTime;
+
+        this->frame_start_times.reserve(discoveredFramesToTimesMap.size());
+        for (const auto [_, time] : discoveredFramesToTimesMap)
+        {
+            this->frame_start_times.push_back(time);
+        }
+        std::ranges::sort(this->frame_start_times);
+
+        const usize sizeBytesOneFrame = width * height * sizeof(Color);
+
+        for (const float frameStartTime : this->frame_start_times)
+        {
+            const u8* rawFrameData = gifLoader.getFrameAtTime(frameStartTime);
+
+            std::vector<Color> thisFrameStorage {};
+            thisFrameStorage.resize(sizeBytesOneFrame);
+            std::memcpy(thisFrameStorage.data(), rawFrameData, sizeBytesOneFrame);
+
+            this->frames.push_back(std::move(thisFrameStorage));
+        }
+    }
+
+    std::mdspan<const Gif::Color, std::dextents<usize, 2>> Gif::getFrame(FrameNumber frameNumber) const
+    {
+        const std::vector<Color>& thisFrame = this->frames.at(frameNumber);
+
+        return std::mdspan(thisFrame.data(), this->extent.first, this->extent.second);
+    }
+
+    std::mdspan<const Gif::Color, std::dextents<usize, 2>>
+    Gif::getFrameAtTime(float time, std::optional<Looping> looping) const
+    {
+        return this->getFrame(this->getFrameNumberAtTime(time, looping));
+    }
+
+    util::Gif::FrameNumber Gif::getFrameNumberAtTime(float time, std::optional<Looping> looping) const
+    {
+        if (looping.has_value())
+        {
+            time = std::fmod(time, this->total_time);
+        }
+
+        const std::vector<float>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
+
+        return static_cast<FrameNumber>(it - this->frame_start_times.cbegin());
+    }
+
+    std::pair<u32, u32> Gif::getExtents() const
+    {
+        return this->extent;
+    }
+
+    float Gif::getTotalTime() const
+    {
+        return this->total_time;
+    }
+
+} // namespace util
