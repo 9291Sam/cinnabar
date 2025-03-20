@@ -11,12 +11,12 @@ namespace gfx::generators::voxel
     class StaticVoxelModel
     {
     public:
-        using ConstSpanType   = std::mdspan<const Voxel, std::dextents<u16, 3>>;
-        using MutableSpanType = std::mdspan<Voxel, std::dextents<u16, 3>>;
+        using ConstSpanType   = std::mdspan<const Voxel, std::dextents<u32, 3>>;
+        using MutableSpanType = std::mdspan<Voxel, std::dextents<u32, 3>>;
     public:
         StaticVoxelModel();
-        StaticVoxelModel(glm::u16vec3 extent, Voxel fillVoxel);
-        StaticVoxelModel(std::vector<Voxel>, glm::u16vec3 extent);
+        StaticVoxelModel(glm::u32vec3 extent, Voxel fillVoxel);
+        StaticVoxelModel(std::vector<Voxel>, glm::u32vec3 extent);
         // static StaticVoxelModel fromVoxFile(std::span<const std::byte>);
 
         ~StaticVoxelModel() = default;
@@ -29,10 +29,10 @@ namespace gfx::generators::voxel
         [[nodiscard]] MutableSpanType getModelMutable();
 
         [[nodiscard]] ConstSpanType getModel() const;
-        [[nodiscard]] glm::u16vec3  getExtent() const;
+        [[nodiscard]] glm::u32vec3  getExtent() const;
 
     private:
-        glm::u16vec3       extent;
+        glm::u32vec3       extent;
         std::vector<Voxel> data;
     };
 
@@ -69,12 +69,12 @@ namespace gfx::generators::voxel
         [[nodiscard]] FrameNumber   getFrameNumberAtTime(float, std::optional<Looping> = {}) const;
         [[nodiscard]] FrameNumber   getNumberOfFrames() const;
         [[nodiscard]] float         getTotalTime() const;
-        [[nodiscard]] glm::u16vec3  getExtent() const;
+        [[nodiscard]] glm::u32vec3  getExtent() const;
 
     private:
         std::vector<float>            frame_start_times;
         std::vector<StaticVoxelModel> frames;
-        glm::u16vec3                  extent;
+        glm::u32vec3                  extent;
         float                         total_time;
     };
 

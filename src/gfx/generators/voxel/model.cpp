@@ -15,7 +15,7 @@ namespace gfx::generators::voxel
         : extent {}
     {}
 
-    StaticVoxelModel::StaticVoxelModel(glm::u16vec3 extent_, Voxel fillVoxel)
+    StaticVoxelModel::StaticVoxelModel(glm::u32vec3 extent_, Voxel fillVoxel)
         : StaticVoxelModel {
               std::vector {
                   static_cast<usize>(extent_.x) * static_cast<usize>(extent_.y) * static_cast<usize>(extent_.z),
@@ -23,7 +23,7 @@ namespace gfx::generators::voxel
               extent_}
     {}
 
-    StaticVoxelModel::StaticVoxelModel(std::vector<Voxel> data_, glm::u16vec3 extent_)
+    StaticVoxelModel::StaticVoxelModel(std::vector<Voxel> data_, glm::u32vec3 extent_)
         : extent {extent_}
         , data {std::move(data_)}
     {
@@ -63,23 +63,23 @@ namespace gfx::generators::voxel
 
     StaticVoxelModel::MutableSpanType StaticVoxelModel::getModelMutable()
     {
-        return std::mdspan<Voxel, std::dextents<u16, 3>>(
+        return std::mdspan<Voxel, std::dextents<u32, 3>>(
             this->data.data(),
-            static_cast<u16>(this->extent.x),
-            static_cast<u16>(this->extent.y),
-            static_cast<u16>(this->extent.z));
+            static_cast<u32>(this->extent.x),
+            static_cast<u32>(this->extent.y),
+            static_cast<u32>(this->extent.z));
     }
 
     StaticVoxelModel::ConstSpanType StaticVoxelModel::getModel() const
     {
-        return std::mdspan<const Voxel, std::dextents<u16, 3>>(
+        return std::mdspan<const Voxel, std::dextents<u32, 3>>(
             this->data.data(),
-            static_cast<u16>(this->extent.x),
-            static_cast<u16>(this->extent.y),
-            static_cast<u16>(this->extent.z));
+            static_cast<u32>(this->extent.x),
+            static_cast<u32>(this->extent.y),
+            static_cast<u32>(this->extent.z));
     }
 
-    glm::u16vec3 StaticVoxelModel::getExtent() const
+    glm::u32vec3 StaticVoxelModel::getExtent() const
     {
         return this->extent;
     }
@@ -94,7 +94,7 @@ namespace gfx::generators::voxel
     {
         assert::critical(!newFrames.empty(), "An AnimatedVoxelModel needs at least one frame!");
 
-        const glm::u16vec3 shouldBeExtent = newFrames.front().model.getExtent();
+        const glm::u32vec3 shouldBeExtent = newFrames.front().model.getExtent();
         this->extent                      = shouldBeExtent;
 
         std::ranges::sort(
@@ -163,9 +163,9 @@ namespace gfx::generators::voxel
         for (u32 i = 0; i < frames.size(); ++i)
         {
             const auto [xExtent, zExtent] = gif.getExtents();
-            const u16 yExtent             = 64; // HACK
+            const u32 yExtent             = 64; // HACK
 
-            StaticVoxelModel thisFrameModel {glm::u16vec3 {xExtent, yExtent, zExtent}, Voxel::NullAirEmpty};
+            StaticVoxelModel thisFrameModel {glm::u32vec3 {xExtent, yExtent, zExtent}, Voxel::NullAirEmpty};
 
             for (u32 x = 0; x < xExtent; ++x)
             {
@@ -279,7 +279,7 @@ namespace gfx::generators::voxel
         return this->total_time;
     }
 
-    glm::u16vec3 AnimatedVoxelModel::getExtent() const
+    glm::u32vec3 AnimatedVoxelModel::getExtent() const
     {
         return this->extent;
     }

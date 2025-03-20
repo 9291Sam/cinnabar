@@ -7,9 +7,11 @@
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
 #include "util/gif.hpp"
+#include "util/logger.hpp"
 #include "util/util.hpp"
 #include <bit>
 #include <cstddef>
+#include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
@@ -78,7 +80,6 @@ namespace gfx::generators::voxel
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            log::debug("time in video: {}", this->time_in_video);
             auto sensibleData = this->bad_apple.getFrame(this->time_in_video);
 
             this->time_since_color_change = 0.0f;
@@ -113,7 +114,7 @@ namespace gfx::generators::voxel
                             return foo;
                         };
 
-                        const Voxel v = sensibleData[x, y, z];
+                        const Voxel& v = sensibleData[63 - x, y, z];
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {
