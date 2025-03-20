@@ -37,7 +37,8 @@ Checks: >
   -cert-flp30-c,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -modernize-raw-string-literal,
-  -android-cloexec-fopen
+  -android-cloexec-fopen,
+  -google-default-arguments
   
 CheckOptions:
   - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor, value: true       }

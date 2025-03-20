@@ -28,6 +28,9 @@ namespace gfx::generators::voxel
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
+        // void setTime();
+        // void static setAnimation
+
         static f32 time_in_video;
 
     private:

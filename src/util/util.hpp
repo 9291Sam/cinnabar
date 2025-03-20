@@ -69,4 +69,12 @@ namespace util
     std::string bytesAsSiNamed(std::size_t, SuffixType = SuffixType::Full);
     std::string bytesAsSiNamed(long double bytes, SuffixType = SuffixType::Full);
 
+    inline bool isApproxEqual(const float a, const float b, float similarity = 0.00001f)
+    {
+        const float maxMagnitude = std::max(std::abs(a), std::abs(b));
+        const float epsilon      = maxMagnitude * similarity;
+
+        return abs(a - b) < epsilon;
+    }
+
 } // namespace util

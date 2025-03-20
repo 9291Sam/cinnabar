@@ -25,6 +25,7 @@ CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
 CPMAddPackage("gh:ocornut/imgui#v1.91.8")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
+CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
@@ -57,8 +58,9 @@ add_executable(cinnabar
 
     src/gfx/generators/triangle/triangle_renderer.cpp
 
-    src/gfx/generators/voxel/voxel_renderer.cpp
     src/gfx/generators/voxel/material.cpp
+    src/gfx/generators/voxel/model.cpp
+    src/gfx/generators/voxel/voxel_renderer.cpp
 
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp
@@ -111,6 +113,7 @@ target_link_libraries(
 )
 
 target_include_directories(cinnabar PRIVATE src)
+target_include_directories(cinnabar SYSTEM PRIVATE ${CPM_PACKAGE_opengametools_SOURCE_DIR}/src)
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_PATCH=${PROJECT_VERSION_PATCH})
