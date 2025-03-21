@@ -86,6 +86,14 @@ namespace gfx::generators::voxel
                           //   return c;
                       }}});
         this->names.push_back("Good Dragon");
+
+        this->demos.push_back(Demo {
+            .model {AnimatedVoxelModel {StaticVoxelModel::createCornelBox()}},
+            .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel&)
+                      {
+                          return c;
+                      }}});
+        this->names.push_back("Cornel Box");
     }
 
     VoxelRenderer::~VoxelRenderer()
@@ -100,7 +108,6 @@ namespace gfx::generators::voxel
         const f32 thisFrameTime = lastFrameTime + deltaTime;
 
         auto& thisDemo = this->demos.at(this->demo_index.load(std::memory_order_acquire));
-        log::debug("{}", this->demo_index.load(std::memory_order_acquire));
 
         const u32 lastFrameAnimationNumber =
             thisDemo.model.getFrameNumberAtTime(lastFrameTime, AnimatedVoxelModel::Looping {});

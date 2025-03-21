@@ -38,10 +38,10 @@ struct TemporaryGameState : game::Game::GameState
         std::mt19937                          gen {std::random_device {}()};
         std::uniform_real_distribution<float> dist {-16.0f, 16.0f};
 
-        for (int i = 0; i < 38; ++i)
-        {
-            triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
-        }
+        // for (int i = 0; i < 38; ++i)
+        // {
+        //     triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
+        // }
     }
     ~TemporaryGameState() override
     {

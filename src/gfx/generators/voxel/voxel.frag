@@ -54,7 +54,7 @@ void main()
                                      : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
 
     // TODO: hone this further and see if you can get rid of some bounds checks in the traversal shader
-    const vec3 traversalRayEnd = traversalRayStart + dir * (WorldBoundingCubeIntersection.t_far + (8 * 1.73205080757));
+    const vec3 traversalRayEnd = traversalRayStart + dir * 64;
 
     const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
 
@@ -78,8 +78,9 @@ void main()
             discard;
         }
 
+        // this is
         const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 24 + 8.0, 34.0, cos(GlobalData.time_alive) * 24.0 - 13.32, 32.0),
+            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 24.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
             vec4(1.0, 1.0, 1.0, 8.0));
 
         const CalculatedLightPower power =
@@ -90,6 +91,7 @@ void main()
 
         // if (dot(result.voxel_normal, ))
 
+        // something is wrong with the distance calculations here remember the cornel box
         const VoxelTraceResult shadowResult = traceDDARay(
             0,
             result.chunk_local_fragment_position + 0.5 * result.voxel_normal,

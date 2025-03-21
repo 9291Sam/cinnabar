@@ -18,6 +18,7 @@ namespace gfx::generators::voxel
         StaticVoxelModel(glm::u32vec3 extent, Voxel fillVoxel);
         StaticVoxelModel(std::vector<Voxel>, glm::u32vec3 extent);
         static StaticVoxelModel fromVoxFile(std::span<const std::byte>);
+        static StaticVoxelModel createCornelBox();
 
         ~StaticVoxelModel() = default;
 

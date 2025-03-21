@@ -97,6 +97,63 @@ namespace gfx::generators::voxel
         return out;
     }
 
+    StaticVoxelModel StaticVoxelModel::createCornelBox()
+    {
+        StaticVoxelModel model {glm::u32vec3 {64, 64, 64}, Voxel::NullAirEmpty};
+
+        auto voxels = model.getModelMutable();
+
+        glm::u32vec3 size = model.getExtent();
+
+        // Define materials
+        Voxel white = Voxel::Marble;
+        Voxel red   = Voxel::Ruby;
+        Voxel green = Voxel::Jade;
+        Voxel light = Voxel::Gold;
+
+        // Fill walls, floor, and ceiling
+        for (uint32_t x = 0; x < size.x; ++x)
+        {
+            for (uint32_t y = 0; y < size.y; ++y)
+            {
+                for (uint32_t z = 0; z < size.z; ++z)
+                {
+                    if (x == 0)
+                    {
+                        voxels[x, y, z] = red; // Left wall
+                    }
+                    if (x == size.x - 1)
+                    {
+                        voxels[x, y, z] = green; // Right wall
+                    }
+                    if (z == 0)
+                    {
+                        voxels[x, y, z] = white; // Back wall
+                    }
+                    if (y == 0)
+                    {
+                        voxels[x, y, z] = white; // Floor
+                    }
+                    if (y == size.y - 1)
+                    {
+                        voxels[x, y, z] = white; // Ceiling
+                    }
+                }
+            }
+        }
+
+        // Add a light source at the center of the ceiling
+        for (uint32_t x = size.x / 3; x < 2 * size.x / 3; ++x)
+        {
+            for (uint32_t z = size.z / 3; z < 2 * size.z / 3; ++z)
+            {
+                voxels[x, size.y - 1, z] = light;
+            }
+        }
+
+        return model;
+    }
+
     StaticVoxelModel::StaticVoxelModel(StaticVoxelModel&& other) noexcept
         : extent {other.extent}
         , data {std::move(other.data)}
