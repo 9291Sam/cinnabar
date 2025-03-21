@@ -84,13 +84,13 @@ namespace gfx::generators::voxel
 
         static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
 
-        auto& sampler = this->good_dragon;
+        auto& sampler = this->bad_apple;
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            // auto sensibleData = sampler.getFrame(this->time_in_video);
+            auto sensibleData = sampler.getFrame(this->time_in_video);
 
-            auto sensibleData = sampler.getModel();
+            // auto sensibleData = sampler.getModel();
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -100,8 +100,8 @@ namespace gfx::generators::voxel
 
             u16 nextBrickIndex = 0;
 
-            const u32 xExtent = std::min({64U, sampler.getExtent().y});
-            const u32 yExtent = std::min({64U, sampler.getExtent().x});
+            const u32 xExtent = std::min({64U, sampler.getExtent().x});
+            const u32 yExtent = std::min({64U, sampler.getExtent().y});
             const u32 zExtent = std::min({64U, sampler.getExtent().z});
 
             for (u32 x = 0; x < xExtent; ++x)
@@ -110,12 +110,13 @@ namespace gfx::generators::voxel
                 {
                     for (u32 z = 0; z < zExtent; ++z)
                     {
-                        const ChunkLocalPosition cP {x, 63 - y, z};
+                        const ChunkLocalPosition cP {x, y, z};
                         const auto [bC, bP] = cP.split();
 
                         MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
-                        const Voxel& v = sensibleData[sampler.getExtent().x - 1 - y, sampler.getExtent().y - 1 - x, z];
+                        const Voxel& v =
+                            sensibleData[x, sampler.getExtent().y - 64 + y, sampler.getExtent().z - 64 + z];
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {

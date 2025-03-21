@@ -59,16 +59,6 @@ namespace gfx::generators::voxel
         std::mdspan<const u8, std::dextents<std::size_t, 3>> voxelStorage =
             std::mdspan(models[0]->voxel_data, models[0]->size_z, models[0]->size_y, models[0]->size_x);
 
-        log::debug("Discovered model with size {} {} {}", models[0]->size_x, models[0]->size_y, models[0]->size_z);
-
-        const std::size_t linearLength = voxelStorage.size();
-        assert::critical(linearLength == models[0]->size_x * models[0]->size_y * models[0]->size_z, "ajdjkasdjasd");
-
-        log::debug("linear Length: {}", linearLength);
-
-        std::vector<Voxel> voxels {};
-        voxels.resize(linearLength);
-
         auto hash = [](u32 foo)
         {
             foo ^= foo >> 17;
@@ -82,46 +72,29 @@ namespace gfx::generators::voxel
             return foo;
         };
 
-        // StaticVoxelModel out {
-        //     glm::u32vec3 {models[0]->size_x, models[0]->size_z, models[0]->size_y}, Voxel::NullAirEmpty};
+        StaticVoxelModel out {
+            glm::u32vec3 {models[0]->size_x, models[0]->size_z, models[0]->size_y}, Voxel::NullAirEmpty};
 
-        for (usize i = 0; i < linearLength; ++i)
+        uint32_t solid_voxel_count = 0;
+        uint32_t voxel_index       = 0;
+
+        for (uint32_t z = 0; z < models[0]->size_z; z++)
         {
-            const u8 val = models[0]->voxel_data[i];
-
-            if (val != 0)
+            for (uint32_t y = 0; y < models[0]->size_y; y++)
             {
-                voxels[i] = static_cast<Voxel>((hash(static_cast<u32>(val)) % 17) + 1);
+                for (uint32_t x = 0; x < models[0]->size_x; x++, voxel_index++)
+                {
+                    const u8 val = models[0]->voxel_data[voxel_index];
+
+                    if (val != 0)
+                    {
+                        out.getModelMutable()[x, z, y] = static_cast<Voxel>((hash(static_cast<u32>(val)) % 17) + 1);
+                    }
+                }
             }
         }
 
-        // uint32_t solid_voxel_count = 0;
-        // uint32_t voxel_index       = 0;
-
-        // for (uint32_t z = 0; z < models[0]->size_z; z++)
-        // {
-        //     for (uint32_t y = 0; y < models[0]->size_y; y++)
-        //     {
-        //         for (uint32_t x = 0; x < models[0]->size_x; x++, voxel_index++)
-        //         {
-        //             if (x < 64 && y < 64 && z < 64)
-        //             {
-        //                 const u8 val = models[0]->voxel_data[voxel_index];
-
-        //                 if (val != 0)
-        //                 {
-        //                     out.getModelMutable()[x, z, y] = static_cast<Voxel>((hash(static_cast<u32>(val)) % 17) +
-        //                     1);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        log::debug("writing {} voxels", voxels.size());
-
-        return StaticVoxelModel {
-            std::move(voxels), glm::u32vec3 {models[0]->size_z, models[0]->size_y, models[0]->size_x}};
+        return out;
     }
 
     StaticVoxelModel::StaticVoxelModel(StaticVoxelModel&& other) noexcept
