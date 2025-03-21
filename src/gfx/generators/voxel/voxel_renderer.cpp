@@ -66,6 +66,8 @@ namespace gfx::generators::voxel
 
         this->bad_apple   = AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}});
         this->good_dragon = StaticVoxelModel::fromVoxFile(std::span {goodDragonData});
+
+        log::debug("Loaded model with Extents: {}", glm::to_string(this->good_dragon.getExtent()));
     }
 
     f32 VoxelRenderer::time_in_video = 0;
@@ -98,8 +100,8 @@ namespace gfx::generators::voxel
 
             u16 nextBrickIndex = 0;
 
-            const u32 xExtent = std::min({64U, sampler.getExtent().x});
-            const u32 yExtent = std::min({64U, sampler.getExtent().y});
+            const u32 xExtent = std::min({64U, sampler.getExtent().y});
+            const u32 yExtent = std::min({64U, sampler.getExtent().x});
             const u32 zExtent = std::min({64U, sampler.getExtent().z});
 
             for (u32 x = 0; x < xExtent; ++x)
@@ -108,25 +110,12 @@ namespace gfx::generators::voxel
                 {
                     for (u32 z = 0; z < zExtent; ++z)
                     {
-                        const ChunkLocalPosition cP {x, y, z};
+                        const ChunkLocalPosition cP {x, 63 - y, z};
                         const auto [bC, bP] = cP.split();
 
                         MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
-                        auto hash = [](u32 foo)
-                        {
-                            foo ^= foo >> 17;
-                            foo *= 0xed5ad4bbU;
-                            foo ^= foo >> 11;
-                            foo *= 0xac4c1b51U;
-                            foo ^= foo >> 15;
-                            foo *= 0x31848babU;
-                            foo ^= foo >> 14;
-
-                            return foo;
-                        };
-
-                        const Voxel& v = sensibleData[x, y, z];
+                        const Voxel& v = sensibleData[sampler.getExtent().x - 1 - y, sampler.getExtent().y - 1 - x, z];
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {

@@ -1,5 +1,11 @@
 
 
+#define NO_PANIC
+#include "util.hpp"
+#include "logger.hpp"
+#include <array>
+#include <cstdio>
+
 #if defined(_WIN32)
 #include <Windows.h>
 #include <debugapi.h>
@@ -12,12 +18,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
-
-#define NO_PANIC
-#include "logger.hpp"
-#include "util.hpp"
-#include <array>
-#include <cstdio>
 
 namespace util
 {

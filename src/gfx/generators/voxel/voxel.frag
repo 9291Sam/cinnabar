@@ -88,6 +88,8 @@ void main()
         vec3 calculatedColor = result.material.diffuse_color.xyz * power.diffuse_strength
                              + result.material.specular_color.xyz * power.specular_strength;
 
+        // if (dot(result.voxel_normal, ))
+
         const VoxelTraceResult shadowResult = traceDDARay(
             0,
             result.chunk_local_fragment_position + 0.5 * result.voxel_normal,
