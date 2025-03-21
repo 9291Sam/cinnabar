@@ -179,13 +179,6 @@ int main()
 
     CPPTRACE_TRYZ
     {
-        // for (i32 iLong = 0; iLong < 65536; ++iLong)
-        // {
-        //     const u16 iS = static_cast<u16>(iLong);
-        //     const u16 iI = ~iS;
-
-        //     log::trace("{} -> {} {}", iS, iI, magic_enum::enum_name(static_cast<gfx::generators::voxel::Voxel>(iI)));
-        // }
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",
             CINNABAR_VERSION_MAJOR,

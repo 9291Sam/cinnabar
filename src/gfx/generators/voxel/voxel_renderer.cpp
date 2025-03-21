@@ -58,10 +58,14 @@ namespace gfx::generators::voxel
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
     {
-        std::vector<std::byte> data =
+        std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
-        this->bad_apple = AnimatedVoxelModel::fromGif(util::Gif {std::span {data}});
+        std::vector<std::byte> goodDragonData =
+            util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/dragon.vox"));
+
+        this->bad_apple   = AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}});
+        this->good_dragon = StaticVoxelModel::fromVoxFile(std::span {goodDragonData});
     }
 
     f32 VoxelRenderer::time_in_video = 0;
@@ -78,9 +82,13 @@ namespace gfx::generators::voxel
 
         static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
 
+        auto& sampler = this->good_dragon;
+
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            auto sensibleData = this->bad_apple.getFrame(this->time_in_video);
+            // auto sensibleData = sampler.getFrame(this->time_in_video);
+
+            auto sensibleData = sampler.getModel();
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -90,11 +98,15 @@ namespace gfx::generators::voxel
 
             u16 nextBrickIndex = 0;
 
-            for (u8 x = 0; x < ChunkSizeVoxels; ++x)
+            const u32 xExtent = std::min({64U, sampler.getExtent().x});
+            const u32 yExtent = std::min({64U, sampler.getExtent().y});
+            const u32 zExtent = std::min({64U, sampler.getExtent().z});
+
+            for (u32 x = 0; x < xExtent; ++x)
             {
-                for (u8 y = 0; y < ChunkSizeVoxels; ++y)
+                for (u32 y = 0; y < yExtent; ++y)
                 {
-                    for (u8 z = 0; z < ChunkSizeVoxels; ++z)
+                    for (u32 z = 0; z < zExtent; ++z)
                     {
                         const ChunkLocalPosition cP {x, y, z};
                         const auto [bC, bP] = cP.split();
@@ -114,7 +126,7 @@ namespace gfx::generators::voxel
                             return foo;
                         };
 
-                        const Voxel& v = sensibleData[63 - x, y, z];
+                        const Voxel& v = sensibleData[x, y, z];
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {

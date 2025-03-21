@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 using u8    = std::uint8_t;   // NOLINT
@@ -76,5 +77,28 @@ namespace util
 
         return abs(a - b) < epsilon;
     }
+
+    template<class Fn>
+        requires std::is_nothrow_invocable_v<Fn>
+    class Defer
+    {
+    public:
+        explicit Defer(Fn&& fn_)
+            : fn {std::move(fn_)}
+        {}
+
+        ~Defer()
+        {
+            this->fn();
+        }
+
+        Defer(const Defer&)             = delete;
+        Defer(Defer&&)                  = delete;
+        Defer& operator= (const Defer&) = delete;
+        Defer& operator= (Defer&&)      = delete;
+
+    private:
+        Fn fn;
+    };
 
 } // namespace util

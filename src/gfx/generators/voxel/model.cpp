@@ -1,6 +1,7 @@
 #include "gfx/generators/voxel/model.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <__mdspan/extents.h>
 #include <cmath>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -38,6 +39,39 @@ namespace gfx::generators::voxel
             this->extent.z,
             totalExtent,
             this->data.size());
+    }
+
+    StaticVoxelModel StaticVoxelModel::fromVoxFile(std::span<const std::byte> data)
+    {
+        const ogt_vox_scene* scene =
+            ogt_vox_read_scene(reinterpret_cast<const u8*>(data.data()), static_cast<u32>(data.size_bytes()));
+
+        util::Defer _ {[&] noexcept
+                       {
+                           ogt_vox_destroy_scene(scene);
+                       }};
+
+        std::span<const ogt_vox_model*> models {scene->models, scene->num_models};
+
+        assert::critical(
+            models.size() == 1, "Can't load a StaticVoxelModel from a Scene with {} models in it!", models.size());
+
+        std::mdspan<const u8, std::dextents<std::size_t, 3>> voxelStorage =
+            std::mdspan(models[0]->voxel_data, models[0]->size_x, models[0]->size_y, models[0]->size_z);
+
+        const std::size_t linearLength = voxelStorage.size();
+        assert::critical(linearLength == models[0]->size_x * models[0]->size_y * models[0]->size_z, "ajdjkasdjasd");
+
+        std::vector<Voxel> voxels {};
+        voxels.resize(linearLength);
+
+        for (usize i = 0; i < linearLength; ++i)
+        {
+            voxels[i] = static_cast<Voxel>((models[0]->voxel_data[i] % 17));
+        }
+
+        return StaticVoxelModel {
+            std::move(voxels), glm::u32vec3 {models[0]->size_x, models[0]->size_y, models[0]->size_z}};
     }
 
     StaticVoxelModel::StaticVoxelModel(StaticVoxelModel&& other) noexcept
@@ -169,37 +203,38 @@ namespace gfx::generators::voxel
 
             for (u32 x = 0; x < xExtent; ++x)
             {
-                for (u32 y = 0; y < yExtent; ++y)
+                // for (u32 y = 0; y < yExtent; ++y)
+                // {
+                for (u32 z = 0; z < zExtent; ++z)
                 {
-                    for (u32 z = 0; z < zExtent; ++z)
+                    const util::Gif::Color thisColor = gif.getFrame(i)[x, z];
+
+                    const f32 length = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+
+                    // const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y;
+                    const bool shouldBeSolid = length > 1.0f;
+
+                    auto hash = [](u32 foo)
                     {
-                        const util::Gif::Color thisColor = gif.getFrame(i)[x, z];
+                        foo ^= foo >> 17U;
+                        foo *= 0xed5ad4bbU;
+                        foo ^= foo >> 11U;
+                        foo *= 0xac4c1b51U;
+                        foo ^= foo >> 15U;
+                        foo *= 0x31848babU;
+                        foo ^= foo >> 14U;
 
-                        const f32 length = glm::length(glm::vec3 {thisColor.color}) / 8.0f;
+                        return foo;
+                    };
 
-                        const bool shouldBeSolid = static_cast<f32>(y) < length; // (x + z) / 2 > y;
+                    const Voxel v = static_cast<Voxel>(((hash(x) + hash(z)) % 17) + 1);
 
-                        auto hash = [](u32 foo)
-                        {
-                            foo ^= foo >> 17U;
-                            foo *= 0xed5ad4bbU;
-                            foo ^= foo >> 11U;
-                            foo *= 0xac4c1b51U;
-                            foo ^= foo >> 15U;
-                            foo *= 0x31848babU;
-                            foo ^= foo >> 14U;
-
-                            return foo;
-                        };
-
-                        const Voxel v = static_cast<Voxel>((hash(y) % 17) + 1);
-
-                        if (shouldBeSolid)
-                        {
-                            thisFrameModel.getModelMutable()[x, y, z] = v;
-                        }
+                    if (shouldBeSolid)
+                    {
+                        thisFrameModel.getModelMutable()[x, 0, z] = v;
                     }
                 }
+                // }
             }
 
             const float thisFrameStartTime = allFrameStartTimes[i];
@@ -212,8 +247,6 @@ namespace gfx::generators::voxel
                 .start_time {thisFrameStartTime},
                 .duration {nextFrameStartTime - thisFrameStartTime},
                 .model {std::move(thisFrameModel)}};
-
-            log::trace("inserted frame {} -> {}", frames.at(i).start_time, frames.at(i).duration);
         }
 
         return AnimatedVoxelModel {std::move(frames)};

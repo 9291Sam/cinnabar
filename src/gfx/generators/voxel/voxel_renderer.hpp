@@ -46,5 +46,6 @@ namespace gfx::generators::voxel
         float time_since_color_change;
 
         AnimatedVoxelModel bad_apple;
+        StaticVoxelModel   good_dragon;
     };
 } // namespace gfx::generators::voxel
