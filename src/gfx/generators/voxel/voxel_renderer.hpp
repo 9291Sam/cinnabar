@@ -29,6 +29,9 @@ namespace gfx::generators::voxel
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
+        // void setAnimationTime(f32) const;
+        // void setAnimationNumber(usize) const;
+
         // void setTime();
         // void static setAnimation
 
@@ -44,8 +47,17 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
 
         float time_since_color_change;
+        // f32 last_frame_time;
 
-        AnimatedVoxelModel bad_apple;
-        StaticVoxelModel   good_dragon;
+        struct Demo
+        {
+            AnimatedVoxelModel                                              model;
+            util::Fn<glm::u32vec3(glm::u32vec3, const AnimatedVoxelModel&)> sampler;
+        };
+
+        std::vector<Demo> demos;
+
+        // AnimatedVoxelModel bad_apple;
+        // StaticVoxelModel   good_dragon;
     };
 } // namespace gfx::generators::voxel

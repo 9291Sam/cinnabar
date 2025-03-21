@@ -25,6 +25,9 @@ using b32   = u32;            // NOLINT
 
 namespace util
 {
+    template<class T>
+    using Fn = T*;
+
     template<typename T>
     constexpr std::string_view getNameOfType()
     {

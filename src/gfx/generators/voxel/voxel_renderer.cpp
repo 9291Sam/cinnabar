@@ -64,10 +64,17 @@ namespace gfx::generators::voxel
         std::vector<std::byte> goodDragonData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/dragon.vox"));
 
-        this->bad_apple   = AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}});
-        this->good_dragon = StaticVoxelModel::fromVoxFile(std::span {goodDragonData});
+        this->demos.push_back(Demo {
+            .model {AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}})},
+            .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel&)
+                      {
+                          return c;
+                      }}});
 
-        log::debug("Loaded model with Extents: {}", glm::to_string(this->good_dragon.getExtent()));
+        // this->bad_apple   = ;
+        // this->good_dragon = StaticVoxelModel::fromVoxFile(std::span {goodDragonData});
+
+        // log::debug("Loaded model with Extents: {}", glm::to_string(this->good_dragon.getExtent()));
     }
 
     f32 VoxelRenderer::time_in_video = 0;
@@ -79,18 +86,17 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
+        // const f32 lastFrameTime = this->last_frame_time;
         this->time_since_color_change += this->renderer->getWindow()->getDeltaTimeSeconds();
         this->time_in_video += this->renderer->getWindow()->getDeltaTimeSeconds();
 
         static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
 
-        auto& sampler = this->bad_apple;
+        auto& thisDemo = this->demos[0];
 
         if (this->time_since_color_change > TimeBetweenFrames)
         {
-            auto sensibleData = sampler.getFrame(this->time_in_video);
-
-            // auto sensibleData = sampler.getModel();
+            auto sensibleData = thisDemo.model.getFrame(this->time_in_video);
 
             this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
@@ -100,9 +106,9 @@ namespace gfx::generators::voxel
 
             u16 nextBrickIndex = 0;
 
-            const u32 xExtent = std::min({64U, sampler.getExtent().x});
-            const u32 yExtent = std::min({64U, sampler.getExtent().y});
-            const u32 zExtent = std::min({64U, sampler.getExtent().z});
+            const u32 xExtent = std::min({64U, thisDemo.model.getExtent().x});
+            const u32 yExtent = std::min({64U, thisDemo.model.getExtent().y});
+            const u32 zExtent = std::min({64U, thisDemo.model.getExtent().z});
 
             for (u32 x = 0; x < xExtent; ++x)
             {
@@ -115,8 +121,9 @@ namespace gfx::generators::voxel
 
                         MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
 
-                        const Voxel& v =
-                            sensibleData[x, sampler.getExtent().y - 64 + y, sampler.getExtent().z - 64 + z];
+                        const glm::u32vec3 sample = thisDemo.sampler(glm::u32vec3 {x, y, z}, thisDemo.model);
+
+                        const Voxel& v = sensibleData[sample.x, sample.y, sample.z];
 
                         if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
                         {
