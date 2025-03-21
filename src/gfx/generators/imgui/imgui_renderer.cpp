@@ -19,6 +19,8 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_to_string.hpp>
 
+extern const gfx::generators::voxel::VoxelRenderer* GlobalVoxelRendererSneak;
+
 namespace gfx::generators::imgui
 {
     ImguiRenderer::ImguiRenderer(const core::Renderer* renderer_)
@@ -317,9 +319,28 @@ namespace gfx::generators::imgui
                 renderer->getWindow()->attachCursor();
             }
 
-            if (ImGui::Button("Restart Bad Apple"))
+            if (this->raw_animation_name_strings.empty())
             {
-                voxel::VoxelRenderer::time_in_video = 0;
+                for (const std::string& s : GlobalVoxelRendererSneak->getAnimationNames())
+                {
+                    this->raw_animation_name_strings.push_back(s.c_str());
+                }
+            }
+
+            if (ImGui::Combo(
+                    "Animation",
+                    &this->animation_combo_box_value,
+                    raw_animation_name_strings.data(),
+                    static_cast<int>(raw_animation_name_strings.size())))
+            {
+                GlobalVoxelRendererSneak->setAnimationNumber(static_cast<u32>(this->animation_combo_box_value));
+
+                GlobalVoxelRendererSneak->setAnimationTime(0.0f);
+            }
+
+            if (ImGui::Button("Restart Animation"))
+            {
+                GlobalVoxelRendererSneak->setAnimationTime(0.0f);
             }
 
             if (this->owned_present_mode_strings.empty())

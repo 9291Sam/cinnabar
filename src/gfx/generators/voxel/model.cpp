@@ -200,6 +200,23 @@ namespace gfx::generators::voxel
         }
     }
 
+    namespace
+    {
+        std::vector<AnimatedVoxelModel::AnimatedVoxelModelFrame> staticVectorHelper(StaticVoxelModel staticModel)
+        {
+            std::vector<AnimatedVoxelModel::AnimatedVoxelModelFrame> frames {};
+
+            frames.push_back(AnimatedVoxelModel::AnimatedVoxelModelFrame {
+                .start_time {0.0f}, .duration {INFINITY}, .model {std::move(staticModel)}});
+
+            return frames;
+        }
+    } // namespace
+
+    AnimatedVoxelModel::AnimatedVoxelModel(StaticVoxelModel staticModel)
+        : AnimatedVoxelModel {staticVectorHelper(std::move(staticModel))}
+    {}
+
     AnimatedVoxelModel::AnimatedVoxelModel(AnimatedVoxelModel&& other) noexcept
         : frame_start_times {std::move(other.frame_start_times)}
         , frames {std::move(other.frames)}
@@ -308,6 +325,11 @@ namespace gfx::generators::voxel
         }
 
         assert::critical(!this->frame_start_times.empty(), "no frames!");
+
+        if (this->frame_start_times.size() == 1)
+        {
+            return 0;
+        }
 
         const std::vector<float>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
 

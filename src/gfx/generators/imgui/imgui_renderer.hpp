@@ -40,6 +40,9 @@ namespace gfx::generators::imgui
 
         std::vector<std::string> owned_present_mode_strings;
         std::vector<const char*> raw_present_mode_strings;
-        int                      present_mode_combo_box_value = 0;
+        std::vector<const char*> raw_animation_name_strings;
+
+        int present_mode_combo_box_value = 0;
+        int animation_combo_box_value    = 0;
     };
 } // namespace gfx::generators::imgui

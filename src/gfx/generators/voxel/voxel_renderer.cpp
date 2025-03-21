@@ -9,6 +9,7 @@
 #include "util/gif.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <atomic>
 #include <bit>
 #include <cstddef>
 #include <glm/ext/vector_uint3_sized.hpp>
@@ -17,6 +18,9 @@
 #include <span>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
+
+// HACK: replace with event system
+const gfx::generators::voxel::VoxelRenderer* GlobalVoxelRendererSneak = nullptr;
 
 namespace gfx::generators::voxel
 {
@@ -58,6 +62,8 @@ namespace gfx::generators::voxel
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
     {
+        GlobalVoxelRendererSneak = this;
+
         std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
@@ -68,16 +74,19 @@ namespace gfx::generators::voxel
             .model {AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}})},
             .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel&)
                       {
-                          return c;
+                          return glm::u32vec3 {c.z, c.y, c.x};
                       }}});
+        this->names.push_back("Bad Apple");
 
-        // this->bad_apple   = ;
-        // this->good_dragon = StaticVoxelModel::fromVoxFile(std::span {goodDragonData});
-
-        // log::debug("Loaded model with Extents: {}", glm::to_string(this->good_dragon.getExtent()));
+        this->demos.push_back(Demo {
+            .model {AnimatedVoxelModel {StaticVoxelModel::fromVoxFile(std::span {goodDragonData})}},
+            .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel& m)
+                      {
+                          return glm::u32vec3 {c.x, m.getExtent().y - 64 + c.y, m.getExtent().z - 64 + c.z};
+                          //   return c;
+                      }}});
+        this->names.push_back("Good Dragon");
     }
-
-    f32 VoxelRenderer::time_in_video = 0;
 
     VoxelRenderer::~VoxelRenderer()
     {
@@ -86,19 +95,25 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
-        // const f32 lastFrameTime = this->last_frame_time;
-        this->time_since_color_change += this->renderer->getWindow()->getDeltaTimeSeconds();
-        this->time_in_video += this->renderer->getWindow()->getDeltaTimeSeconds();
+        const f32 deltaTime     = this->renderer->getWindow()->getDeltaTimeSeconds();
+        const f32 lastFrameTime = this->last_frame_time.load(std::memory_order_acquire);
+        const f32 thisFrameTime = lastFrameTime + deltaTime;
 
-        static constexpr float TimeBetweenFrames = 1.0f / 30.0f;
+        auto& thisDemo = this->demos.at(this->demo_index.load(std::memory_order_acquire));
+        log::debug("{}", this->demo_index.load(std::memory_order_acquire));
 
-        auto& thisDemo = this->demos[0];
+        const u32 lastFrameAnimationNumber =
+            thisDemo.model.getFrameNumberAtTime(lastFrameTime, AnimatedVoxelModel::Looping {});
+        const u32 thisFrameAnimationNumber =
+            thisDemo.model.getFrameNumberAtTime(thisFrameTime, AnimatedVoxelModel::Looping {});
 
-        if (this->time_since_color_change > TimeBetweenFrames)
+        this->last_frame_time.fetch_add(deltaTime, std::memory_order_acq_rel);
+
+        if (thisFrameAnimationNumber != lastFrameAnimationNumber
+            || (lastFrameAnimationNumber == 0 && thisFrameAnimationNumber == 0))
         {
-            auto sensibleData = thisDemo.model.getFrame(this->time_in_video);
+            auto sensibleData = thisDemo.model.getFrame(thisFrameTime);
 
-            this->time_since_color_change = 0.0f;
             std::vector<BooleanBrick> newVisbleBricks {};
 
             std::vector<MaterialBrick> newMaterialBricks {};
@@ -175,5 +190,20 @@ namespace gfx::generators::voxel
                 this->materials.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);
+    }
+
+    void VoxelRenderer::setAnimationTime(f32 time) const
+    {
+        this->last_frame_time.store(time, std::memory_order_release);
+    }
+
+    void VoxelRenderer::setAnimationNumber(u32 animationIndex) const
+    {
+        this->demo_index.store(animationIndex, std::memory_order_release);
+    }
+
+    std::span<const std::string> VoxelRenderer::getAnimationNames() const
+    {
+        return this->names;
     }
 } // namespace gfx::generators::voxel

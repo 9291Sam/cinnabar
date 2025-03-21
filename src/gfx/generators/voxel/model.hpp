@@ -54,6 +54,7 @@ namespace gfx::generators::voxel
     public:
         AnimatedVoxelModel();
         explicit AnimatedVoxelModel(std::vector<AnimatedVoxelModelFrame>);
+        explicit AnimatedVoxelModel(StaticVoxelModel);
         // static AnimatedVoxelModel fromVoxFile(std::span<const std::byte>);
         static AnimatedVoxelModel fromGif(const util::Gif&);
 

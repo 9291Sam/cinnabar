@@ -29,13 +29,9 @@ namespace gfx::generators::voxel
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
-        // void setAnimationTime(f32) const;
-        // void setAnimationNumber(usize) const;
-
-        // void setTime();
-        // void static setAnimation
-
-        static f32 time_in_video;
+        void                         setAnimationTime(f32) const;
+        void                         setAnimationNumber(u32) const;
+        std::span<const std::string> getAnimationNames() const;
 
     private:
         const core::Renderer*                                renderer;
@@ -46,8 +42,8 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>     material_bricks;
         gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
 
-        float time_since_color_change;
-        // f32 last_frame_time;
+        mutable std::atomic<f32> last_frame_time;
+        mutable std::atomic<u32> demo_index;
 
         struct Demo
         {
@@ -55,9 +51,7 @@ namespace gfx::generators::voxel
             util::Fn<glm::u32vec3(glm::u32vec3, const AnimatedVoxelModel&)> sampler;
         };
 
-        std::vector<Demo> demos;
-
-        // AnimatedVoxelModel bad_apple;
-        // StaticVoxelModel   good_dragon;
+        std::vector<Demo>        demos;
+        std::vector<std::string> names;
     };
 } // namespace gfx::generators::voxel
