@@ -192,8 +192,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         # Don't forget to run with ASAN_OPTIONS=detect_container_overflow=0 ./cinnabar
         # because shaderc is built without asan and there are vector mismatch issues
 
-        target_compile_options(cinnabar PUBLIC -fsanitize=address)
-        target_link_options(cinnabar PUBLIC -fsanitize=address)
+        # target_compile_options(cinnabar PUBLIC -fsanitize=address)
+        # target_link_options(cinnabar PUBLIC -fsanitize=address)
 
         # target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
         # target_link_options(imgui_build_target PUBLIC -fsanitize=address)

@@ -54,7 +54,7 @@ void main()
                                      : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
 
     // TODO: hone this further and see if you can get rid of some bounds checks in the traversal shader
-    const vec3 traversalRayEnd = traversalRayStart + dir * 64;
+    const vec3 traversalRayEnd = traversalRayStart + dir * WorldBoundingCubeIntersection.t_far;
 
     const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
 
@@ -80,7 +80,7 @@ void main()
 
         // this is
         const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 24.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
+            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 32.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
             vec4(1.0, 1.0, 1.0, 8.0));
 
         const CalculatedLightPower power =
