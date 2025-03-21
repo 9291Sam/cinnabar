@@ -151,6 +151,17 @@ namespace gfx::generators::voxel
             }
         }
 
+        for (u32 x = 24; x < 36; ++x)
+        {
+            for (u32 y = 0; y < 16; ++y)
+            {
+                for (u32 z = 14; z < 42; ++z)
+                {
+                    voxels[x, y, z] = Voxel::Copper;
+                }
+            }
+        }
+
         return model;
     }
 
