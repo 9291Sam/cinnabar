@@ -29,6 +29,79 @@ layout(location = 0) out vec4 out_color;
 
 layout(depth_greater) out float gl_FragDepth;
 
+#define PI 3.14159265358979
+
+float distributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a2    = roughness * roughness * roughness * roughness;
+    float NdotH = max(dot(N, H), 0.0);
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    return a2 / (PI * denom * denom);
+}
+
+float geometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    return geometrySchlickGGX(max(dot(N, L), 0.0), roughness) * geometrySchlickGGX(max(dot(N, V), 0.0), roughness);
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 calculatePixelColor(
+    vec3  worldPos,
+    vec3  N,
+    vec3  V,
+    vec3  L,
+    vec3  lightPos,
+    vec3  lightColor,
+    vec3  albedo,
+    float metallic,
+    float roughness,
+    float lightPower,
+    float lightRadius)
+{
+    // HACK!
+    roughness = max(roughness, metallic / 2);
+
+    vec3 H = normalize(V + L);
+
+    vec3  F0  = mix(vec3(0.04), pow(albedo, vec3(2.2)), metallic);
+    float NDF = distributionGGX(N, H, roughness);
+    float G   = geometrySmith(N, V, L, roughness);
+    vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    vec3  kD  = vec3(1.0) - F;
+
+    kD *= 1.0 - metallic;
+
+    // return D
+
+    vec3  numerator   = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    vec3  specular    = numerator / max(denominator, 0.001);
+
+    float NdotL = max(dot(N, L), 0.0);
+
+    // Custom light intensity calculation with exponential falloff
+    float distanceToLight = length(lightPos - worldPos);
+    float lightIntensity  = pow(2.0, -distanceToLight / lightRadius) * lightPower;
+    lightIntensity        = max(lightIntensity, 0.0);
+
+    // Calculate final color with custom light intensity
+    vec3 color =
+        lightColor * (kD * pow(albedo, vec3(2.2)) / PI + specular) * (NdotL / distanceToLight) * lightIntensity;
+
+    return color;
+}
+
 void main()
 {
     const Cube chunkBoundingCube = Cube(in_cube_corner_location + 32, 64);
@@ -79,11 +152,22 @@ void main()
         }
 
         const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 16.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 8.0),
-            vec4(1.0, 1.0, 1.0, 1.0));
+            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 0.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 64.0),
+            vec4(1.0, 1.0, 1.0, 118.0));
 
-        vec3 calculatedColor =
-            calculateLightColor(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
+        vec3 calculatedColor = calculatePixelColor(
+            worldStrikePosition,
+            result.voxel_normal,
+            normalize(camera_position - worldStrikePosition),
+            normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+            light.position_and_half_intensity_distance.xyz,
+            light.color_and_power.xyz,
+            result.material.albedo_roughness.xyz,
+            // 0.9,
+            result.material.emission_metallic.w,
+            result.material.albedo_roughness.w,
+            light.color_and_power.w,
+            light.position_and_half_intensity_distance.w);
 
         const VoxelTraceResult shadowResult = traceDDARay(
             0,
