@@ -4,6 +4,7 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "util/util.hpp"
 #include <array>
+#include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
 namespace gfx::generators::voxel
@@ -12,41 +13,107 @@ namespace gfx::generators::voxel
     enum class Voxel : u16 // NOLINT(performance-enum-size)
     {
         NullAirEmpty = 0,
-        Emerald,
-        Ruby,
-        Pearl,
-        Obsidian,
+        Aluminum,
+        Banana,
+        Blackboard,
+        Blood,
+        Bone,
         Brass,
-        Chrome,
+        Brick,
+        CarPaint,
+        Carrot,
+        Charcoal,
+        Chocolate,
+        Chromium,
+        Cobalt,
+        Coffee,
+        Concrete,
+        CookingOil,
         Copper,
-        Gold,
-        Topaz,
-        Sapphire,
-        Amethyst,
-        Jade,
         Diamond,
+        EggShell,
+        EyeCornea,
+        EyeLens,
+        EyeSclera,
+        Gasoline,
+        Glass,
+        Gold,
+        GrayCard,
+        Honey,
+        Ice,
+        Iron,
+        Ketchup,
+        Lead,
+        Lemon,
         Marble,
-        Granite,
-        Basalt,
-        Limestone,
-        Dirt,
-        Grass,
+        Mercury,
+        Milk,
+        MITBlack,
+        MusouBlack,
+        Nickel,
+        OfficePaper,
+        Pearl,
+        Petroleum,
+        Plastic,
+        Platinum,
+        Polyurethane,
+        Salt,
+        Sand,
+        Sapphire,
+        Silicon,
+        Silver,
+        SkinI,
+        SkinII,
+        SkinIII,
+        SkinIV,
+        SkinV,
+        SkinVI,
+        Snow,
+        SoapBubble,
+        Tire,
+        Titanium,
+        TonerBlack,
+        Tungsten,
+        Vanadium,
+        Water,
+        Whiteboard,
+        Zinc,
+        Ruby,
+        Jade,
+        // Emerald,
+        // Ruby,
+        // Pearl,
+        // Obsidian,
+        // Brass,
+        // Chrome,
+        // Copper,
+        // Gold,
+        // Topaz,
+        // Sapphire,
+        // Amethyst,
+        // Jade,
+        // Diamond,
+        // Marble,
+        // Granite,
+        // Basalt,
+        // Limestone,
+        // Dirt,
+        // Grass,
     };
 
-    struct VoxelMaterial
+    struct PBRVoxelMaterial
     {
-        glm::vec4 ambient_color;
-        glm::vec4 diffuse_color;
-        glm::vec4 specular_color;
-        glm::vec4 emissive_color_power;
-        glm::vec4 coat_color_power;
-        float     diffuse_subsurface_weight;
-        float     specular;
-        float     roughness;
-        float     metallic;
+        // xyz - linear rgb color
+        // w - roughness
+        glm::vec4 albedo_roughness;
+        // xyz - emissive color (values over 1 indicate more than 1 unit of brightness)
+        // w - metallic
+        glm::vec4 emission_metallic;
     };
 
-    VoxelMaterial getMaterialFromVoxel(Voxel v);
+    // TODO: importance sampling, subsurface, clear coat, anisotropic, transparency
 
-    core::vulkan::WriteOnlyBuffer<VoxelMaterial> generateMaterialBuffer(const core::Renderer*);
+    PBRVoxelMaterial getMaterialFromVoxel(Voxel v);
+
+    core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> generateMaterialBuffer(const core::Renderer*);
 } // namespace gfx::generators::voxel

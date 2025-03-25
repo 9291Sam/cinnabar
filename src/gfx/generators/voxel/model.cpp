@@ -75,8 +75,8 @@ namespace gfx::generators::voxel
         StaticVoxelModel out {
             glm::u32vec3 {models[0]->size_x, models[0]->size_z, models[0]->size_y}, Voxel::NullAirEmpty};
 
-        uint32_t solid_voxel_count = 0;
-        uint32_t voxel_index       = 0;
+        // uint32_t solid_voxel_count = 0;
+        uint32_t voxel_index = 0;
 
         for (uint32_t z = 0; z < models[0]->size_z; z++)
         {

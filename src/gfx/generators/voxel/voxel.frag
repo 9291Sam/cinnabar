@@ -78,28 +78,21 @@ void main()
             discard;
         }
 
-        // this is
         const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 32.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
-            vec4(1.0, 1.0, 1.0, 8.0));
+            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 16.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 8.0),
+            vec4(1.0, 1.0, 1.0, 1.0));
 
-        const CalculatedLightPower power =
-            newLightPower(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
+        vec3 calculatedColor =
+            calculateLightColor(camera_position, worldStrikePosition, result.voxel_normal, light, result.material);
 
-        vec3 calculatedColor = result.material.diffuse_color.xyz * power.diffuse_strength
-                             + result.material.specular_color.xyz * power.specular_strength;
-
-        // if (dot(result.voxel_normal, ))
-
-        // something is wrong with the distance calculations here remember the cornel box
         const VoxelTraceResult shadowResult = traceDDARay(
             0,
-            result.chunk_local_fragment_position + 0.5 * result.voxel_normal,
+            result.chunk_local_fragment_position + 0.05 * result.voxel_normal,
             light.position_and_half_intensity_distance.xyz - box_corner_negative);
 
         if (shadowResult.intersect_occur)
         {
-            calculatedColor = result.material.ambient_color.xyz * 0.025;
+            calculatedColor = vec3(0);
         }
 
         out_color = vec4(calculatedColor, 1.0);

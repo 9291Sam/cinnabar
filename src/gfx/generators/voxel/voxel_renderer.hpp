@@ -37,10 +37,10 @@ namespace gfx::generators::voxel
         const core::Renderer*                                renderer;
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
 
-        gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage> chunk_bricks;
-        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>      visible_bricks;
-        gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>     material_bricks;
-        gfx::core::vulkan::WriteOnlyBuffer<VoxelMaterial>   materials;
+        gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>  chunk_bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>       visible_bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>      material_bricks;
+        gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> materials;
 
         mutable std::atomic<f32> last_frame_time;
         mutable std::atomic<u32> demo_index;
