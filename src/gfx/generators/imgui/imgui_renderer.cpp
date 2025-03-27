@@ -7,6 +7,7 @@
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "util/events.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
@@ -18,8 +19,6 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_to_string.hpp>
-
-extern const gfx::generators::voxel::VoxelRenderer* GlobalVoxelRendererSneak;
 
 namespace gfx::generators::imgui
 {
@@ -321,7 +320,14 @@ namespace gfx::generators::imgui
 
             if (this->raw_animation_name_strings.empty())
             {
-                for (const std::string& s : GlobalVoxelRendererSneak->getAnimationNames())
+                // TODO: have a version that warns on error
+                std::optional v = util::receive<std::vector<std::string>>("AllAnimationNames");
+
+                assert::critical(v.has_value(), "oop");
+
+                this->owned_animation_name_strings = std::move(*v);
+
+                for (const std::string& s : this->owned_animation_name_strings)
                 {
                     this->raw_animation_name_strings.push_back(s.c_str());
                 }
@@ -333,14 +339,13 @@ namespace gfx::generators::imgui
                     raw_animation_name_strings.data(),
                     static_cast<int>(raw_animation_name_strings.size())))
             {
-                GlobalVoxelRendererSneak->setAnimationNumber(static_cast<u32>(this->animation_combo_box_value));
-
-                GlobalVoxelRendererSneak->setAnimationTime(0.0f);
+                util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
+                util::send<f32>("SetAnimationTime", 0.0f);
             }
 
             if (ImGui::Button("Restart Animation"))
             {
-                GlobalVoxelRendererSneak->setAnimationTime(0.0f);
+                util::send<f32>("SetAnimationTime", 0.0f);
             }
 
             if (this->owned_present_mode_strings.empty())

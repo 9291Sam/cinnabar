@@ -152,8 +152,8 @@ void main()
         }
 
         const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 0.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 64.0),
-            vec4(1.0, 1.0, 1.0, 118.0));
+            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 0.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
+            vec4(1.0, 1.0, 1.0, 64.0));
 
         vec3 calculatedColor = calculatePixelColor(
             worldStrikePosition,
@@ -163,7 +163,6 @@ void main()
             light.position_and_half_intensity_distance.xyz,
             light.color_and_power.xyz,
             result.material.albedo_roughness.xyz,
-            // 0.9,
             result.material.emission_metallic.w,
             result.material.albedo_roughness.w,
             light.color_and_power.w,

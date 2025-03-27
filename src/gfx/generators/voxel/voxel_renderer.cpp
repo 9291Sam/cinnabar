@@ -6,6 +6,7 @@
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
+#include "util/events.hpp"
 #include "util/gif.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
@@ -18,9 +19,6 @@
 #include <span>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
-
-// HACK: replace with event system
-const gfx::generators::voxel::VoxelRenderer* GlobalVoxelRendererSneak = nullptr;
 
 namespace gfx::generators::voxel
 {
@@ -62,8 +60,6 @@ namespace gfx::generators::voxel
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
     {
-        GlobalVoxelRendererSneak = this;
-
         std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
@@ -94,6 +90,8 @@ namespace gfx::generators::voxel
                           return c;
                       }}});
         this->names.push_back("Cornel Box");
+
+        util::send("AllAnimationNames", std::vector {this->names});
     }
 
     VoxelRenderer::~VoxelRenderer()
@@ -103,6 +101,14 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
+        if (std::optional t = util::receive<f32>("SetAnimationTime"))
+        {
+            this->setAnimationTime(*t);
+        }
+        if (std::optional n = util::receive<u32>("SetAnimationNumber"))
+        {
+            this->setAnimationNumber(*n);
+        }
         const f32 deltaTime     = this->renderer->getWindow()->getDeltaTimeSeconds();
         const f32 lastFrameTime = this->last_frame_time.load(std::memory_order_acquire);
         const f32 thisFrameTime = lastFrameTime + deltaTime;

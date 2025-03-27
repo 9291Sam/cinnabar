@@ -13,7 +13,9 @@
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/util.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <cstddef>
@@ -176,16 +178,20 @@ struct TemporaryGameState : game::Game::GameState
 int main()
 {
     util::GlobalLoggerContext loggerContext {};
+    util::GlobalEventContext  eventContent {};
 
     CPPTRACE_TRYZ
     {
+        util::send("foo", 3);
+
         log::info(
-            "Cinnabar has started v{}.{}.{}.{}{}",
+            "Cinnabar has started v{}.{}.{}.{}{}{}",
             CINNABAR_VERSION_MAJOR,
             CINNABAR_VERSION_MINOR,
             CINNABAR_VERSION_PATCH,
             CINNABAR_VERSION_TWEAK,
-            CINNABAR_DEBUG_BUILD ? " Debug Build" : "");
+            CINNABAR_DEBUG_BUILD ? " Debug Build" : "",
+            util::receive<int>("foo").value());
 
         gfx::core::Renderer renderer {};
         game::Game          game {&renderer};

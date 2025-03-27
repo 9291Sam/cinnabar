@@ -33,6 +33,7 @@ namespace gfx::generators::voxel
         void                         setAnimationNumber(u32) const;
         std::span<const std::string> getAnimationNames() const;
 
+
     private:
         const core::Renderer*                                renderer;
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;

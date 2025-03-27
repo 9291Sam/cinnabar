@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string_view>
 #include <type_traits>
 #include <vector>
@@ -29,7 +30,7 @@ namespace util
     using Fn = T*;
 
     template<typename T>
-    constexpr std::string_view getNameOfType()
+    consteval std::string_view getNameOfType()
     {
 #ifdef __clang__
         std::string_view name = __PRETTY_FUNCTION__;
@@ -45,6 +46,31 @@ namespace util
         name.remove_suffix(7);
 #endif
         return name;
+    }
+
+    constexpr u64 hashCombine(u64 hash, u64 add)
+    {
+        hash ^= add;
+        hash *= 1099511628211ULL; // FNV-1a Prime
+
+        return hash;
+    }
+
+    constexpr u64 hashStringViewConstexpr(std::string_view str)
+    {
+        // FNV-1a offset basis
+        u64 hash = 14695981039346656037ULL;
+        for (char c : str)
+        {
+            hash = hashCombine(hash, static_cast<u64>(c));
+        }
+        return hash;
+    }
+
+    template<class T>
+    consteval u64 getIdOfType()
+    {
+        return hashStringViewConstexpr(getNameOfType<T>());
     }
 
     inline std::filesystem::path getCanonicalPathOfShaderFile(std::string_view file)

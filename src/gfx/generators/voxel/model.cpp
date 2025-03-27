@@ -59,18 +59,18 @@ namespace gfx::generators::voxel
         std::mdspan<const u8, std::dextents<std::size_t, 3>> voxelStorage =
             std::mdspan(models[0]->voxel_data, models[0]->size_z, models[0]->size_y, models[0]->size_x);
 
-        auto hash = [](u32 foo)
-        {
-            foo ^= foo >> 17;
-            foo *= 0xed5ad4bbU;
-            foo ^= foo >> 11;
-            foo *= 0xac4c1b51U;
-            foo ^= foo >> 15;
-            foo *= 0x31848babU;
-            foo ^= foo >> 14;
+        // auto hash = [](u32 foo)
+        // {
+        //     foo ^= foo >> 17;
+        //     foo *= 0xed5ad4bbU;
+        //     foo ^= foo >> 11;
+        //     foo *= 0xac4c1b51U;
+        //     foo ^= foo >> 15;
+        //     foo *= 0x31848babU;
+        //     foo ^= foo >> 14;
 
-            return foo;
-        };
+        //     return foo;
+        // };
 
         StaticVoxelModel out {
             glm::u32vec3 {models[0]->size_x, models[0]->size_z, models[0]->size_y}, Voxel::NullAirEmpty};
@@ -88,7 +88,7 @@ namespace gfx::generators::voxel
 
                     if (val != 0)
                     {
-                        out.getModelMutable()[x, z, y] = static_cast<Voxel>((hash(static_cast<u32>(val)) % 17) + 1);
+                        out.getModelMutable()[x, z, y] = static_cast<Voxel>(((static_cast<u32>(val)) % 67) + 1);
                     }
                 }
             }
@@ -335,7 +335,7 @@ namespace gfx::generators::voxel
                         return foo;
                     };
 
-                    const Voxel v = static_cast<Voxel>(((hash(x) + hash(z)) % 17) + 1);
+                    const Voxel v = static_cast<Voxel>(((hash(hash(x) + hash(z))) % 67) + 1);
 
                     if (shouldBeSolid)
                     {
