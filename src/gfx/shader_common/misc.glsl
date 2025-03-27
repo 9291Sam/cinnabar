@@ -43,4 +43,9 @@ u32 gpu_hashCombineU32(u32 a, u32 h)
     return h * 5u + 0xe6546b64u;
 }
 
+float gpu_randomUniformFloat(uint seed)
+{
+    return float(gpu_hashU32(seed)) * uintBitsToFloat(0x2f800004u);
+}
+
 #endif // SRC_GFX_SHADER_COMMON_MISC_GLSL

@@ -58,7 +58,7 @@ layout(location = 3) out vec3 out_ray_start_position;
 
 void main()
 {
-    const vec3  center_location = vec3(8.0, 8.2, -12.24);
+    const vec3  center_location = vec3(16.0f);
     const float voxel_size      = 64.0;
 
     const vec3 box_corner_negative = center_location - vec3(voxel_size) / 2;

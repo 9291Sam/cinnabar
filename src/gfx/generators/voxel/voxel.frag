@@ -178,7 +178,17 @@ void main()
             calculatedColor = vec3(0);
         }
 
-        out_color = vec4(calculatedColor, 1.0);
+        const ivec3 pos = result.chunk_local_voxel_position;
+
+        u32 hash = gpu_hashCombineU32(pos.x, pos.y);
+        hash     = gpu_hashCombineU32(hash, pos.z);
+
+        const vec3 c = vec3(
+            gpu_randomUniformFloat(hash - 84492),
+            gpu_randomUniformFloat(hash - 8478193),
+            gpu_randomUniformFloat(hash + 32));
+
+        out_color = vec4(c, 1.0);
     }
 
     const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));

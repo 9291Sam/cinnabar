@@ -235,6 +235,14 @@ namespace gfx::generators::voxel
         glm::vec4 color_and_power;
     };
 
+    struct GpuColorHashMapNode
+    {
+        u32 hash;
+        u32 r;
+        u32 g;
+        u32 b;
+        u32 number_of_samples;
+    };
     // struct Chunk
     // {
 

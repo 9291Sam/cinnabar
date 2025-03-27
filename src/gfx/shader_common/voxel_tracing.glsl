@@ -109,7 +109,7 @@ struct VoxelTraceResult
 {
     bool             intersect_occur;
     vec3             chunk_local_fragment_position;
-    // ivec3 chunk_local_voxel_position;
+    ivec3            chunk_local_voxel_position;
     vec3             voxel_normal;
     vec3             local_voxel_uvw;
     float            t;
@@ -119,7 +119,8 @@ struct VoxelTraceResult
 
 VoxelTraceResult VoxelTraceResult_getMiss(uint steps)
 {
-    return VoxelTraceResult(false, vec3(0.0), vec3(0.0), vec3(0.0), 0.0, steps, PBRVoxelMaterial_getUninitialized());
+    return VoxelTraceResult(
+        false, vec3(0.0), ivec3(0), vec3(0.0), vec3(0.0), 0.0, steps, PBRVoxelMaterial_getUninitialized());
 }
 
 VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask)
@@ -162,7 +163,7 @@ VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask)
             }
 
             return VoxelTraceResult(
-                true, intersect, normal, uv3d, d, i + 1, getMaterialFromPosition(brick, uvec3(mapPos)));
+                true, intersect, ivec3(mapPos), normal, uv3d, d, i + 1, getMaterialFromPosition(brick, uvec3(mapPos)));
         }
 
         mask = stepMask(sideDist);
@@ -221,6 +222,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, vec3 rayPos, vec3 rayDir, float 
                 return VoxelTraceResult(
                     true,
                     floor(mapPos) * 8.0 + result.chunk_local_fragment_position,
+                    ivec3(mapPos) * 8 + result.chunk_local_voxel_position,
                     result.voxel_normal,
                     result.local_voxel_uvw,
                     strikeT,
