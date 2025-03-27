@@ -26,7 +26,7 @@ namespace gfx::generators::imgui
     ImguiRenderer::ImguiRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , font {nullptr}
-        , menu_transfer_pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
+        , menu_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/imgui/menu_color_transfer.vert"},
                   .fragment_shader_path {"src/gfx/generators/imgui/menu_color_transfer.frag"},
@@ -215,7 +215,7 @@ namespace gfx::generators::imgui
 
     ImguiRenderer::~ImguiRenderer()
     {
-        this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->menu_transfer_pipeline));
+        this->renderer->getPipelineManager()->destroyPipeline(std::move(this->menu_transfer_pipeline));
         ImGui_ImplVulkan_Shutdown();
     }
 

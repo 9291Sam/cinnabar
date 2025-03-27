@@ -4,7 +4,6 @@
 #include "util/threads.hpp"
 #include <filesystem>
 #include <shaderc/shaderc.hpp>
-#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -31,10 +30,16 @@ namespace gfx::core::vulkan
         bool operator== (const GraphicsPipelineDescriptor&) const = default;
     };
 
+    struct ComputePipelineDescriptor
+    {
+        std::string compute_shader_path;
+        std::string name;
+    };
+
     class PipelineManager
     {
     public:
-        using GraphicsPipeline = util::OpaqueHandle<"Graphics Pipeline", u16>;
+        using Pipeline = util::OpaqueHandle<"Vulkan Pipeline", u16>;
     public:
         explicit PipelineManager(const Device&, vk::PipelineLayout bindlessPipelineLayout);
         ~PipelineManager();
@@ -44,63 +49,53 @@ namespace gfx::core::vulkan
         PipelineManager& operator= (const PipelineManager&) = delete;
         PipelineManager& operator= (PipelineManager&&)      = delete;
 
-        [[nodiscard]] GraphicsPipeline createGraphicsPipeline(GraphicsPipelineDescriptor) const;
-        void                           destroyGraphicsPipeline(GraphicsPipeline) const;
+        [[nodiscard]] Pipeline createPipeline(GraphicsPipelineDescriptor) const;
+        [[nodiscard]] Pipeline createPipeline(ComputePipelineDescriptor) const;
 
-        bool couldAnyShadersReload() const;
-        void reloadShaders() const;
+        void destroyPipeline(Pipeline) const;
 
         /// The value returned is valid until the next call to reloadShaders
-        [[nodiscard]] vk::Pipeline getPipeline(const GraphicsPipeline&) const;
+        [[nodiscard]] vk::Pipeline getPipeline(const Pipeline&) const;
+        [[nodiscard]] bool         couldAnyShadersReload() const;
+        void                       reloadShaders() const;
+
 
     private:
 
-        struct GraphicsPipelineInternalStorage
-        {
-            GraphicsPipelineDescriptor      descriptor;
-            vk::UniquePipeline              pipeline;
-            std::filesystem::path           vertex_path;
-            std::filesystem::file_time_type vertex_modify_time;
-            std::filesystem::path           fragment_path;
-            std::filesystem::file_time_type fragment_modify_time;
-        };
-
-        struct TryCreateShaderModuleResult
-        {
-            std::filesystem::path path;
-
-            bool                   success;
-            vk::UniqueShaderModule maybe_shader;
-            std::string            maybe_error_string;
-        };
-
-        /// Returns the new shader module and the time the file's info
-        TryCreateShaderModuleResult tryCreateShaderModuleFromShaderPath(const std::string&, vk::ShaderStageFlags) const;
-
-        struct TryCreateGraphicsPipelineFromDescriptorError
-        {
-            GraphicsPipelineDescriptor      recycled_descriptor;
-            std::string                     error;
-            std::filesystem::file_time_type vertex_modify_time;
-            std::filesystem::file_time_type fragment_modify_time;
-        };
-
-        std::expected<GraphicsPipelineInternalStorage, TryCreateGraphicsPipelineFromDescriptorError>
-            tryCreateGraphicsPipelineFromDescriptor(GraphicsPipelineDescriptor) const;
-
         vk::Device              device;
         vk::UniquePipelineCache pipeline_cache;
+        shaderc::Compiler       shader_compiler;
+        vk::PipelineLayout      bindless_pipeline_layout;
 
-        shaderc::Compiler shader_compiler;
-
-        vk::PipelineLayout bindless_pipeline_layout;
+        struct PipelineInternalStorage
+        {
+            std::variant<GraphicsPipelineDescriptor, ComputePipelineDescriptor>            descriptor;
+            vk::UniquePipeline                                                             pipeline;
+            std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
+        };
 
         struct CriticalSection
         {
-            util::OpaqueHandleAllocator<GraphicsPipeline> graphics_pipeline_handle_allocator;
-            std::vector<GraphicsPipelineInternalStorage>  graphics_pipeline_storage;
+            util::OpaqueHandleAllocator<Pipeline> pipeline_handle_allocator;
+            std::vector<PipelineInternalStorage>  pipeline_storage;
         };
 
         util::Mutex<CriticalSection> critical_section;
+
+        /// Moves from the variable on success
+        std::expected<PipelineInternalStorage, std::string> tryCompilePipeline(GraphicsPipelineDescriptor&) const;
+        /// Moves from the variable on success
+        std::expected<PipelineInternalStorage, std::string> tryCompilePipeline(ComputePipelineDescriptor&) const;
+
+        std::pair<PipelineInternalStorage, std::optional<std::string>>
+            tryRecompilePipeline(PipelineInternalStorage) const;
+
+        struct FormShaderModuleFromShaderSourceResult
+        {
+            vk::UniqueShaderModule                                                         module;
+            std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
+        };
+        std::expected<FormShaderModuleFromShaderSourceResult, std::string>
+        formShaderModuleFromShaderSource(std::span<const char>, const std::string&, shaderc_shader_kind) const;
     };
 } // namespace gfx::core::vulkan

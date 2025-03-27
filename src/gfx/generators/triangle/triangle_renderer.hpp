@@ -30,8 +30,8 @@ namespace gfx::generators::triangle
 
 
     private:
-        const core::Renderer*                           renderer;
-        core::vulkan::PipelineManager::GraphicsPipeline pipeline;
+        const core::Renderer*                   renderer;
+        core::vulkan::PipelineManager::Pipeline pipeline;
 
         util::OpaqueHandleAllocator<Triangle>         triangle_allocator;
         gfx::core::vulkan::WriteOnlyBuffer<glm::vec3> triangle_gpu_data;

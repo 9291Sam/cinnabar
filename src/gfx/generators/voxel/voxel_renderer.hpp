@@ -52,10 +52,10 @@ namespace gfx::generators::voxel
 
 
     private:
-        const core::Renderer*                                renderer;
-        gfx::core::vulkan::PipelineManager::GraphicsPipeline prepass_pipeline;
+        const core::Renderer*                        renderer;
+        gfx::core::vulkan::PipelineManager::Pipeline prepass_pipeline;
         // gfx::core::vulkan::PipelineManager::ComputePipeline  color_calculation_pipeline;
-        // gfx::core::vulkan::PipelineManager::GraphicsPipeline color_transfer_pipeline;
+        // gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
         gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>  chunk_bricks;
         gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>  lights;

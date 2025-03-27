@@ -152,6 +152,7 @@ namespace util
         }
 
         void iterateThroughAllocatedElements(std::invocable<typename Handle::IndexType> auto func)
+            requires std::same_as<void, std::invoke_result_t<decltype(func), typename Handle::IndexType>>
         {
             this->allocator.iterateThroughAllocatedElements(
                 [&](const util::IndexAllocator::IndexType i)

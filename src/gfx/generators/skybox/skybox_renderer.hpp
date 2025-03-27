@@ -21,9 +21,9 @@ namespace gfx::generators::skybox
         void renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&);
 
     private:
-        const core::Renderer*                           renderer;
-        core::vulkan::PipelineManager::GraphicsPipeline pipeline;
-        f32                                             time_alive;
+        const core::Renderer*                   renderer;
+        core::vulkan::PipelineManager::Pipeline pipeline;
+        f32                                     time_alive;
     };
 
 } // namespace gfx::generators::skybox

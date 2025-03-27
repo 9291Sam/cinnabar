@@ -28,7 +28,7 @@ namespace gfx::generators::voxel
 {
     VoxelRenderer::VoxelRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
-        , prepass_pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
+        , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/voxel/voxel.vert"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel.frag"},
@@ -112,7 +112,7 @@ namespace gfx::generators::voxel
 
     VoxelRenderer::~VoxelRenderer()
     {
-        this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->prepass_pipeline));
+        this->renderer->getPipelineManager()->destroyPipeline(std::move(this->prepass_pipeline));
     }
 
     void VoxelRenderer::onFrameUpdate()
