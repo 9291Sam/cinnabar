@@ -5,6 +5,10 @@
 #error "VOXEL_MATERIALS_OFFSET must be defined"
 #endif // VOXEL_MATERIALS_OFFSET
 
+#ifndef LIGHT_BUFFER_OFFSET
+#error "LIGHT_BUFFER_OFFSET must be defined"
+#endif // LIGHT_BUFFER_OFFSET
+
 struct PBRVoxelMaterial
 {
     // xyz - linear rgb color
@@ -33,6 +37,12 @@ struct GpuRaytracedLight
     vec4 position_and_half_intensity_distance;
     vec4 color_and_power;
 };
+
+layout(set = 0, binding = 4) readonly buffer GpuRaytracedLightStorage
+{
+    GpuRaytracedLight lights[];
+}
+in_raytraced_lights[];
 
 vec3 calculateLightColor(
     vec3 camera_position, vec3 voxel_position, vec3 voxel_normal, GpuRaytracedLight light, PBRVoxelMaterial material)

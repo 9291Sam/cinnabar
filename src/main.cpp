@@ -12,6 +12,7 @@
 #include "gfx/generators/imgui/imgui_renderer.hpp"
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
+#include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
@@ -21,6 +22,7 @@
 #include <cstddef>
 #include <glm/ext/scalar_common.hpp>
 #include <glm/trigonometric.hpp>
+#include <imgui.h>
 #include <shaderc/shaderc.hpp>
 #include <shaderc/status.h>
 #include <vulkan/vulkan_enums.hpp>

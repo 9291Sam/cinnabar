@@ -46,6 +46,12 @@ namespace gfx::generators::voxel
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Chunk Bricks")
+        , lights(
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              1,
+              "Voxel Lights")
         , visible_bricks(
               this->renderer->getAllocator(),
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -108,6 +114,10 @@ namespace gfx::generators::voxel
         if (std::optional n = util::receive<u32>("SetAnimationNumber"))
         {
             this->setAnimationNumber(*n);
+        }
+        if (std::optional l = util::receive<voxel::GpuRaytracedLight>("UpdateLight"))
+        {
+            this->setLightInformation(*l);
         }
         const f32 deltaTime     = this->renderer->getWindow()->getDeltaTimeSeconds();
         const f32 lastFrameTime = this->last_frame_time.load(std::memory_order_acquire);
@@ -192,17 +202,23 @@ namespace gfx::generators::voxel
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 4>>(
+        commandBuffer.pushConstants<std::array<u32, 5>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            std::array<u32, 4> {
+            std::array<u32, 5> {
                 this->chunk_bricks.getStorageDescriptor().getOffset(),
+                this->lights.getStorageDescriptor().getOffset(),
                 this->visible_bricks.getStorageDescriptor().getOffset(),
                 this->material_bricks.getStorageDescriptor().getOffset(),
                 this->materials.getStorageDescriptor().getOffset()});
 
         commandBuffer.draw(36, 1, 0, 0);
+    }
+
+    void VoxelRenderer::setLightInformation(GpuRaytracedLight light)
+    {
+        this->renderer->getStager().enqueueTransfer(this->lights, 0, {&light, 1});
     }
 
     void VoxelRenderer::setAnimationTime(f32 time) const

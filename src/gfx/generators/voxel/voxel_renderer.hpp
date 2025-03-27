@@ -29,6 +29,7 @@ namespace gfx::generators::voxel
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
 
+        void                         setLightInformation(GpuRaytracedLight);
         void                         setAnimationTime(f32) const;
         void                         setAnimationNumber(u32) const;
         std::span<const std::string> getAnimationNames() const;
@@ -39,6 +40,7 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::GraphicsPipeline pipeline;
 
         gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>  chunk_bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>  lights;
         gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>       visible_bricks;
         gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>      material_bricks;
         gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> materials;

@@ -6,6 +6,7 @@
 #include "gfx/core/vulkan/instance.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
+#include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
@@ -25,8 +26,8 @@ namespace gfx::generators::imgui
     ImguiRenderer::ImguiRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , font {nullptr}
-        , menu_transfer_pipeline {
-              this->renderer->getPipelineManager()->createGraphicsPipeline(core::vulkan::GraphicsPipelineDescriptor {
+        , menu_transfer_pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
+              core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/imgui/menu_color_transfer.vert"},
                   .fragment_shader_path {"src/gfx/generators/imgui/menu_color_transfer.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList}, // remove
@@ -41,7 +42,11 @@ namespace gfx::generators::imgui
                   .blend_enable {vk::True},
                   .name {"Menu Color Transfer"},
               })}
+        , light {
+              .position_and_half_intensity_distance {18.394, 0.0, -18.4, 32.0}, .color_and_power {1.0, 1.0, 1.0, 64.0}}
     {
+        util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
+
         const std::array availableDescriptors {
             vk::DescriptorPoolSize {.type {vk::DescriptorType::eSampler}, .descriptorCount {1024}},
             vk::DescriptorPoolSize {.type {vk::DescriptorType::eCombinedImageSampler}, .descriptorCount {1024}},
@@ -222,6 +227,8 @@ namespace gfx::generators::imgui
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        // ImGui::ShowDemoWindow();
+
         const ImGuiViewport* const viewport = ImGui::GetMainViewport();
 
         const auto [x, y] = viewport->Size;
@@ -327,9 +334,17 @@ namespace gfx::generators::imgui
 
                 this->owned_animation_name_strings = std::move(*v);
 
+                int iters = 0;
                 for (const std::string& s : this->owned_animation_name_strings)
                 {
+                    if (s == "Cornel Box")
+                    {
+                        this->animation_combo_box_value = iters;
+                        util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
+                    }
                     this->raw_animation_name_strings.push_back(s.c_str());
+
+                    iters++;
                 }
             }
 
@@ -390,6 +405,25 @@ namespace gfx::generators::imgui
                     raw_present_mode_strings.at(static_cast<usize>(this->present_mode_combo_box_value)));
 
                 this->renderer->setDesiredPresentMode(newPresentMode);
+            }
+
+            bool needsUpdate = false;
+            needsUpdate |=
+                ImGui::DragFloat("Light x", &light.position_and_half_intensity_distance.x, 0.05f, -32.0f, 32.0f);
+            needsUpdate |=
+                ImGui::DragFloat("Light y", &light.position_and_half_intensity_distance.y, 0.05f, -32.0f, 32.0f);
+            needsUpdate |=
+                ImGui::DragFloat("Light z", &light.position_and_half_intensity_distance.z, 0.05f, -32.0f, 32.0f);
+            needsUpdate |= ImGui::DragFloat("Color r", &light.color_and_power.x, 0.001f, 0.0f, 1.0f);
+            needsUpdate |= ImGui::DragFloat("Color g", &light.color_and_power.y, 0.001f, 0.0f, 1.0f);
+            needsUpdate |= ImGui::DragFloat("Color b", &light.color_and_power.z, 0.001f, 0.0f, 1.0f);
+            needsUpdate |= ImGui::DragFloat("Light Power b", &light.color_and_power.w, 0.05f, 0.0f, 64.0f);
+            needsUpdate |=
+                ImGui::DragFloat("Light Radius b", &light.position_and_half_intensity_distance.w, 0.05f, 0.0f, 64.0f);
+
+            if (needsUpdate)
+            {
+                util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
             }
 
             ImGui::PopStyleVar();

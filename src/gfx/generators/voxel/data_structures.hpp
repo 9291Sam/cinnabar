@@ -229,6 +229,12 @@ namespace gfx::generators::voxel
         }
     };
 
+    struct GpuRaytracedLight
+    {
+        glm::vec4 position_and_half_intensity_distance;
+        glm::vec4 color_and_power;
+    };
+
     // struct Chunk
     // {
 

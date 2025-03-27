@@ -8,6 +8,7 @@
 layout(push_constant) uniform PushConstants
 {
     uint chunk_brick_maps_buffer_offset;
+    uint lights_buffer_offset;
     uint visibility_bricks_buffer_offset;
     uint material_bricks_buffer_offset;
     uint voxel_material_buffer_offset;
@@ -15,6 +16,7 @@ layout(push_constant) uniform PushConstants
 in_push_constants;
 
 #define BRICK_MAPS_OFFSET        in_push_constants.chunk_brick_maps_buffer_offset
+#define LIGHT_BUFFER_OFFSET      in_push_constants.lights_buffer_offset
 #define VISIBILITY_BRICKS_OFFSET in_push_constants.visibility_bricks_buffer_offset
 #define MATERIAL_BRICKS_OFFSET   in_push_constants.material_bricks_buffer_offset
 #define VOXEL_MATERIALS_OFFSET   in_push_constants.voxel_material_buffer_offset
@@ -151,9 +153,7 @@ void main()
             discard;
         }
 
-        const GpuRaytracedLight light = GpuRaytracedLight(
-            vec4(sin(GlobalData.time_alive) * 22 + 8.0, 0.0, cos(GlobalData.time_alive) * 22.0 - 13.32, 32.0),
-            vec4(1.0, 1.0, 1.0, 64.0));
+        const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
 
         vec3 calculatedColor = calculatePixelColor(
             worldStrikePosition,

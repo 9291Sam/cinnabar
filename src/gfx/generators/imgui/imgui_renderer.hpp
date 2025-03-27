@@ -4,6 +4,7 @@
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
+#include "gfx/generators/voxel/data_structures.hpp"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -42,6 +43,8 @@ namespace gfx::generators::imgui
         std::vector<const char*> raw_present_mode_strings;
         std::vector<std::string> owned_animation_name_strings;
         std::vector<const char*> raw_animation_name_strings;
+
+        voxel::GpuRaytracedLight light;
 
         int present_mode_combo_box_value = 0;
         int animation_combo_box_value    = 0;
