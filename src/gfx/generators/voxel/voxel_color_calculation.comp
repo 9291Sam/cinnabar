@@ -1,0 +1,21 @@
+#include "global_data.glsl"
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 2, r32ui) readonly image2D visible_voxel_image[];
+
+layout(push_constant) readonly PushConstants
+{
+    uint visible_voxel_image_offset;
+}
+in_push_constants;
+
+void main()
+{
+    const uvec2 thisPixel = gl_GlobalInvocationID.xy;
+
+    if (all(lessThan(thisPixel, GlobalData.framebuffer_size)))
+    {
+        const u32 this_face_data = imageLoad(visible_voxel_image, thisPixel).x;
+    }
+}

@@ -10,6 +10,7 @@
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/logger.hpp"
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 namespace gfx
 {
@@ -31,6 +32,8 @@ namespace gfx
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
     {
+        const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
+
         const GlobalGpuData thisFrameGlobalGpuData {
             .view_matrix {camera.getViewMatrix()},
             .projection_matrix {camera.getProjectionMatrix()},
@@ -43,9 +46,14 @@ namespace gfx
             .tan_half_fov_y {std::tan(0.5f * camera.getFovYRadians())},
             .aspect_ratio {camera.getAspectRatio()},
             .time_alive {this->renderer->getTimeAlive()},
-        };
+            .framebuffer_size {glm::uvec2 {framebufferSize.width, framebufferSize.height}}};
 
         this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
+
+        if (generators.maybe_voxel_renderer != nullptr)
+        {
+            generators.maybe_voxel_renderer->onFrameUpdate();
+        }
 
         this->has_resize_ocurred = this->renderer->recordOnThread(
             [&](vk::CommandBuffer             commandBuffer,
@@ -362,7 +370,7 @@ namespace gfx
 
                     if (generators.maybe_voxel_renderer)
                     {
-                        generators.maybe_voxel_renderer->renderIntoCommandBuffer(commandBuffer, camera);
+                        generators.maybe_voxel_renderer->recordPrepass(commandBuffer, camera);
                     }
 
                     if (generators.maybe_skybox_renderer)

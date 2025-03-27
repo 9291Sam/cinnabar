@@ -17,14 +17,18 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_structs.hpp>
+
+static constexpr u32 MaxFaceHashMapNodes = 1u << 20u;
 
 namespace gfx::generators::voxel
 {
     VoxelRenderer::VoxelRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
-        , pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
+        , prepass_pipeline {this->renderer->getPipelineManager()->createGraphicsPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
                   .vertex_shader_path {"src/gfx/generators/voxel/voxel.vert"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel.frag"},
@@ -38,7 +42,7 @@ namespace gfx::generators::voxel
                   .color_format {gfx::core::Renderer::ColorFormat.format},
                   .depth_format {gfx::core::Renderer::DepthFormat}, // remove lmao?
                   .blend_enable {vk::True},
-                  .name {"Voxel pipeline"},
+                  .name {"Voxel prepass  pipeline"},
               })}
         , chunk_bricks(
               this->renderer->getAllocator(),
@@ -65,6 +69,12 @@ namespace gfx::generators::voxel
               512,
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
+        , face_hash_map(
+              this->renderer->getAllocator(),
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              MaxFaceHashMapNodes,
+              "Face Hash Map")
     {
         std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
@@ -102,10 +112,10 @@ namespace gfx::generators::voxel
 
     VoxelRenderer::~VoxelRenderer()
     {
-        this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->pipeline));
+        this->renderer->getPipelineManager()->destroyGraphicsPipeline(std::move(this->prepass_pipeline));
     }
 
-    void VoxelRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
+    void VoxelRenderer::onFrameUpdate()
     {
         if (std::optional t = util::receive<f32>("SetAnimationTime"))
         {
@@ -198,9 +208,18 @@ namespace gfx::generators::voxel
                 this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
             }
         }
+    }
 
+    // void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
+    // {
+    //     commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
+    // }
+
+    void VoxelRenderer::recordPrepass(vk::CommandBuffer commandBuffer, const Camera&)
+    {
         commandBuffer.bindPipeline(
-            vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
+            vk::PipelineBindPoint::eGraphics,
+            this->renderer->getPipelineManager()->getPipeline(this->prepass_pipeline));
 
         commandBuffer.pushConstants<std::array<u32, 5>>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
@@ -215,6 +234,27 @@ namespace gfx::generators::voxel
 
         commandBuffer.draw(36, 1, 0, 0);
     }
+
+    // void VoxelRenderer::recordColorCalculation(
+    //     vk::CommandBuffer                                                      commandBuffer,
+    //     gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
+    // {
+    //     commandBuffer.bindPipeline(
+    //         vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
+
+    //     commandBuffer.pushConstants<std::array<u32, 2>>(
+    //         this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+    //         vk::ShaderStageFlagBits::eAll,
+    //         0,
+    //         std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
+
+    //     const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
+
+    //     commandBuffer.dispatch(
+    //         util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
+    //         util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
+    //         1);
+    // }
 
     void VoxelRenderer::setLightInformation(GpuRaytracedLight light)
     {

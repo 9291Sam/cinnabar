@@ -44,65 +44,73 @@ layout(set = 0, binding = 4) readonly buffer GpuRaytracedLightStorage
 }
 in_raytraced_lights[];
 
-vec3 calculateLightColor(
-    vec3 camera_position, vec3 voxel_position, vec3 voxel_normal, GpuRaytracedLight light, PBRVoxelMaterial material)
+float distributionGGX(vec3 N, vec3 H, float roughness)
 {
-    // Basic light direction and view vectors
-    vec3 light_vector = light.position_and_half_intensity_distance.xyz - voxel_position;
-    vec3 light_dir    = normalize(light_vector);
-    vec3 view_dir     = normalize(camera_position - voxel_position);
-    vec3 half_vector  = normalize(light_dir + view_dir);
+    float a2    = roughness * roughness * roughness * roughness;
+    float NdotH = max(dot(N, H), 0.0);
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    return a2 / (PI * denom * denom);
+}
 
-    // Material properties
-    vec3  albedo    = material.albedo_roughness.xyz;
-    float roughness = material.albedo_roughness.w;
-    float metallic  = material.emission_metallic.w;
-    vec3  emission  = material.emission_metallic.xyz;
+float geometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
 
-    // Dot products
-    float n_dot_l = max(dot(voxel_normal, light_dir), 0.0);
-    float n_dot_h = max(dot(voxel_normal, half_vector), 0.0);
-    float n_dot_v = max(dot(voxel_normal, view_dir), 0.0);
-    float h_dot_v = max(dot(half_vector, view_dir), 0.0);
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    return geometrySchlickGGX(max(dot(N, L), 0.0), roughness) * geometrySchlickGGX(max(dot(N, V), 0.0), roughness);
+}
 
-    // Light color and intensity
-    vec3  light_color       = light.color_and_power.xyz;
-    float distance_to_light = length(light_vector);
-    float light_power       = light.color_and_power.w;
-    float light_radius      = light.position_and_half_intensity_distance.w;
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
-    // Exponential light falloff
-    float light_intensity = pow(2.0, -distance_to_light / light_radius) * light_power;
-    light_intensity       = max(light_intensity, 0.0);
+vec3 calculatePixelColor(
+    vec3  worldPos,
+    vec3  N,
+    vec3  V,
+    vec3  L,
+    vec3  lightPos,
+    vec3  lightColor,
+    vec3  albedo,
+    float metallic,
+    float roughness,
+    float lightPower,
+    float lightRadius)
+{
+    // HACK!
+    roughness = max(roughness, metallic / 2);
 
-    // Specular highlight for metals
-    float roughness_sq      = roughness * roughness;
-    float spec_distribution = roughness_sq / (3.14159 * pow((n_dot_h * n_dot_h * (roughness_sq - 1.0) + 1.0), 2.0));
+    vec3 H = normalize(V + L);
 
-    // Fresnel effect
-    vec3 base_reflectivity = mix(vec3(0.04), albedo, metallic);
-    vec3 fresnel           = base_reflectivity + (1.0 - base_reflectivity) * pow(1.0 - h_dot_v, 5.0);
+    vec3  F0  = mix(vec3(0.04), pow(albedo, vec3(2.2)), metallic);
+    float NDF = distributionGGX(N, H, roughness);
+    float G   = geometrySmith(N, V, L, roughness);
+    vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    vec3  kD  = vec3(1.0) - F;
 
-    // Geometry approximation
-    float k        = (roughness + 1.0) * (roughness + 1.0) * 0.125;
-    float geo_l    = n_dot_l / (n_dot_l * (1.0 - k) + k);
-    float geo_v    = n_dot_v / (n_dot_v * (1.0 - k) + k);
-    float geometry = geo_l * geo_v;
+    kD *= 1.0 - metallic;
 
-    // Specular calculation
-    float specular_intensity = (spec_distribution * geometry * fresnel.r) / max(4.0 * n_dot_v * n_dot_l, 0.001);
+    vec3  numerator   = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    vec3  specular    = numerator / max(denominator, 0.001);
 
-    // Base color contribution
-    vec3 color_contribution = albedo * n_dot_l * light_color * light_intensity;
+    float NdotL = max(dot(N, L), 0.0);
 
-    // Enhanced metallic rendering
-    vec3 metal_contribution = color_contribution * (1.0 + specular_intensity * 2.0);
+    // Custom light intensity calculation with exponential falloff
+    float distanceToLight = length(lightPos - worldPos);
+    float lightIntensity  = pow(2.0, -distanceToLight / lightRadius) * lightPower;
+    lightIntensity        = max(lightIntensity, 0.0);
 
-    // Metallic scaling and specular enhancement
-    vec3 final_color = mix(color_contribution, metal_contribution, metallic);
+    // Calculate final color with custom light intensity
+    vec3 color =
+        lightColor * (kD * pow(albedo, vec3(2.2)) / PI + specular) * (NdotL / distanceToLight) * lightIntensity;
 
-    // Add emission
-    return final_color + emission;
+    return color;
 }
 
 #endif // SRC_GFX_SHADER_COMMON_VOXEL_MATERIAL_GLSL

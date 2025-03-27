@@ -23,90 +23,16 @@ in_push_constants;
 
 #include "voxel_tracing.glsl"
 
-layout(location = 0) in vec3 in_uvw;
-layout(location = 1) in vec3 in_world_position;
-layout(location = 2) in vec3 in_cube_corner_location;
+layout(location = 0) in vec3 in_world_position;
+layout(location = 1) in vec3 in_cube_negative_corner;
 
 layout(location = 0) out vec4 out_color;
 
 layout(depth_greater) out float gl_FragDepth;
 
-#define PI 3.14159265358979
-
-float distributionGGX(vec3 N, vec3 H, float roughness)
-{
-    float a2    = roughness * roughness * roughness * roughness;
-    float NdotH = max(dot(N, H), 0.0);
-    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-    return a2 / (PI * denom * denom);
-}
-
-float geometrySchlickGGX(float NdotV, float roughness)
-{
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
-{
-    return geometrySchlickGGX(max(dot(N, L), 0.0), roughness) * geometrySchlickGGX(max(dot(N, V), 0.0), roughness);
-}
-
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
-{
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-vec3 calculatePixelColor(
-    vec3  worldPos,
-    vec3  N,
-    vec3  V,
-    vec3  L,
-    vec3  lightPos,
-    vec3  lightColor,
-    vec3  albedo,
-    float metallic,
-    float roughness,
-    float lightPower,
-    float lightRadius)
-{
-    // HACK!
-    roughness = max(roughness, metallic / 2);
-
-    vec3 H = normalize(V + L);
-
-    vec3  F0  = mix(vec3(0.04), pow(albedo, vec3(2.2)), metallic);
-    float NDF = distributionGGX(N, H, roughness);
-    float G   = geometrySmith(N, V, L, roughness);
-    vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
-    vec3  kD  = vec3(1.0) - F;
-
-    kD *= 1.0 - metallic;
-
-    // return D
-
-    vec3  numerator   = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-    vec3  specular    = numerator / max(denominator, 0.001);
-
-    float NdotL = max(dot(N, L), 0.0);
-
-    // Custom light intensity calculation with exponential falloff
-    float distanceToLight = length(lightPos - worldPos);
-    float lightIntensity  = pow(2.0, -distanceToLight / lightRadius) * lightPower;
-    lightIntensity        = max(lightIntensity, 0.0);
-
-    // Calculate final color with custom light intensity
-    vec3 color =
-        lightColor * (kD * pow(albedo, vec3(2.2)) / PI + specular) * (NdotL / distanceToLight) * lightIntensity;
-
-    return color;
-}
-
 void main()
 {
-    const Cube chunkBoundingCube = Cube(in_cube_corner_location + 32, 64);
+    const Cube chunkBoundingCube = Cube(in_cube_negative_corner + 32, 64);
 
     const vec3 camera_position = GlobalData.camera_position.xyz;
     const vec3 dir             = normalize(in_world_position - GlobalData.camera_position.xyz);
@@ -119,8 +45,8 @@ void main()
         discard;
     }
 
-    const vec3 box_corner_negative = in_cube_corner_location;
-    const vec3 box_corner_positive = in_cube_corner_location + 64;
+    const vec3 box_corner_negative = in_cube_negative_corner;
+    const vec3 box_corner_positive = in_cube_negative_corner + 64;
 
     const bool is_camera_inside_box = Cube_contains(chunkBoundingCube, camera_position);
 
@@ -133,7 +59,7 @@ void main()
 
     const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
 
-    vec3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_corner_location;
+    vec3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_negative_corner;
 
     if (!result.intersect_occur)
     {
@@ -152,6 +78,19 @@ void main()
         {
             discard;
         }
+
+        // const u32 normalId = 0; // TODO!
+        // const u32 chunkId  = 0;
+
+        // u32 outGlobalId = 0;
+
+        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.x, 0, 6);
+        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.y, 6, 6);
+        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.z, 12, 6);
+        // outGlobalId = bitfieldInsert(outGlobalId, normalId, 18, 3);
+        // outGlobalId = bitfieldInsert(outGlobalId, chunkId, 21, 11);
+
+        // out_global_id = outGlobalId;
 
         const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
 
@@ -188,7 +127,7 @@ void main()
             gpu_randomUniformFloat(hash - 8478193),
             gpu_randomUniformFloat(hash + 32));
 
-        out_color = vec4(c, 1.0);
+        out_color = vec4(calculatedColor, 1.0);
     }
 
     const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
