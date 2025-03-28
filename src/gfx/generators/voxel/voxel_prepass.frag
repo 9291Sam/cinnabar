@@ -89,7 +89,6 @@ void main()
         outGlobalId = bitfieldInsert(outGlobalId, chunkId, 18, 14);
 
         out_position_and_id = vec4(worldStrikePosition, uintBitsToFloat(outGlobalId));
-        // out_position_and_id =
 
         // const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
 
@@ -129,7 +128,7 @@ void main()
         // out_color = vec4(calculatedColor, 1.0);
     }
 
-    const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
-    const float depth   = (clipPos.z / clipPos.w);
-    gl_FragDepth        = showTrace ? max(depth, 0.000000000001) : depth;
+    // const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));
+    // const float depth   = (clipPos.z / clipPos.w);
+    // gl_FragDepth        = showTrace ? max(depth, 0.000000000001) : depth;
 }

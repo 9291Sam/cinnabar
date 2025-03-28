@@ -42,7 +42,7 @@ namespace gfx::generators::voxel
                   .depth_compare_op {vk::CompareOp::eGreater},
                   .color_format {vk::Format::eR32G32B32A32Sfloat},
                   .depth_format {gfx::core::Renderer::DepthFormat},
-                  .blend_enable {vk::True},
+                  .blend_enable {vk::False},
                   .name {"Voxel prepass pipeline"},
               })}
         , color_calculation_pipeline {this->renderer->getPipelineManager()->createPipeline(
@@ -262,22 +262,22 @@ namespace gfx::generators::voxel
         vk::CommandBuffer                                                      commandBuffer,
         gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
     {
-        // commandBuffer.bindPipeline(
-        //     vk::PipelineBindPoint::eCompute,
-        //     this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
+        commandBuffer.bindPipeline(
+            vk::PipelineBindPoint::eCompute,
+            this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
 
-        // commandBuffer.pushConstants<std::array<u32, 2>>(
-        //     this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-        //     vk::ShaderStageFlagBits::eAll,
-        //     0,
-        //     std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
+        commandBuffer.pushConstants<std::array<u32, 2>>(
+            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+            vk::ShaderStageFlagBits::eAll,
+            0,
+            std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
 
-        // const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
+        const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
-        // commandBuffer.dispatch(
-        //     util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
-        //     util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
-        //     1);
+        commandBuffer.dispatch(
+            util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
+            util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
+            1);
     }
 
     void VoxelRenderer::recordColorTransfer(

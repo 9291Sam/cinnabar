@@ -30,31 +30,16 @@ void main()
 
     const u32 chunkId = bitfieldExtract(inChunkInfo, 18, 14);
 
-    const Cube               voxel = Cube(vec3(positionInChunk) + 0.5 - 16, 18.0);
+    const Cube               voxel = Cube(vec3(positionInChunk) + 0.5 - 16, 1.0);
     const IntersectionResult res   = Cube_tryIntersectFast(
         voxel, Ray(GlobalData.camera_position.xyz, normalize(worldStrikePosition - GlobalData.camera_position.xyz)));
 
     if (inChunkInfo != ~0u)
     {
-        const u32 face = getHashOfFace(res.maybe_normal, ivec3(positionInChunk), chunkId);
+        const uvec4 data  = face_id_map_read(inChunkInfo);
+        const vec3  color = vec3(data.xyz) / float(data.w);
 
-        const vec3 c = vec3(
-            gpu_randomUniformFloat(face - 84492),
-            gpu_randomUniformFloat(face - 8478193),
-            gpu_randomUniformFloat(face + 32));
-
-        out_color = vec4(worldStrikePosition, 1.0);
-
-        // DoLoadResult result = doLoad(getHashOfFace(res.maybe_normal, ivec3(positionInChunk), chunkId));
-
-        // if (result.found)
-        // {
-        //     out_color = vec4(result.maybe_loaded_color, 1.0);
-        // }
-        // else
-        // {
-        //     discard;
-        // }
+        out_color = vec4(in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[inChunkInfo % 18274].key.xxx, 1.0);
     }
     else
     {
