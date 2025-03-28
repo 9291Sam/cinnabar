@@ -32,43 +32,6 @@ layout(location = 0) out vec4 out_position_and_id;
 
 layout(depth_greater) out float gl_FragDepth;
 
-u32 packUniqueFaceId(vec3 normal, uvec3 positionInChunk, uint chunkId)
-{
-    u32 res = 0;
-
-    res = bitfieldInsert(res, positionInChunk.x, 0, 6);
-    res = bitfieldInsert(res, positionInChunk.y, 6, 6);
-    res = bitfieldInsert(res, positionInChunk.z, 12, 6);
-
-    res = bitfieldInsert(res, packNormalId(normal), 18, 3);
-
-    res = bitfieldInsert(res, chunkId, 21, 11);
-
-    return res;
-}
-
-struct UnpackUniqueFaceIdResult
-{
-    vec3  normal;
-    uvec3 position_in_chunk;
-    uint  chunk_id;
-};
-
-UnpackUniqueFaceIdResult unpackUniqueFaceId(u32 packed)
-{
-    UnpackUniqueFaceIdResult res;
-
-    res.position_in_chunk.x = bitfieldExtract(packed, 0, 6);
-    res.position_in_chunk.y = bitfieldExtract(packed, 6, 6);
-    res.position_in_chunk.z = bitfieldExtract(packed, 12, 6);
-
-    res.normal = unpackNormalId(bitfieldExtract(packed, 18, 3));
-
-    res.chunk_id = bitfieldExtract(packed, 21, 11);
-
-    return res;
-}
-
 void main()
 {
     const u32 chunkId = 0;
@@ -123,59 +86,6 @@ void main()
         const u32 uniqueFaceId = packUniqueFaceId(result.voxel_normal, result.chunk_local_voxel_position, chunkId);
         const u32 kHashTableCapacity = 1U << 20U;
         const u32 kEmpty             = ~0u;
-
-        const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
-
-        for (uint i = 0; i < 32; ++i)
-        {
-            const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
-
-            const u32 prev = atomicCompSwap(in_voxel_hash_map[5].nodes[thisSlot].key, kEmpty, uniqueFaceId);
-
-            if (prev == kEmpty || prev == uniqueFaceId)
-            {
-                const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
-
-                vec3 calculatedColor = calculatePixelColor(
-                    worldStrikePosition,
-                    result.voxel_normal,
-                    normalize(camera_position - worldStrikePosition),
-                    normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
-                    light.position_and_half_intensity_distance.xyz,
-                    light.color_and_power.xyz,
-                    result.material.albedo_roughness.xyz,
-                    result.material.emission_metallic.w,
-                    result.material.albedo_roughness.w,
-                    light.color_and_power.w,
-                    light.position_and_half_intensity_distance.w);
-
-                const VoxelTraceResult shadowResult = traceDDARay(
-                    0,
-                    result.chunk_local_fragment_position + 0.05 * result.voxel_normal,
-                    light.position_and_half_intensity_distance.xyz - box_corner_negative);
-
-                if (shadowResult.intersect_occur)
-                {
-                    calculatedColor = vec3(0);
-                }
-
-                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].r_1024, uint(calculatedColor.x * 1024));
-                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].g_1024, uint(calculatedColor.y * 1024));
-                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].b_1024, uint(calculatedColor.z * 1024));
-                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].samples, 1);
-
-                if (prev == kEmpty)
-                {
-                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].r_1024, 1);
-                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].g_1024, 1);
-                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].b_1024, 1);
-                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].samples, 1);
-                }
-
-                // in_voxel_hash_map[5].nodes[thisSlot].r_1024 = packUnorm4x8(vec4(calculatedColor, 1.0));
-                break;
-            }
-        }
 
         out_position_and_id = vec4(worldStrikePosition, uintBitsToFloat(uniqueFaceId));
     }

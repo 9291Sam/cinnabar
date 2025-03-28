@@ -53,4 +53,41 @@ u32 packNormalId(vec3 normal)
     return 0;
 }
 
+u32 packUniqueFaceId(vec3 normal, uvec3 positionInChunk, uint chunkId)
+{
+    u32 res = 0;
+
+    res = bitfieldInsert(res, positionInChunk.x, 0, 6);
+    res = bitfieldInsert(res, positionInChunk.y, 6, 6);
+    res = bitfieldInsert(res, positionInChunk.z, 12, 6);
+
+    res = bitfieldInsert(res, packNormalId(normal), 18, 3);
+
+    res = bitfieldInsert(res, chunkId, 21, 11);
+
+    return res;
+}
+
+struct UnpackUniqueFaceIdResult
+{
+    vec3  normal;
+    uvec3 position_in_chunk;
+    uint  chunk_id;
+};
+
+UnpackUniqueFaceIdResult unpackUniqueFaceId(u32 packed)
+{
+    UnpackUniqueFaceIdResult res;
+
+    res.position_in_chunk.x = bitfieldExtract(packed, 0, 6);
+    res.position_in_chunk.y = bitfieldExtract(packed, 6, 6);
+    res.position_in_chunk.z = bitfieldExtract(packed, 12, 6);
+
+    res.normal = unpackNormalId(bitfieldExtract(packed, 18, 3));
+
+    res.chunk_id = bitfieldExtract(packed, 21, 11);
+
+    return res;
+}
+
 #endif // SRC_GFX_SHADER_COMMON_VOXEL_FACES_GLSL
