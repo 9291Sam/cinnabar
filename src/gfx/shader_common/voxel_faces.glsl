@@ -11,7 +11,10 @@
 struct GpuColorHashMapNode
 {
     u32 key;
-    u32 value;
+    u32 r_1024;
+    u32 g_1024;
+    u32 b_1024;
+    u32 samples;
 };
 
 const u32 kHashTableCapacity = 1u << 20u;

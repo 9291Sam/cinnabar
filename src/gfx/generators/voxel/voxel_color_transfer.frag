@@ -28,7 +28,7 @@ void main()
 
     const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 
-    u32  loaded;
+    vec3 loaded;
     uint i;
     for (i = 0; i < 32; ++i)
     {
@@ -38,10 +38,15 @@ void main()
 
         if (thisSlotKey == uniqueFaceId)
         {
-            loaded = in_voxel_hash_map[5].nodes[thisSlot].value;
+            loaded = vec3(
+                         in_voxel_hash_map[5].nodes[thisSlot].r_1024,
+                         in_voxel_hash_map[5].nodes[thisSlot].g_1024,
+                         in_voxel_hash_map[5].nodes[thisSlot].b_1024)
+                   / (float(in_voxel_hash_map[5].nodes[thisSlot].samples) * 1024);
+
             break;
         }
     }
 
-    out_color = vec4(unpackUnorm4x8(loaded).xyz, 1.0);
+    out_color = vec4(loaded, 1.0);
 }

@@ -132,7 +132,7 @@ void main()
 
             const u32 prev = atomicCompSwap(in_voxel_hash_map[5].nodes[thisSlot].key, kEmpty, uniqueFaceId);
 
-            if (prev == kEmpty)
+            if (prev == kEmpty || prev == uniqueFaceId)
             {
                 const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
 
@@ -159,12 +159,20 @@ void main()
                     calculatedColor = vec3(0);
                 }
 
-                in_voxel_hash_map[5].nodes[thisSlot].value = packUnorm4x8(vec4(calculatedColor, 1.0));
-                break;
-            }
+                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].r_1024, uint(calculatedColor.x * 1024));
+                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].g_1024, uint(calculatedColor.y * 1024));
+                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].b_1024, uint(calculatedColor.z * 1024));
+                atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].samples, 1);
 
-            if (prev == uniqueFaceId)
-            {
+                if (prev == kEmpty)
+                {
+                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].r_1024, 1);
+                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].g_1024, 1);
+                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].b_1024, 1);
+                    atomicAdd(in_voxel_hash_map[5].nodes[thisSlot].samples, 1);
+                }
+
+                // in_voxel_hash_map[5].nodes[thisSlot].r_1024 = packUnorm4x8(vec4(calculatedColor, 1.0));
                 break;
             }
         }
