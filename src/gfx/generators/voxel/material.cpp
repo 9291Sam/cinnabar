@@ -341,6 +341,9 @@ namespace gfx::generators::voxel
                 .albedo_roughness {0.54f, 0.89f, 0.63f, 0.1f},
                 .emission_metallic {0.0f, 0.0f, 0.0f, 0.0f},
             };
+        case Voxel::EmissiveWhite:
+            return PBRVoxelMaterial {
+                .albedo_roughness {1.0f, 1.0f, 1.0f, 0.0f}, .emission_metallic {32.0f, 32.0f, 32.0f, 0.0f}};
         case Voxel::NullAirEmpty:
             [[fallthrough]];
         default:

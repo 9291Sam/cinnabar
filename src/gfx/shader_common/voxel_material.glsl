@@ -69,31 +69,20 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec3 calculatePixelColor(
-    vec3  worldPos,
-    vec3  N,
-    vec3  V,
-    vec3  L,
-    vec3  lightPos,
-    vec3  lightColor,
-    vec3  albedo,
-    float metallic,
-    float roughness,
-    float lightPower,
-    float lightRadius)
+vec3 calculatePixelColor(vec3 worldPos, vec3 N, vec3 V, vec3 L, GpuRaytracedLight light, PBRVoxelMaterial material)
 {
     // HACK!
-    roughness = max(roughness, metallic / 2);
+    material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
 
     vec3 H = normalize(V + L);
 
-    vec3  F0  = mix(vec3(0.04), pow(albedo, vec3(2.2)), metallic);
-    float NDF = distributionGGX(N, H, roughness);
-    float G   = geometrySmith(N, V, L, roughness);
+    vec3  F0  = mix(vec3(0.04), pow(material.albedo_roughness.xyz, vec3(2.2)), material.emission_metallic.w);
+    float NDF = distributionGGX(N, H, material.albedo_roughness.w);
+    float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
     vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
     vec3  kD  = vec3(1.0) - F;
 
-    kD *= 1.0 - metallic;
+    kD *= 1.0 - material.emission_metallic.w;
 
     vec3  numerator   = NDF * G * F;
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
@@ -102,13 +91,16 @@ vec3 calculatePixelColor(
     float NdotL = max(dot(N, L), 0.0);
 
     // Custom light intensity calculation with exponential falloff
-    float distanceToLight = length(lightPos - worldPos);
-    float lightIntensity  = pow(2.0, -distanceToLight / lightRadius) * lightPower;
-    lightIntensity        = max(lightIntensity, 0.0);
+    float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
+    float lightIntensity =
+        pow(2.0, -distanceToLight / light.position_and_half_intensity_distance.w) * light.color_and_power.w;
+    lightIntensity = max(lightIntensity, 0.0);
 
     // Calculate final color with custom light intensity
-    vec3 color =
-        lightColor * (kD * pow(albedo, vec3(2.2)) / PI + specular) * (NdotL / distanceToLight) * lightIntensity;
+    vec3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, vec3(2.2)) / PI + specular)
+               * (NdotL / distanceToLight) * lightIntensity;
+
+    color += material.emission_metallic.xyz;
 
     return color;
 }

@@ -108,8 +108,8 @@ namespace gfx::generators::voxel
         // Define materials
         Voxel white = Voxel::Marble;
         Voxel red   = Voxel::Ruby;
-        Voxel green = Voxel::Jade;
-        Voxel light = Voxel::Gold;
+        Voxel green = Voxel::Banana;
+        Voxel light = Voxel::EmissiveWhite;
 
         // Fill walls, floor, and ceiling
         for (uint32_t x = 0; x < size.x; ++x)

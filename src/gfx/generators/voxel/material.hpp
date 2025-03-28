@@ -80,6 +80,7 @@ namespace gfx::generators::voxel
         Zinc,
         Ruby,
         Jade,
+        EmissiveWhite,
         // Emerald,
         // Ruby,
         // Pearl,
