@@ -48,9 +48,9 @@ void main()
 
         const vec3 c = vec3(
             gpu_randomUniformFloat(hash - 84492),
-            gpu_randomUniformFloat(hash - 8478193),
+            gpu_randomUniformFloat(hash * 8478193),
             gpu_randomUniformFloat(hash + 32));
 
-        face_id_map_write(inChunkInfo, uvec4(100, 200, 300, 1));
+        in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[getHashOfFace(res.maybe_normal, pos, chunkId)].value = c.xyzz;
     }
 }

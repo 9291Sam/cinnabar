@@ -10,8 +10,8 @@
 
 struct GpuColorHashMapNode
 {
-    u32   key;
-    uvec4 value;
+    u32  key;
+    vec4 value;
 };
 
 const u32 kHashTableCapacity = 1u << 18u;
@@ -40,43 +40,43 @@ u32 getHashOfFace(const vec3 normal, ivec3 position_in_chunk, uint chunkId)
     return workingHash;
 }
 
-void face_id_map_write(u32 key, uvec4 value)
-{
-    u32 slot = gpu_hashU32(key) & (kHashTableCapacity - 1);
+// void face_id_map_write(u32 key, uvec4 value)
+// {
+//     u32 slot = gpu_hashU32(key) & (kHashTableCapacity - 1);
 
-    for (int i = 0; i < 64; ++i)
-    {
-        u32 prev = atomicCompSwap(in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key, kEmpty, key);
+//     for (int i = 0; i < 64; ++i)
+//     {
+//         u32 prev = atomicCompSwap(in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key, kEmpty, key);
 
-        if (prev == kEmpty || prev == key)
-        {
-            in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value = value;
-            break;
-        }
+//         if (prev == kEmpty || prev == key)
+//         {
+//             in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value = value;
+//             break;
+//         }
 
-        slot = (slot + 1) & (kHashTableCapacity - 1);
-    }
-}
+//         slot = (slot + 1) & (kHashTableCapacity - 1);
+//     }
+// }
 
-uvec4 face_id_map_read(u32 key)
-{
-    u32 slot = gpu_hashU32(key) & (kHashTableCapacity - 1);
+// uvec4 face_id_map_read(u32 key)
+// {
+//     u32 slot = gpu_hashU32(key) & (kHashTableCapacity - 1);
 
-    for (int i = 0; i < 64; ++i)
-    {
-        if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == key)
-        {
-            return in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value;
-        }
-        if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == kEmpty)
-        {
-            return uvec4(~0u);
-        }
-        slot = (slot + 1) & (kHashTableCapacity - 1);
-    }
+//     for (int i = 0; i < 64; ++i)
+//     {
+//         if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == key)
+//         {
+//             return in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value;
+//         }
+//         if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == kEmpty)
+//         {
+//             return uvec4(~0u);
+//         }
+//         slot = (slot + 1) & (kHashTableCapacity - 1);
+//     }
 
-    return uvec4(~0u);
-}
+//     return uvec4(~0u);
+// }
 
 // void doInsert(u32 hash, vec3 c)
 // {
