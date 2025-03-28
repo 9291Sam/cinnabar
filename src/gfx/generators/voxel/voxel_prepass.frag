@@ -134,7 +134,32 @@ void main()
 
             if (prev == kEmpty)
             {
-                in_voxel_hash_map[5].nodes[thisSlot].value = 47;
+                const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
+
+                vec3 calculatedColor = calculatePixelColor(
+                    worldStrikePosition,
+                    result.voxel_normal,
+                    normalize(camera_position - worldStrikePosition),
+                    normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+                    light.position_and_half_intensity_distance.xyz,
+                    light.color_and_power.xyz,
+                    result.material.albedo_roughness.xyz,
+                    result.material.emission_metallic.w,
+                    result.material.albedo_roughness.w,
+                    light.color_and_power.w,
+                    light.position_and_half_intensity_distance.w);
+
+                const VoxelTraceResult shadowResult = traceDDARay(
+                    0,
+                    result.chunk_local_fragment_position + 0.05 * result.voxel_normal,
+                    light.position_and_half_intensity_distance.xyz - box_corner_negative);
+
+                if (shadowResult.intersect_occur)
+                {
+                    calculatedColor = vec3(0);
+                }
+
+                in_voxel_hash_map[5].nodes[thisSlot].value = packUnorm4x8(vec4(calculatedColor, 1.0));
                 break;
             }
 

@@ -28,30 +28,20 @@ void main()
 
     const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 
+    u32  loaded;
     uint i;
     for (i = 0; i < 32; ++i)
     {
         const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
 
-        const u32 thisSlotData = in_voxel_hash_map[5].nodes[thisSlot].key;
+        const u32 thisSlotKey = in_voxel_hash_map[5].nodes[thisSlot].key;
 
-        if (thisSlotData == kEmpty)
+        if (thisSlotKey == uniqueFaceId)
         {
-            discard;
-        }
-
-        if (thisSlotData == uniqueFaceId)
-        {
-            if (in_voxel_hash_map[5].nodes[thisSlot].value == 47)
-            {
-                break;
-            }
-            else
-            {
-                return;
-            }
+            loaded = in_voxel_hash_map[5].nodes[thisSlot].value;
+            break;
         }
     }
 
-    out_color = vec4(worldStrikePosition, 1.0);
+    out_color = vec4(unpackUnorm4x8(loaded).xyz, 1.0);
 }
