@@ -38,7 +38,7 @@ void main()
     {
         out_color = vec4(
             in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET]
-                .nodes[getHashOfFace(res.maybe_normal, ivec3(positionInChunk), chunkId)]
+                .nodes[getHashOfFace(res.maybe_normal, ivec3(positionInChunk), chunkId) % kHashTableCapacity]
                 .value.xyz,
             1.0);
     }

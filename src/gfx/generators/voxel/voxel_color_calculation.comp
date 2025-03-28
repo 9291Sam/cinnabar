@@ -51,6 +51,8 @@ void main()
             gpu_randomUniformFloat(hash * 8478193),
             gpu_randomUniformFloat(hash + 32));
 
-        in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[getHashOfFace(res.maybe_normal, pos, chunkId)].value = c.xyzz;
+        in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET]
+            .nodes[getHashOfFace(res.maybe_normal, pos, chunkId) % kHashTableCapacity]
+            .value = c.xyzz;
     }
 }
