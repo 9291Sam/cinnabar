@@ -43,7 +43,8 @@ struct MaterialBrick
     uint16_t data[8][8][8];
 };
 
-layout(set = 0, binding = 4) readonly buffer PBRVoxelMaterialBricks
+/// MVK bug
+layout(set = 0, binding = 4) /* readonly */ buffer PBRVoxelMaterialBricks
 {
     MaterialBrick bricks[];
 }

@@ -283,7 +283,7 @@ void main()
         + ndc.y * vec3(GlobalData.camera_up_vector) * GlobalData.tan_half_fov_y);
 
     vec3  sunDir = normalize(vec3(-1.0, 0.0, 0.0));
-    float time   = mod(GlobalData.time_alive / 10, 3.14);
+    float time   = GlobalData.time_alive / 10;
     sunDir       = normalize(vec3(0.0, sin(time), -cos(time)));
 
     const vec3 cloudColor      = Sky(vec3(0.0), rayDir, GlobalData.time_alive, sunDir);

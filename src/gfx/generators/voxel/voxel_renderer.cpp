@@ -61,7 +61,7 @@ namespace gfx::generators::voxel
                   .color_format {gfx::core::Renderer::ColorFormat.format},
                   .depth_format {gfx::core::Renderer::DepthFormat},
                   .blend_enable {vk::True},
-                  .name {"Voxel prepass pipeline"},
+                  .name {"Color Transfer Pipeline"},
               })}
         , chunk_bricks(
               this->renderer->getAllocator(),

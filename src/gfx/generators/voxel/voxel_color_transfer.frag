@@ -24,7 +24,34 @@ void main()
     const vec4 rawPixelData =
         imageLoad(visible_voxel_image[in_push_constants.visible_voxel_image_offset], ivec2(floor(gl_FragCoord.xy)));
     const vec3 worldStrikePosition = rawPixelData.xyz;
-    const u32  inChunkInfo         = floatBitsToUint(rawPixelData.w);
+    const u32  uniqueFaceId        = floatBitsToUint(rawPixelData.w);
+
+    const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
+
+    uint i;
+    for (i = 0; i < 32; ++i)
+    {
+        const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
+
+        const u32 thisSlotData = in_voxel_hash_map[5].nodes[thisSlot].key;
+
+        if (thisSlotData == kEmpty)
+        {
+            discard;
+        }
+
+        if (thisSlotData == uniqueFaceId)
+        {
+            if (in_voxel_hash_map[5].nodes[thisSlot].value == 47)
+            {
+                break;
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
 
     out_color = vec4(worldStrikePosition, 1.0);
 }
