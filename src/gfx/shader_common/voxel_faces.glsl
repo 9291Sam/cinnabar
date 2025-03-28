@@ -10,12 +10,12 @@
 
 struct GpuColorHashMapNode
 {
-    u32  key;
-    vec4 value;
+    u32 key;
+    u32 value;
 };
 
-const u32 kHashTableCapacity = 1u << 18u;
-const u32 kEmpty             = ~0;
+const u32 kHashTableCapacity = 1u << 20u;
+const u32 kEmpty             = ~0u;
 
 layout(set = 0, binding = 4) buffer VoxelHashMap
 {
@@ -38,6 +38,57 @@ u32 getHashOfFace(const vec3 normal, ivec3 position_in_chunk, uint chunkId)
     workingHash = gpu_hashCombineU32(workingHash, chunkId);
 
     return workingHash;
+}
+
+u32 integerHash(u32 h)
+{
+    h ^= h >> 17;
+    h *= 0xed5ad4bbU;
+    h ^= h >> 11;
+    h *= 0xac4c1b51U;
+    h ^= h >> 15;
+    h *= 0x31848babU;
+    h ^= h >> 14;
+
+    return h;
+}
+
+void face_id_map_write(u32 key, u32 value)
+{
+    u32 slot = integerHash(key) & (kHashTableCapacity - 1);
+
+    for (int i = 0; i < 16; ++i)
+    {
+        u32 prev = atomicCompSwap(in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key, kEmpty, key);
+
+        if (prev == kEmpty || prev == key)
+        {
+            in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value = value;
+            break;
+        }
+
+        slot = (slot + 1) & (kHashTableCapacity - 1);
+    }
+}
+
+u32 face_id_map_read(u32 key)
+{
+    u32 slot = integerHash(key) & (kHashTableCapacity - 1);
+
+    for (int i = 0; i < 64; ++i)
+    {
+        if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == key)
+        {
+            return in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].value;
+        }
+        if (in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[slot].key == kEmpty)
+        {
+            return 0;
+        }
+        slot = (slot + 1) & (kHashTableCapacity - 1);
+    }
+
+    return kEmpty;
 }
 
 // void face_id_map_write(u32 key, uvec4 value)

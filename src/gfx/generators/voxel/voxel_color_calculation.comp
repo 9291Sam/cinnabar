@@ -16,6 +16,7 @@ in_push_constants;
 
 #define VOXEL_HASH_MAP_OFFSET in_push_constants.visible_voxel_image_offset
 
+#include "misc.glsl"
 #include "voxel_faces.glsl"
 
 void main()
@@ -28,31 +29,5 @@ void main()
             imageLoad(visible_voxel_image[in_push_constants.visible_voxel_image_offset], thisPixel);
         const vec3 worldStrikePosition = rawPixelData.xyz;
         const u32  inChunkInfo         = floatBitsToUint(rawPixelData.w);
-
-        const uvec3 positionInChunk = uvec3(
-            bitfieldExtract(inChunkInfo, 0, 6),
-            bitfieldExtract(inChunkInfo, 6, 6),
-            bitfieldExtract(inChunkInfo, 12, 6));
-
-        const u32 chunkId = bitfieldExtract(inChunkInfo, 18, 14);
-
-        const Cube               voxel = Cube(vec3(positionInChunk) + 0.5 + vec3(-16.0f), 1.0);
-        const IntersectionResult res   = Cube_tryIntersectFast(
-            voxel,
-            Ray(GlobalData.camera_position.xyz, normalize(worldStrikePosition - GlobalData.camera_position.xyz)));
-
-        const ivec3 pos = ivec3(positionInChunk);
-
-        u32 hash = gpu_hashCombineU32(pos.x, pos.y);
-        hash     = gpu_hashCombineU32(hash, pos.z);
-
-        const vec3 c = vec3(
-            gpu_randomUniformFloat(hash - 84492),
-            gpu_randomUniformFloat(hash * 8478193),
-            gpu_randomUniformFloat(hash + 32));
-
-        in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET]
-            .nodes[getHashOfFace(res.maybe_normal, pos, chunkId) % kHashTableCapacity]
-            .value = c.xyzz;
     }
 }

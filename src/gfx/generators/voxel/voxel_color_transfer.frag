@@ -1,6 +1,7 @@
 #version 460
 
 #include "intersectables.glsl"
+#include "misc.glsl"
 #include "types.glsl"
 
 layout(location = 0) out vec4 out_color;
@@ -25,25 +26,5 @@ void main()
     const vec3 worldStrikePosition = rawPixelData.xyz;
     const u32  inChunkInfo         = floatBitsToUint(rawPixelData.w);
 
-    const uvec3 positionInChunk = uvec3(
-        bitfieldExtract(inChunkInfo, 0, 6), bitfieldExtract(inChunkInfo, 6, 6), bitfieldExtract(inChunkInfo, 12, 6));
-
-    const u32 chunkId = bitfieldExtract(inChunkInfo, 18, 14);
-
-    const Cube               voxel = Cube(vec3(positionInChunk) + 0.5 - 16, 1.0);
-    const IntersectionResult res   = Cube_tryIntersectFast(
-        voxel, Ray(GlobalData.camera_position.xyz, normalize(worldStrikePosition - GlobalData.camera_position.xyz)));
-
-    if (inChunkInfo != ~0u)
-    {
-        out_color = vec4(
-            in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET]
-                .nodes[getHashOfFace(res.maybe_normal, ivec3(positionInChunk), chunkId) % kHashTableCapacity]
-                .value.xyz,
-            1.0);
-    }
-    else
-    {
-        discard;
-    }
+    out_color = vec4(worldStrikePosition, 1.0);
 }

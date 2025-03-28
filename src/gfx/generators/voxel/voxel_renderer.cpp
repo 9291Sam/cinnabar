@@ -9,10 +9,8 @@
 #include "gfx/generators/voxel/model.hpp"
 #include "util/events.hpp"
 #include "util/gif.hpp"
-#include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
-#include <bit>
 #include <cstddef>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/geometric.hpp>
@@ -275,8 +273,8 @@ namespace gfx::generators::voxel
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
         commandBuffer.dispatch(
-            util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
-            util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
+            util::divideEuclidean<u32>(framebufferSize.width, 32) + 1,
+            util::divideEuclidean<u32>(framebufferSize.height, 32) + 1,
             1);
     }
 

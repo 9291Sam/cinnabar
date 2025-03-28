@@ -413,7 +413,7 @@ namespace gfx
 
                 commandBuffer.pipelineBarrier(
                     vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                    vk::PipelineStageFlagBits::eFragmentShader,
+                    vk::PipelineStageFlagBits::eComputeShader,
                     vk::DependencyFlags {},
                     {},
                     {},
