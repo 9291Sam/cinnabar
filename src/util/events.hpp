@@ -1,8 +1,8 @@
 #pragma once
 
+#include "logger.hpp"
 #include "util.hpp"
 #include <boost/unordered/concurrent_flat_map.hpp>
-#include <boost/unordered/concurrent_flat_map_fwd.hpp>
 #include <chrono>
 #include <concepts>
 #include <memory>

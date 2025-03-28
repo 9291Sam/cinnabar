@@ -36,10 +36,15 @@ void main()
 
     if (inChunkInfo != ~0u)
     {
-        const uvec4 data  = face_id_map_read(inChunkInfo);
-        const vec3  color = vec3(data.xyz) / float(data.w);
+        const uvec4 data = face_id_map_read(inChunkInfo);
 
-        out_color = vec4(in_voxel_hash_map[VOXEL_HASH_MAP_OFFSET].nodes[inChunkInfo % 18274].key.xxx, 1.0);
+        if (data == uvec4(~0u))
+        {
+            discard;
+        }
+        const vec3 color = vec3(data.xyz) / float(data.w);
+
+        out_color = vec4(color / 32.0, 1.0);
     }
     else
     {

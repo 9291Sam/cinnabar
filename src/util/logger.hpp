@@ -1,12 +1,10 @@
 #pragma once
 
-// These are here because MSVC likes to huff paint when it comes to name resolution
-
 #include <algorithm>
+#include <cmath>
+#include <complex>
 #include <random>
-
 //
-
 #include <fmt/format.h>
 #include <source_location>
 #include <spdlog/spdlog.h>
@@ -132,3 +130,7 @@ template<class... J> /* NOLINTNEXTLINE*/
 panic(fmt::format_string<J...>, J&&..., std::source_location) -> panic<J...>;
 
 #endif // NO_PANIC
+
+// These are here because MSVC likes to huff paint when it comes to name resolution
+
+//

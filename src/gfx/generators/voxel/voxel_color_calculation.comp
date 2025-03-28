@@ -51,6 +51,6 @@ void main()
             gpu_randomUniformFloat(hash - 8478193),
             gpu_randomUniformFloat(hash + 32));
 
-        face_id_map_write(inChunkInfo, uvec4(18, 394, 333, 3));
+        face_id_map_write(inChunkInfo, uvec4(100, 200, 300, 1));
     }
 }

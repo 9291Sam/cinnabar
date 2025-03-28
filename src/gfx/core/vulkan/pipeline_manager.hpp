@@ -4,6 +4,7 @@
 #include "util/threads.hpp"
 #include <filesystem>
 #include <shaderc/shaderc.hpp>
+#include <variant>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
