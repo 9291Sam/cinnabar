@@ -56,6 +56,7 @@ namespace gfx
         {
             gfx::core::vulkan::Image2D depth_buffer;
             gfx::core::vulkan::Image2D imgui_render_target;
+            gfx::core::vulkan::Image2D voxel_render_target;
         };
 
         FrameDescriptors createFrameDescriptors();

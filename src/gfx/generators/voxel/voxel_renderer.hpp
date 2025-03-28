@@ -30,20 +30,14 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        // clear hash map
-        // raytrace -> u32 image + depth image
-        // compute(u32 image) -> colors in hash map
-        // full screen triangle(colors hash map, u32 image) -> rgb color image
-
         void onFrameUpdate();
 
-        // void recordCopyCommands(vk::CommandBuffer);
+        void recordCopyCommands(vk::CommandBuffer);
         void recordPrepass(vk::CommandBuffer, const Camera&);
-        // void recordColorCalculation(
-        //     vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage);
-        // void recordColorTransfer(vk::CommandBuffer);
-
-        // void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&);
+        void recordColorCalculation(
+            vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage);
+        void recordColorTransfer(
+            vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage);
 
         void                         setLightInformation(GpuRaytracedLight);
         void                         setAnimationTime(f32) const;
@@ -54,8 +48,8 @@ namespace gfx::generators::voxel
     private:
         const core::Renderer*                        renderer;
         gfx::core::vulkan::PipelineManager::Pipeline prepass_pipeline;
-        // gfx::core::vulkan::PipelineManager::ComputePipeline  color_calculation_pipeline;
-        // gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
+        gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
+        gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
         gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>  chunk_bricks;
         gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>  lights;

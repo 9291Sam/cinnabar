@@ -56,7 +56,7 @@ layout(location = 1) out vec3 out_cube_negative_corner;
 
 void main()
 {
-    const vec3  center_location = vec3(16.0f);
+    const vec3  center_location = vec3(16.0f); // TODO: fix this is hardcoded in color calculatin
     const float voxel_size      = 64.0;
 
     const vec3 box_corner_negative = center_location - vec3(voxel_size) / 2;

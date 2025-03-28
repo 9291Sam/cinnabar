@@ -26,7 +26,7 @@ in_push_constants;
 layout(location = 0) in vec3 in_world_position;
 layout(location = 1) in vec3 in_cube_negative_corner;
 
-layout(location = 0) out vec4 out_color;
+layout(location = 0) out vec4 out_position_and_id;
 
 layout(depth_greater) out float gl_FragDepth;
 
@@ -70,7 +70,7 @@ void main()
 
     if (showTrace)
     {
-        out_color = vec4(plasma_quintic(float(result.steps) / 64.0), 1.0);
+        // out_color = vec4(plasma_quintic(float(result.steps) / 64.0), 1.0);
     }
     else
     {
@@ -79,55 +79,54 @@ void main()
             discard;
         }
 
-        // const u32 normalId = 0; // TODO!
-        // const u32 chunkId  = 0;
+        const u32 chunkId = 0;
 
-        // u32 outGlobalId = 0;
+        u32 outGlobalId = 0;
 
-        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.x, 0, 6);
-        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.y, 6, 6);
-        // outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.z, 12, 6);
-        // outGlobalId = bitfieldInsert(outGlobalId, normalId, 18, 3);
-        // outGlobalId = bitfieldInsert(outGlobalId, chunkId, 21, 11);
+        outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.x, 0, 6);
+        outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.y, 6, 6);
+        outGlobalId = bitfieldInsert(outGlobalId, result.chunk_local_voxel_position.z, 12, 6);
+        outGlobalId = bitfieldInsert(outGlobalId, chunkId, 18, 14);
 
-        // out_global_id = outGlobalId;
+        out_position_and_id = vec4(worldStrikePosition, uintBitsToFloat(outGlobalId));
+        // out_position_and_id =
 
-        const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
+        // const GpuRaytracedLight light = in_raytraced_lights[LIGHT_BUFFER_OFFSET].lights[0];
 
-        vec3 calculatedColor = calculatePixelColor(
-            worldStrikePosition,
-            result.voxel_normal,
-            normalize(camera_position - worldStrikePosition),
-            normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
-            light.position_and_half_intensity_distance.xyz,
-            light.color_and_power.xyz,
-            result.material.albedo_roughness.xyz,
-            result.material.emission_metallic.w,
-            result.material.albedo_roughness.w,
-            light.color_and_power.w,
-            light.position_and_half_intensity_distance.w);
+        // vec3 calculatedColor = calculatePixelColor(
+        //     worldStrikePosition,
+        //     result.voxel_normal,
+        //     normalize(camera_position - worldStrikePosition),
+        //     normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+        //     light.position_and_half_intensity_distance.xyz,
+        //     light.color_and_power.xyz,
+        //     result.material.albedo_roughness.xyz,
+        //     result.material.emission_metallic.w,
+        //     result.material.albedo_roughness.w,
+        //     light.color_and_power.w,
+        //     light.position_and_half_intensity_distance.w);
 
-        const VoxelTraceResult shadowResult = traceDDARay(
-            0,
-            result.chunk_local_fragment_position + 0.05 * result.voxel_normal,
-            light.position_and_half_intensity_distance.xyz - box_corner_negative);
+        // const VoxelTraceResult shadowResult = traceDDARay(
+        //     0,
+        //     result.chunk_local_fragment_position + 0.05 * result.voxel_normal,
+        //     light.position_and_half_intensity_distance.xyz - box_corner_negative);
 
-        if (shadowResult.intersect_occur)
-        {
-            calculatedColor = vec3(0);
-        }
+        // if (shadowResult.intersect_occur)
+        // {
+        //     calculatedColor = vec3(0);
+        // }
 
-        const ivec3 pos = result.chunk_local_voxel_position;
+        // const ivec3 pos = result.chunk_local_voxel_position;
 
-        u32 hash = gpu_hashCombineU32(pos.x, pos.y);
-        hash     = gpu_hashCombineU32(hash, pos.z);
+        // u32 hash = gpu_hashCombineU32(pos.x, pos.y);
+        // hash     = gpu_hashCombineU32(hash, pos.z);
 
-        const vec3 c = vec3(
-            gpu_randomUniformFloat(hash - 84492),
-            gpu_randomUniformFloat(hash - 8478193),
-            gpu_randomUniformFloat(hash + 32));
+        // const vec3 c = vec3(
+        //     gpu_randomUniformFloat(hash - 84492),
+        //     gpu_randomUniformFloat(hash - 8478193),
+        //     gpu_randomUniformFloat(hash + 32));
 
-        out_color = vec4(calculatedColor, 1.0);
+        // out_color = vec4(calculatedColor, 1.0);
     }
 
     const vec4  clipPos = GlobalData.view_projection_matrix * vec4(worldStrikePosition, float(1.0));

@@ -2,6 +2,7 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
@@ -30,19 +31,39 @@ namespace gfx::generators::voxel
         : renderer {renderer_}
         , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/voxel/voxel.vert"},
-                  .fragment_shader_path {"src/gfx/generators/voxel/voxel.frag"},
-                  .topology {vk::PrimitiveTopology::eTriangleList}, // remove
-                  .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state
+                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_prepass.vert"},
+                  .fragment_shader_path {"src/gfx/generators/voxel/voxel_prepass.frag"},
+                  .topology {vk::PrimitiveTopology::eTriangleList},
+                  .polygon_mode {vk::PolygonMode::eFill},
                   .cull_mode {vk::CullModeFlagBits::eBack},
-                  .front_face {vk::FrontFace::eClockwise}, // remove
+                  .front_face {vk::FrontFace::eClockwise},
                   .depth_test_enable {vk::True},
                   .depth_write_enable {vk::True},
-                  .depth_compare_op {vk::CompareOp::eGreater}, // remove
-                  .color_format {gfx::core::Renderer::ColorFormat.format},
-                  .depth_format {gfx::core::Renderer::DepthFormat}, // remove lmao?
+                  .depth_compare_op {vk::CompareOp::eGreater},
+                  .color_format {vk::Format::eR32G32B32A32Sfloat},
+                  .depth_format {gfx::core::Renderer::DepthFormat},
                   .blend_enable {vk::True},
-                  .name {"Voxel prepass  pipeline"},
+                  .name {"Voxel prepass pipeline"},
+              })}
+        , color_calculation_pipeline {this->renderer->getPipelineManager()->createPipeline(
+              core::vulkan::ComputePipelineDescriptor {
+                  .compute_shader_path {"src/gfx/generators/voxel/voxel_color_calculation.comp"},
+                  .name {"Voxel Color Calculation"}})}
+        , color_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
+              core::vulkan::GraphicsPipelineDescriptor {
+                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.vert"},
+                  .fragment_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.frag"},
+                  .topology {vk::PrimitiveTopology::eTriangleList},
+                  .polygon_mode {vk::PolygonMode::eFill},
+                  .cull_mode {vk::CullModeFlagBits::eNone},
+                  .front_face {vk::FrontFace::eClockwise},
+                  .depth_test_enable {vk::False},
+                  .depth_write_enable {vk::False},
+                  .depth_compare_op {},
+                  .color_format {gfx::core::Renderer::ColorFormat.format},
+                  .depth_format {gfx::core::Renderer::DepthFormat},
+                  .blend_enable {vk::True},
+                  .name {"Voxel prepass pipeline"},
               })}
         , chunk_bricks(
               this->renderer->getAllocator(),
@@ -113,6 +134,8 @@ namespace gfx::generators::voxel
     VoxelRenderer::~VoxelRenderer()
     {
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->prepass_pipeline));
+        this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_calculation_pipeline));
+        this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_transfer_pipeline));
     }
 
     void VoxelRenderer::onFrameUpdate()
@@ -210,10 +233,10 @@ namespace gfx::generators::voxel
         }
     }
 
-    // void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
-    // {
-    //     commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
-    // }
+    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
+    {
+        commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
+    }
 
     void VoxelRenderer::recordPrepass(vk::CommandBuffer commandBuffer, const Camera&)
     {
@@ -235,26 +258,44 @@ namespace gfx::generators::voxel
         commandBuffer.draw(36, 1, 0, 0);
     }
 
-    // void VoxelRenderer::recordColorCalculation(
-    //     vk::CommandBuffer                                                      commandBuffer,
-    //     gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
-    // {
-    //     commandBuffer.bindPipeline(
-    //         vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
+    void VoxelRenderer::recordColorCalculation(
+        vk::CommandBuffer                                                      commandBuffer,
+        gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
+    {
+        // commandBuffer.bindPipeline(
+        //     vk::PipelineBindPoint::eCompute,
+        //     this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
 
-    //     commandBuffer.pushConstants<std::array<u32, 2>>(
-    //         this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-    //         vk::ShaderStageFlagBits::eAll,
-    //         0,
-    //         std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
+        // commandBuffer.pushConstants<std::array<u32, 2>>(
+        //     this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+        //     vk::ShaderStageFlagBits::eAll,
+        //     0,
+        //     std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
 
-    //     const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
+        // const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
-    //     commandBuffer.dispatch(
-    //         util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
-    //         util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
-    //         1);
-    // }
+        // commandBuffer.dispatch(
+        //     util::divideEuclidean<u32>(framebufferSize.width + 1, 32),
+        //     util::divideEuclidean<u32>(framebufferSize.height + 1, 32),
+        //     1);
+    }
+
+    void VoxelRenderer::recordColorTransfer(
+        vk::CommandBuffer                                                      commandBuffer,
+        gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
+    {
+        commandBuffer.bindPipeline(
+            vk::PipelineBindPoint::eGraphics,
+            this->renderer->getPipelineManager()->getPipeline(this->color_transfer_pipeline));
+
+        commandBuffer.pushConstants<std::array<u32, 2>>(
+            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+            vk::ShaderStageFlagBits::eAll,
+            0,
+            std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
+
+        commandBuffer.draw(3, 1, 0, 0);
+    }
 
     void VoxelRenderer::setLightInformation(GpuRaytracedLight light)
     {

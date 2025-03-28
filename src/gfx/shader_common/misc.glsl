@@ -1,6 +1,8 @@
 #ifndef SRC_GFX_SHADER_COMMON_MISC_GLSL
 #define SRC_GFX_SHADER_COMMON_MISC_GLSL
 
+#include "types.glsl"
+
 vec3 plasma_quintic(float x)
 {
     x       = clamp(x, 0.0, 1.0);

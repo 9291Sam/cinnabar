@@ -1,21 +1,56 @@
-#include "global_data.glsl"
+#version 460
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+#include "globals.glsl"
+#include "intersectables.glsl"
 
-layout(set = 0, binding = 2, r32ui) readonly image2D visible_voxel_image[];
+layout(local_size_x = 32, local_size_y = 32) in;
 
-layout(push_constant) readonly PushConstants
+layout(set = 0, binding = 2, rgba32f) uniform image2D visible_voxel_image[];
+
+layout(push_constant) uniform PushConstants
 {
+    uint face_hash_map_offset;
     uint visible_voxel_image_offset;
 }
 in_push_constants;
 
+#define VOXEL_HASH_MAP_OFFSET in_push_constants.visible_voxel_image_offset
+
+#include "voxel_faces.glsl"
+
 void main()
 {
-    const uvec2 thisPixel = gl_GlobalInvocationID.xy;
+    const ivec2 thisPixel = ivec2(gl_GlobalInvocationID.xy);
 
     if (all(lessThan(thisPixel, GlobalData.framebuffer_size)))
     {
-        const u32 this_face_data = imageLoad(visible_voxel_image, thisPixel).x;
+        const vec4 rawPixelData =
+            imageLoad(visible_voxel_image[in_push_constants.visible_voxel_image_offset], thisPixel);
+        const vec3 worldStrikePosition = rawPixelData.xyz;
+        const u32  inChunkInfo         = floatBitsToUint(rawPixelData.w);
+
+        const uvec3 positionInChunk = uvec3(
+            bitfieldExtract(inChunkInfo, 0, 6),
+            bitfieldExtract(inChunkInfo, 6, 6),
+            bitfieldExtract(inChunkInfo, 12, 6));
+
+        const u32 chunkId = bitfieldExtract(inChunkInfo, 18, 14);
+
+        const Cube               voxel = Cube(vec3(positionInChunk) + 0.5 + vec3(-16.0f), 1.0);
+        const IntersectionResult res   = Cube_tryIntersectFast(
+            voxel,
+            Ray(GlobalData.camera_position.xyz, normalize(worldStrikePosition - GlobalData.camera_position.xyz)));
+
+        const ivec3 pos = ivec3(positionInChunk);
+
+        u32 hash = gpu_hashCombineU32(pos.x, pos.y);
+        hash     = gpu_hashCombineU32(hash, pos.z);
+
+        const vec3 c = vec3(
+            gpu_randomUniformFloat(hash - 84492),
+            gpu_randomUniformFloat(hash - 8478193),
+            gpu_randomUniformFloat(hash + 32));
+
+        // doInsert(getHashOfFace(res.maybe_normal, pos, chunkId), c);
     }
 }

@@ -285,6 +285,12 @@ namespace gfx::core::vulkan
 
                             if (maybeErrorString.has_value())
                             {
+                                // This is a race, but I don't give a shit, I want my console empty
+                                for (auto& [path, time] : pipelineStorage.dependent_files)
+                                {
+                                    time = std::filesystem::last_write_time(path);
+                                }
+
                                 log::error(
                                     "Dynamic Pipeline {} recompilation failure:\n{}", pipelineName, *maybeErrorString);
                             }
