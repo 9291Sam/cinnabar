@@ -15,6 +15,12 @@ in_push_constants;
 
 layout(set = 0, binding = 2, rgba32f) uniform image2D visible_voxel_image[];
 
+// #define BRICK_MAPS_OFFSET        in_push_constants.chunk_brick_maps_buffer_offset
+// #define LIGHT_BUFFER_OFFSET      in_push_constants.lights_buffer_offset
+// #define VISIBILITY_BRICKS_OFFSET in_push_constants.visibility_bricks_buffer_offset
+// #define MATERIAL_BRICKS_OFFSET   in_push_constants.material_bricks_buffer_offset
+// #define VOXEL_MATERIALS_OFFSET   in_push_constants.voxel_material_buffer_offset
+// #define VOXEL_HASH_MAP_OFFSET    5
 #define VOXEL_HASH_MAP_OFFSET in_push_constants.visible_voxel_image_offset
 
 #include "voxel_faces.glsl"

@@ -71,6 +71,11 @@ vec3 RandomHemisphericalDirection(vec3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
+VoxelTraceResult traceSingleRayInChunk(Ray ray)
+{
+    return traceDDARay(0, ray.origin, ray.origin + ray.direction * 128);
+}
+
 vec3 calculateColor(
     vec3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
 {
@@ -133,30 +138,30 @@ vec3 calculateColor(
         // calculatedColor = 1 - calculatedColor;
     }
 
-    // const Ray giRay =
-    //     Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(unpacked.normal + RandomDirection(rngState)));
+    const vec3 toFragmentDir = normalize(worldStrikePosition - GlobalData.camera_position.xyz);
 
-    // const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
+    const Ray giRay = Ray(chunkStrikePosition + 0.05 * unpacked.normal, reflect(toFragmentDir, unpacked.normal));
 
-    // vec3 giColor = vec3(0);
+    // normalize(unpacked.normal + RandomDirection(rngState)
+    const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
 
-    // if (giResult.intersect_occur)
-    // {
-    //     giColor = calculatePixelColor(
-    //                   giResult.chunk_local_fragment_position + vec3(-16.0),
-    //                   giResult.voxel_normal,
-    //                   normalize(giRay.origin - giResult.chunk_local_fragment_position),
-    //                   normalize(
-    //                       light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position
-    //                       + vec3(-16.0)),
-    //                   light,
-    //                   firstMaterial,
-    //                   false,
-    //                   true)
-    //             * firstMaterial.albedo_roughness.xyz;
-    // }
+    vec3 giColor = vec3(0);
 
-    // calculatedColor += giColor;
+    if (giResult.intersect_occur)
+    {
+        giColor = calculatePixelColor(
+            giResult.chunk_local_fragment_position + vec3(-16.0),
+            giResult.voxel_normal,
+            normalize(giRay.origin - giResult.chunk_local_fragment_position),
+            normalize(
+                light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position + vec3(-16.0)),
+            light,
+            giResult.material,
+            false,
+            true);
+    }
+
+    calculatedColor += giColor;
 
     return calculatedColor;
 }
@@ -189,6 +194,11 @@ void main()
         const vec3 worldStrikePosition = rawPixelData.xyz;
         const vec3 chunkStrikePosition = worldStrikePosition - box_corner_negative;
         const u32  uniqueFaceId        = floatBitsToUint(rawPixelData.w);
+
+        if (uniqueFaceId == ~0u)
+        {
+            return;
+        }
 
         UnpackUniqueFaceIdResult unpacked = unpackUniqueFaceId(uniqueFaceId);
 

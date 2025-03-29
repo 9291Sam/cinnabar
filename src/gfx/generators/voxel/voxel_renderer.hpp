@@ -61,7 +61,6 @@ namespace gfx::generators::voxel
 
         mutable std::atomic<f32> last_frame_time;
         mutable std::atomic<u32> demo_index;
-        bool                     should_accumulate;
 
         struct Demo
         {

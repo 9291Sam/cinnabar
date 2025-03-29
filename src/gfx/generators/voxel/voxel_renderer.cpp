@@ -94,7 +94,6 @@ namespace gfx::generators::voxel
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxFaceHashMapNodes,
               "Face Hash Map")
-        , should_accumulate {true}
     {
         std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
@@ -234,15 +233,7 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
     {
-        if (std::optional s = util::receive<bool>("Voxel Renderer Accumulate"))
-        {
-            this->should_accumulate = *s;
-        }
-
-        if (this->should_accumulate || this->renderer->getFrameNumber() == 0)
-        {
-            commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
-        }
+        commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
     }
 
     void VoxelRenderer::recordPrepass(vk::CommandBuffer commandBuffer, const Camera&)

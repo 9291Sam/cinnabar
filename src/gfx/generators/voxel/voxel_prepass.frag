@@ -32,9 +32,9 @@ layout(location = 0) out vec4 out_position_and_id;
 
 layout(depth_greater) out float gl_FragDepth;
 
-VoxelTraceResult traceSingleRayInChunk(Ray ray)
+VoxelTraceResult traceSingleRayInChunk(Ray ray, float dist)
 {
-    return traceDDARay(0, ray.origin, ray.origin + ray.direction * 128);
+    return traceDDARay(0, ray.origin, ray.origin + ray.direction * dist);
 }
 
 // PCG (permuted congruential generator). Thanks to:
@@ -78,62 +78,96 @@ vec3 RandomHemisphericalDirection(vec3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
-// vec3 calculateColor(
-//     vec3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
-// {
-//     // const GpuRaytracedLight light = in_raytraced_lights[1].lights[0];
+vec3 calculateColor(
+    vec3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
+{
+    // return vec3(0);
+    // vec3 incomingLight = vec3(0.0);
+    // vec3 rayColor      = vec3(firstMaterial.albedo_roughness.xyz);
+    // Ray  ray;
+    // ray.origin    = chunkStrikePosition + 0.05 * unpacked.normal;
+    // ray.direction = RandomHemisphericalDirection(unpacked.normal, rngState);
 
-//     const vec3 worldStrikePosition = chunkStrikePosition + vec3(-16.0);
+    // const u32 maxBounceCount = 3;
 
-// vec3 calculatedColor = calculatePixelColor(
-//     worldStrikePosition,
-//     unpacked.normal,
-//     normalize(GlobalData.camera_position.xyz - worldStrikePosition),
-//     normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
-//     light,
-//     firstMaterial);
+    // for (int i = 0; i < maxBounceCount; ++i)
+    // {
+    //     VoxelTraceResult traceResult = traceSingleRayInChunk(ray, 96.0);
 
-// const VoxelTraceResult shadowResult = traceDDARay(
-//     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz -
-//     vec3(-16.0));
+    //     if (traceResult.intersect_occur)
+    //     {
+    //         ray.origin    = traceResult.chunk_local_fragment_position + 0.05 * traceResult.voxel_normal;
+    //         ray.direction = RandomHemisphericalDirection(traceResult.voxel_normal, rngState);
 
-// if (shadowResult.intersect_occur)
-// {
-//     calculatedColor = vec3(0);
-// }
+    //         const PBRVoxelMaterial material     = traceResult.material;
+    //         const vec3             emittedLight = material.emission_metallic.xyz;
+    //         incomingLight += emittedLight * rayColor;
+    //         rayColor *= (material.albedo_roughness.xyz);
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    // }
 
-// return calculatedColor;
+    // return incomingLight;
 
-// vec3 incomingLight = vec3(0.0);
-// vec3 rayColor      = vec3(firstMaterial.albedo_roughness.xyz);
-// Ray  ray;
-// ray.origin    = chunkStrikePosition + 0.05 * unpacked.normal;
-// ray.direction = RandomHemisphericalDirection(unpacked.normal, rngState);
+    // return firstMaterial.albedo_roughness.xyz;
+    // return firstMaterial.albedo_roughness.xyz;
+    const GpuRaytracedLight light = in_raytraced_lights[1].lights[0];
 
-// const u32 maxBounceCount = 3;
+    const vec3 worldStrikePosition = chunkStrikePosition + vec3(-16.0);
 
-// for (int i = 0; i < maxBounceCount; ++i)
-// {
-//     VoxelTraceResult traceResult = traceSingleRayInChunk(ray);
+    vec3 lightColor = calculatePixelColor(
+        worldStrikePosition,
+        unpacked.normal,
+        normalize(GlobalData.camera_position.xyz - worldStrikePosition),
+        normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+        light,
+        firstMaterial,
+        true,
+        true);
 
-//     if (traceResult.intersect_occur)
-//     {
-//         ray.origin    = traceResult.chunk_local_fragment_position + 0.05 * traceResult.voxel_normal;
-//         ray.direction = RandomHemisphericalDirection(traceResult.voxel_normal, rngState);
+    const VoxelTraceResult shadowResult = traceDDARay(
+        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - vec3(-16.0));
 
-//         const PBRVoxelMaterial material     = traceResult.material;
-//         const vec3             emittedLight = material.emission_metallic.xyz / 64.0;
-//         incomingLight += emittedLight * rayColor;
-//         rayColor *= (material.albedo_roughness.xyz);
-//     }
-//     else
-//     {
-//         break;
-//     }
-// }
+    vec3 calculatedColor = vec3(0.0);
 
-// return incomingLight;
-// }
+    if (!shadowResult.intersect_occur)
+    {
+        calculatedColor += lightColor;
+        // calculatedColor *=
+        // calculatedColor = 1 - calculatedColor;
+    }
+
+    const vec3 toFragmentDir = normalize(worldStrikePosition - GlobalData.camera_position.xyz);
+
+    // const Ray giRay = Ray(chunkStrikePosition + 0.05 * unpacked.normal, reflect(toFragmentDir, unpacked.normal));
+
+    // // normalize(unpacked.normal + RandomDirection(rngState)
+    // const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
+
+    // vec3 giColor = vec3(0);
+
+    // if (giResult.intersect_occur)
+    // {
+    //     giColor = calculatePixelColor(
+    //         giResult.chunk_local_fragment_position + vec3(-16.0),
+    //         giResult.voxel_normal,
+    //         normalize(giRay.origin - giResult.chunk_local_fragment_position),
+    //         normalize(
+    //             light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position +
+    //             vec3(-16.0)),
+    //         light,
+    //         giResult.material,
+    //         false,
+    //         true);
+    // }
+
+    // calculatedColor += giColor;
+
+    return calculatedColor;
+}
 
 void main()
 {

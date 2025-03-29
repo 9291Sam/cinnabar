@@ -211,8 +211,6 @@ namespace gfx::generators::imgui
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });
-
-        util::send<bool>("Voxel Renderer Accumulate", !this->should_accumulate);
     }
 
     ImguiRenderer::~ImguiRenderer()
@@ -407,11 +405,6 @@ namespace gfx::generators::imgui
                     raw_present_mode_strings.at(static_cast<usize>(this->present_mode_combo_box_value)));
 
                 this->renderer->setDesiredPresentMode(newPresentMode);
-            }
-
-            if (ImGui::Checkbox("Should Accumulate", &this->should_accumulate))
-            {
-                util::send<bool>("Voxel Renderer Accumulate", !this->should_accumulate);
             }
 
             bool needsUpdate = false;
