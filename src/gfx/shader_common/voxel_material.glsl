@@ -100,7 +100,7 @@ vec3 calculatePixelColor(vec3 worldPos, vec3 N, vec3 V, vec3 L, GpuRaytracedLigh
     vec3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, vec3(2.2)) / PI + specular)
                * (NdotL / distanceToLight) * lightIntensity;
 
-    color += material.emission_metallic.xyz;
+    color += material.emission_metallic.xyz / 8.0;
 
     return color;
 }
