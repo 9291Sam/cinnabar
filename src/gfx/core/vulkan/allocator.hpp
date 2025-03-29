@@ -15,7 +15,7 @@ namespace gfx::core::vulkan
     {
     public:
 
-        Allocator(const Instance&, const Device*, const DescriptorManager*);
+        Allocator(const Instance&, const Device&);
         ~Allocator();
 
         Allocator(const Allocator&)             = delete;
@@ -23,15 +23,10 @@ namespace gfx::core::vulkan
         Allocator& operator= (const Allocator&) = delete;
         Allocator& operator= (Allocator&&)      = delete;
 
-        [[nodiscard]] VmaAllocator                     operator* () const;
-        [[nodiscard]] const vulkan::Device*            getDevice() const;
-        [[nodiscard]] const vulkan::DescriptorManager* getDescriptorManager() const;
+        [[nodiscard]] VmaAllocator operator* () const;
 
     private:
-        // HACK: move these out of here
-        const vulkan::Device*            device;
-        const vulkan::DescriptorManager* descriptor_manager;
-        VmaAllocator                     allocator;
+        VmaAllocator allocator;
     };
 
 } // namespace gfx::core::vulkan

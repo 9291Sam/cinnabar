@@ -1,13 +1,10 @@
 #pragma once
 
 #include "util/util.hpp"
-#include "vulkan/buffer.hpp" // TODO: get rid of this include
 #include <functional>
 #include <memory>
 #include <util/threads.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core
 {
@@ -22,6 +19,7 @@ namespace gfx::core
         class Swapchain;
         class PipelineManager;
         class DescriptorManager;
+        class BufferStager;
     } // namespace vulkan
 
     class Renderer
@@ -58,6 +56,7 @@ namespace gfx::core
         bool recordOnThread(std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;
 
+        // TODO: don't actually expose these, just give the pass through functions that are required
         [[nodiscard]] const vulkan::Instance*          getInstance() const noexcept;
         [[nodiscard]] const vulkan::Device*            getDevice() const noexcept;
         [[nodiscard]] const vulkan::Allocator*         getAllocator() const noexcept;

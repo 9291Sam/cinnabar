@@ -1,18 +1,17 @@
 #pragma once
 
-#include "device.hpp"
-#include "gfx/core/vulkan/buffer.hpp"
+#include "util/util.hpp"
 #include <chrono>
 #include <cstddef>
 #include <functional>
-#include <vulkan/vulkan_format_traits.hpp>
-#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace gfx::core::vulkan
 {
+    class BufferStager;
     class Device;
 
-    static constexpr std::size_t FramesInFlight = 3;
+    static constexpr u32         FramesInFlight = 3;
     static constexpr std::size_t TimeoutNs =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<std::size_t> {5}).count();
 
@@ -36,6 +35,7 @@ namespace gfx::core::vulkan
             std::function<void(vk::CommandBuffer, u32)>,
             const BufferStager&);
 
+        // uses a shared_ptr for implementation reasons
         [[nodiscard]] std::shared_ptr<vk::UniqueFence> getFrameInFlightFence() const noexcept;
 
     private:

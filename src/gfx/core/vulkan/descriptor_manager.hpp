@@ -97,6 +97,7 @@ namespace gfx::core::vulkan
         {
             u32                  offset;
             std::string          name;
+            // Is nullopt when a size can't be determined (images)
             std::optional<usize> maybe_size_bytes;
         };
 
@@ -108,7 +109,6 @@ namespace gfx::core::vulkan
         template<vk::DescriptorType D>
         [[nodiscard]] DescriptorHandle<D> registerDescriptor(
             RegisterDescriptorArgs<D>, std::string name, std::source_location = std::source_location::current()) const;
-
         template<vk::DescriptorType D>
         void deregisterDescriptor(DescriptorHandle<D>) const;
 

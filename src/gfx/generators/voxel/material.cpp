@@ -618,7 +618,7 @@ namespace gfx::generators::voxel
         }
 
         gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> buffer {
-            renderer->getAllocator(),
+            renderer,
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
             materials.size(),

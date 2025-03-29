@@ -14,10 +14,10 @@ namespace gfx::core::vulkan
 
     static constexpr std::size_t StagingBufferSize = std::size_t {32} * 1024 * 1024;
 
-    BufferStager::BufferStager(const Allocator* allocator_)
-        : allocator {allocator_}
+    BufferStager::BufferStager(const Renderer* renderer_)
+        : renderer {renderer_}
         , staging_buffer {
-              this->allocator,
+              this->renderer,
               vk::BufferUsageFlagBits::eTransferSrc,
               vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,  StagingBufferSize,
               "Staging Buffer"
@@ -96,7 +96,7 @@ namespace gfx::core::vulkan
 
                 for (const auto& [fence, allocations] : toFreeMap)
                 {
-                    if (this->allocator->getDevice()->getDevice().getFenceStatus(**fence) == vk::Result::eSuccess)
+                    if (this->renderer->getDevice()->getDevice().getFenceStatus(**fence) == vk::Result::eSuccess)
                     {
                         toRemove.push_back(fence);
 

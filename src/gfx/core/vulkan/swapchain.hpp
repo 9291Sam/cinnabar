@@ -1,8 +1,8 @@
 #pragma once
 
 #include <optional>
+#include <span>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 namespace gfx::core::vulkan
 {

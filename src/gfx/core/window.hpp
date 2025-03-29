@@ -1,6 +1,6 @@
 #pragma once
 
-#include "glm/vec2.hpp"
+#include "glm/ext/vector_double2.hpp"
 #include "util/util.hpp"
 #include <array>
 #include <atomic>

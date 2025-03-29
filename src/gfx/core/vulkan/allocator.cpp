@@ -11,10 +11,8 @@
 
 namespace gfx::core::vulkan
 {
-    Allocator::Allocator(const Instance& instance, const Device* device_, const DescriptorManager* descriptorManager)
-        : device {device_}
-        , descriptor_manager {descriptorManager}
-        , allocator {nullptr}
+    Allocator::Allocator(const Instance& instance, const Device& device)
+        : allocator {nullptr}
     {
         VmaVulkanFunctions vulkanFunctions {};
         vulkanFunctions.vkGetInstanceProcAddr = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr;
@@ -22,8 +20,8 @@ namespace gfx::core::vulkan
 
         const VmaAllocatorCreateInfo allocatorCreateInfo {
             .flags {},
-            .physicalDevice {device_->getPhysicalDevice()},
-            .device {this->device->getDevice()},
+            .physicalDevice {device.getPhysicalDevice()},
+            .device {device.getDevice()},
             .preferredLargeHeapBlockSize {0}, // chosen by VMA
             .pAllocationCallbacks {nullptr},
             .pDeviceMemoryCallbacks {nullptr},
@@ -47,16 +45,6 @@ namespace gfx::core::vulkan
     VmaAllocator Allocator::operator* () const
     {
         return this->allocator;
-    }
-
-    const vulkan::Device* Allocator::getDevice() const
-    {
-        return this->device;
-    }
-
-    const vulkan::DescriptorManager* Allocator::getDescriptorManager() const
-    {
-        return this->descriptor_manager;
     }
 
 } // namespace gfx::core::vulkan

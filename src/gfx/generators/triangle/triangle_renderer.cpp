@@ -29,7 +29,7 @@ namespace gfx::generators::triangle
           }))
         , triangle_allocator {Triangle::MaxValidElement}
         , triangle_gpu_data {
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer,
               vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
               Triangle::MaxValidElement,

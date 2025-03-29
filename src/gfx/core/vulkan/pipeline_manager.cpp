@@ -1,6 +1,5 @@
 #include "pipeline_manager.hpp"
-#include "gfx/core/vulkan/device.hpp"
-#include "util/allocators/opaque_integer_handle_allocator.hpp"
+#include "device.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
 #include "util/util.hpp"
@@ -8,14 +7,11 @@
 #include <deque>
 #include <expected>
 #include <filesystem>
-#include <fstream>
-#include <shaderc/shaderc.h>
+#include <ranges>
 #include <shaderc/shaderc.hpp>
-#include <shaderc/status.h>
 #include <span>
 #include <variant>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -248,15 +244,14 @@ namespace gfx::core::vulkan
                     {
                         PipelineInternalStorage& pipelineStorage = criticalSection.pipeline_storage[handleValue];
 
-                        bool shouldThisPipelineReload = false;
-
-                        for (const auto& [path, time] : pipelineStorage.dependent_files)
-                        {
-                            if (time != std::filesystem::last_write_time(path))
+                        bool shouldThisPipelineReload = std::ranges::any_of(
+                            pipelineStorage.dependent_files,
+                            [](const auto& pair)
                             {
-                                shouldThisPipelineReload |= true;
-                            }
-                        }
+                                const auto& [path, time] = pair;
+
+                                return time != std::filesystem::last_write_time(path);
+                            });
 
                         if (shouldThisPipelineReload)
                         {

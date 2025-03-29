@@ -1,16 +1,9 @@
 #include "frame_manager.hpp"
 #include "device.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
-#include "gfx/core/vulkan/frame_manager.hpp"
-#include "util/util.hpp"
 #include <expected>
-#include <glm/gtc/type_ptr.hpp>
 #include <optional>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -37,11 +30,6 @@ namespace gfx::core::vulkan
                                    .value()},
         };
 
-        const std::string commandPoolName    = std::format("Frame #{} Command Pool", number);
-        const std::string imageAvailableName = std::format("Frame #{} Image Available Semaphore", number);
-        const std::string renderFinishedName = std::format("Frame #{} Render Finished Semaphore", number);
-        const std::string frameInFlightName  = std::format("Frame #{} Frame In Flight Fence", number);
-
         this->command_pool = this->device->getDevice().createCommandPoolUnique(commandPoolCreateInfo);
 
         this->image_available = this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
@@ -51,6 +39,11 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
+            const std::string commandPoolName    = std::format("Frame #{} Command Pool", number);
+            const std::string imageAvailableName = std::format("Frame #{} Image Available Semaphore", number);
+            const std::string renderFinishedName = std::format("Frame #{} Render Finished Semaphore", number);
+            const std::string frameInFlightName  = std::format("Frame #{} Frame In Flight Fence", number);
+
             device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                 .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
                 .pNext {nullptr},
@@ -185,10 +178,7 @@ namespace gfx::core::vulkan
                     .pResults {nullptr},
                 };
 
-                const vk::Result presentResult = vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
-                    queue,
-                    // NOLINTNEXTLINE
-                    reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
+                const vk::Result presentResult = queue.presentKHR(presentInfo);
 
                 switch (presentResult) // NOLINT
                 {

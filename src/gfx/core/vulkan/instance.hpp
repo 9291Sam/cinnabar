@@ -29,6 +29,7 @@ namespace gfx::core::vulkan
             return this->loader.getProcAddress<T>(function);
         }
 
+        /// Access the underlying vk::Instance handle
         vk::Instance operator* () const noexcept;
 
         /// Returns a version in the format described by

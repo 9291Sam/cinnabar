@@ -64,32 +64,32 @@ namespace gfx::generators::voxel
                   .name {"Color Transfer Pipeline"},
               })}
         , chunk_bricks(
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Chunk Bricks")
         , lights(
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Voxel Lights")
         , visible_bricks(
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
               "Visible Bricks")
         , material_bricks(
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
               "Material Bricks")
         , materials {generateMaterialBuffer(this->renderer)}
         , face_hash_map(
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxFaceHashMapNodes,

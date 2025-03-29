@@ -2,6 +2,7 @@
 
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 

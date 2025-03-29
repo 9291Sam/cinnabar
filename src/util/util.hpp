@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <functional>
 #include <string_view>
 #include <type_traits>
 #include <vector>

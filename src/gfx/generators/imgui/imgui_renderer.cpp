@@ -14,6 +14,7 @@
 #include <atomic>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <functional>
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
 #include <misc/freetype/imgui_freetype.h>
@@ -168,7 +169,7 @@ namespace gfx::generators::imgui
 
                     std::vector<std::byte> buffer = util::loadEntireFileFromPath(unifontPath);
 
-                    log::trace("Loaded Text font. Size: {}", buffer.size());
+                    log::debug("Loaded Text font. Size: {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
                         buffer.data(), // NOLINT

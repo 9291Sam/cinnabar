@@ -2,7 +2,6 @@
 
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 VK_DEFINE_HANDLE(VmaAllocation)
 VK_DEFINE_HANDLE(VmaAllocator)

@@ -1,9 +1,8 @@
 #include "renderer.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "util/logger.hpp"
-#include "util/threads.hpp"
 #include "vulkan/allocator.hpp"
 #include "vulkan/buffer.hpp"
+#include "vulkan/descriptor_manager.hpp"
 #include "vulkan/device.hpp"
 #include "vulkan/frame_manager.hpp"
 #include "vulkan/instance.hpp"
@@ -12,11 +11,9 @@
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <atomic>
-#include <map>
 #include <memory>
 #include <optional>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace gfx::core
 {
@@ -25,7 +22,6 @@ namespace gfx::core
         : desired_present_mode {std::nullopt}
     {
 #ifdef __APPLE__
-
         // NOLINTNEXTLINE(concurrency-mt-unsafe)
         ::setenv("MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS", "1", 1);
 #endif
@@ -81,9 +77,8 @@ namespace gfx::core
         this->descriptor_manager = std::make_unique<vulkan::DescriptorManager>(*this->device);
         this->pipeline_manager   = std::make_unique<vulkan::PipelineManager>(
             *this->device, this->descriptor_manager->getGlobalPipelineLayout());
-        this->allocator =
-            std::make_unique<vulkan::Allocator>(*this->instance, &*this->device, &*this->descriptor_manager);
-        this->stager = std::make_unique<vulkan::BufferStager>(&*this->allocator);
+        this->allocator = std::make_unique<vulkan::Allocator>(*this->instance, *this->device);
+        this->stager    = std::make_unique<vulkan::BufferStager>(this);
 
         this->critical_section = util::Mutex {this->makeCriticalSection()};
 
@@ -116,6 +111,8 @@ namespace gfx::core
                     || this->should_resize_occur.exchange(false, std::memory_order_acq_rel))
                 {
                     this->device->getDevice().waitIdle();
+
+                    this->window->blockThisThreadWhileMinimized();
 
                     lockedCriticalSection.reset();
 

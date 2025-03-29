@@ -1,5 +1,6 @@
 #include "swapchain.hpp"
 #include "device.hpp"
+#include "frame_manager.hpp"
 #include "gfx/core/renderer.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
@@ -69,8 +70,8 @@ namespace gfx::core::vulkan
 
         const vk::SurfaceCapabilitiesKHR surfaceCapabilities =
             device.getPhysicalDevice().getSurfaceCapabilitiesKHR(surface);
-        const u32 numberOfSwapchainImages =
-            std::min({std::max({4U, surfaceCapabilities.minImageCount}), surfaceCapabilities.maxImageCount});
+        const u32 numberOfSwapchainImages = std::min(
+            {std::max({FramesInFlight, surfaceCapabilities.minImageCount}), surfaceCapabilities.maxImageCount});
 
         const vk::SwapchainCreateInfoKHR swapchainCreateInfo {
             .sType {vk::StructureType::eSwapchainCreateInfoKHR},
@@ -164,7 +165,7 @@ namespace gfx::core::vulkan
             idx += 1;
         }
 
-        log::trace("Created swapchain with {} images", this->images.size());
+        log::debug("Created swapchain with {} images", this->images.size());
     }
 
     std::span<const vk::ImageView> Swapchain::getViews() const noexcept

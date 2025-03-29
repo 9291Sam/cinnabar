@@ -1,6 +1,7 @@
 #include "image.hpp"
 #include "allocator.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/device.hpp"
 #include "util/logger.hpp"
 #include <optional>
 #include <vk_mem_alloc.h>

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/frame_generator.hpp"
 #include <atomic>
 #include <concepts>
+
 namespace game
 {
     class Game

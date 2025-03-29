@@ -6,7 +6,6 @@
 #include <shaderc/shaderc.hpp>
 #include <variant>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -16,16 +15,16 @@ namespace gfx::core::vulkan
     {
         std::string           vertex_shader_path;
         std::string           fragment_shader_path;
-        vk::PrimitiveTopology topology {};
-        vk::PolygonMode       polygon_mode {};
+        vk::PrimitiveTopology topology;
+        vk::PolygonMode       polygon_mode;
         vk::CullModeFlags     cull_mode;
-        vk::FrontFace         front_face {};
-        b32                   depth_test_enable {};
-        b32                   depth_write_enable {};
-        vk::CompareOp         depth_compare_op {};
-        vk::Format            color_format {};
-        vk::Format            depth_format {};
-        b32                   blend_enable {};
+        vk::FrontFace         front_face;
+        b32                   depth_test_enable;
+        b32                   depth_write_enable;
+        vk::CompareOp         depth_compare_op;
+        vk::Format            color_format;
+        vk::Format            depth_format;
+        b32                   blend_enable;
         std::string           name;
 
         bool operator== (const GraphicsPipelineDescriptor&) const = default;
@@ -55,7 +54,8 @@ namespace gfx::core::vulkan
 
         void destroyPipeline(Pipeline) const;
 
-        /// The value returned is valid until the next call to reloadShaders
+        /// The value returned is valid until the next call to reloadShaders or till the pipeline is destroyed,
+        /// whichever is sooner
         [[nodiscard]] vk::Pipeline getPipeline(const Pipeline&) const;
         [[nodiscard]] bool         couldAnyShadersReload() const;
         void                       reloadShaders() const;

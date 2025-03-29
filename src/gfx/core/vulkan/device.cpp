@@ -1,13 +1,12 @@
 #include "device.hpp"
+#include "util/logger.hpp"
 #include "util/util.hpp"
 #include <algorithm>
+#include <functional>
+#include <magic_enum/magic_enum.hpp>
 #include <optional>
+#include <utility>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_hpp_macros.hpp>
-#include <vulkan/vulkan_structs.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -27,9 +26,8 @@ namespace gfx::core::vulkan
             return score;
         };
 
-        this->physical_device = *std::max_element(
-            availablePhysicalDevices.cbegin(),
-            availablePhysicalDevices.cend(),
+        this->physical_device = *std::ranges::max_element(
+            availablePhysicalDevices,
             [&](vk::PhysicalDevice l, vk::PhysicalDevice r)
             {
                 return getRatingOfDevice(l) < getRatingOfDevice(r);
@@ -360,4 +358,38 @@ namespace gfx::core::vulkan
     {
         return &*this->device;
     }
+
+    void Device::acquireQueue(QueueType queueType, std::function<void(vk::Queue)> accessFunc) const noexcept
+    {
+        const std::size_t idx = static_cast<std::size_t>(std::to_underlying(queueType));
+
+        assert::critical(
+            idx < static_cast<std::size_t>(QueueType::NumberOfQueueTypes),
+            "Tried to lookup an invalid queue of type {}",
+            idx);
+
+        const std::vector<util::Mutex<vk::Queue>>& qs = this->queues.at(std::to_underlying(queueType));
+
+        while (true)
+        {
+            for (const util::Mutex<vk::Queue>& q : qs)
+            {
+                const bool wasLockedAndExecuted = q.tryLock(
+                    [&](vk::Queue lockedQueue)
+                    {
+                        accessFunc(lockedQueue);
+                    });
+
+                if (wasLockedAndExecuted)
+                {
+                    return;
+                }
+            }
+
+            log::warn("Failed to acquire a queue of type {}, retrying", magic_enum::enum_name(queueType));
+
+            std::this_thread::yield();
+        }
+    }
+
 } // namespace gfx::core::vulkan

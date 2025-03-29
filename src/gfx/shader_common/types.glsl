@@ -1,6 +1,7 @@
 #ifndef SRC_GFX_SHADER_COMMON_TYPES_GLSL
 #define SRC_GFX_SHADER_COMMON_TYPES_GLSL
 
+// TODO: remove
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_KHR_shader_subgroup_basic : require
 #extension GL_KHR_shader_subgroup_ballot : require

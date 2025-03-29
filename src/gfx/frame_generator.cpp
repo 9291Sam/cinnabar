@@ -19,7 +19,7 @@ namespace gfx
         , has_resize_ocurred {true}
         , frame_descriptors {this->createFrameDescriptors()}
         , global_gpu_data {
-              this->renderer->getAllocator(),
+              this->renderer,
               vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,

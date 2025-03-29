@@ -184,16 +184,13 @@ int main()
 
     CPPTRACE_TRYZ
     {
-        util::send("foo", 3);
-
         log::info(
-            "Cinnabar has started v{}.{}.{}.{}{}{}",
+            "Cinnabar has started v{}.{}.{}.{}{}",
             CINNABAR_VERSION_MAJOR,
             CINNABAR_VERSION_MINOR,
             CINNABAR_VERSION_PATCH,
             CINNABAR_VERSION_TWEAK,
-            CINNABAR_DEBUG_BUILD ? " Debug Build" : "",
-            util::receive<int>("foo").value());
+            CINNABAR_DEBUG_BUILD ? " Debug Build" : "");
 
         gfx::core::Renderer renderer {};
         game::Game          game {&renderer};

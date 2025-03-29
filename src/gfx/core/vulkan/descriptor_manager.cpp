@@ -2,16 +2,9 @@
 
 #include "descriptor_manager.hpp"
 #include "device.hpp"
-#include "util/allocators/index_allocator.hpp"
-#include <algorithm>
-#include <exception>
 #include <limits>
-#include <map>
 #include <ranges>
-#include <source_location>
 #include <utility>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 namespace gfx::core::vulkan
 {

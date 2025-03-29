@@ -48,13 +48,11 @@ namespace gfx::core
 
             assert::critical(this->window != nullptr, "Failed to create GLFW window!");
 
-// move the window to the corner so I can see my debug logs
-#ifdef _WIN32
+            // Move window to corner for debug logs
             if (CINNABAR_DEBUG_BUILD)
             {
-                glfwSetWindowPos(this->window, 100, 100);
+                glfwSetWindowPos(this->window, 0, 100);
             }
-#endif
         }
 
         // Populate Keybinds

@@ -3,6 +3,7 @@
 #include "allocator.hpp"
 #include "descriptor_manager.hpp"
 #include "device.hpp"
+#include "gfx/core/renderer.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
@@ -13,11 +14,6 @@
 #include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_format_traits.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_structs.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -40,19 +36,19 @@ namespace gfx::core::vulkan
     public:
 
         GpuOnlyBuffer()
-            : allocator {nullptr}
+            : renderer {nullptr}
             , buffer {nullptr}
             , allocation {nullptr}
             , elements {0}
         {}
         GpuOnlyBuffer(
-            const Allocator*        allocator_,
+            const Renderer*         renderer_,
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
             : name {std::move(name_)}
-            , allocator {allocator_}
+            , renderer {renderer_}
             , buffer {nullptr}
             , allocation {nullptr}
             , elements {elements_}
@@ -63,7 +59,7 @@ namespace gfx::core::vulkan
             assert::critical(
                 !(memoryPropertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent), "Tried to create coherent buffer!");
 
-            if (allocator_->getDevice()->isIntegrated() && allocator_->getDevice()->isAmd()
+            if (this->renderer->getDevice()->isIntegrated() && this->renderer->getDevice()->isAmd()
                 && memoryPropertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal)
             {
                 memoryPropertyFlags &= ~vk::MemoryPropertyFlagBits::eDeviceLocal;
@@ -84,8 +80,8 @@ namespace gfx::core::vulkan
             const VmaAllocationCreateInfo allocationCreateInfo {
                 .flags {VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
                 .usage {
-                    allocator_->getDevice()->isIntegrated() ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST
-                                                            : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
+                    this->renderer->getDevice()->isIntegrated() ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+                                                                : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
                 .requiredFlags {static_cast<VkMemoryPropertyFlags>(memoryPropertyFlags)},
                 .preferredFlags {},
                 .memoryTypeBits {},
@@ -97,7 +93,7 @@ namespace gfx::core::vulkan
             VkBuffer outputBuffer = nullptr;
 
             const vk::Result result {::vmaCreateBuffer(
-                **this->allocator,
+                **this->renderer->getAllocator(),
                 &bufferCreateInfo,
                 &allocationCreateInfo,
                 &outputBuffer,
@@ -114,7 +110,7 @@ namespace gfx::core::vulkan
 
             if constexpr (CINNABAR_DEBUG_BUILD)
             {
-                this->allocator->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
                     .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
                     .pNext {nullptr},
                     .objectType {vk::ObjectType::eBuffer},
@@ -129,12 +125,12 @@ namespace gfx::core::vulkan
         {
             if (this->maybe_uniform_descriptor_handle.has_value())
             {
-                this->allocator->getDescriptorManager()->deregisterDescriptor(*this->maybe_uniform_descriptor_handle);
+                this->renderer->getDescriptorManager()->deregisterDescriptor(*this->maybe_uniform_descriptor_handle);
             }
 
             if (this->maybe_storage_descriptor_handle.has_value())
             {
-                this->allocator->getDescriptorManager()->deregisterDescriptor(*this->maybe_storage_descriptor_handle);
+                this->renderer->getDescriptorManager()->deregisterDescriptor(*this->maybe_storage_descriptor_handle);
             }
             this->free();
         }
@@ -155,7 +151,7 @@ namespace gfx::core::vulkan
         }
         GpuOnlyBuffer& operator= (const GpuOnlyBuffer&) = delete;
         GpuOnlyBuffer(GpuOnlyBuffer&& other) noexcept
-            : allocator {other.allocator}
+            : renderer {other.renderer}
             , buffer {other.buffer}
             , allocation {other.allocation}
             , elements {other.elements}
@@ -163,7 +159,7 @@ namespace gfx::core::vulkan
             , maybe_uniform_descriptor_handle {std::exchange(other.maybe_uniform_descriptor_handle, std::nullopt)}
             , maybe_storage_descriptor_handle {std::exchange(other.maybe_storage_descriptor_handle, std::nullopt)}
         {
-            other.allocator  = nullptr;
+            other.renderer   = nullptr;
             other.buffer     = nullptr;
             other.allocation = nullptr;
             other.elements   = 0;
@@ -184,7 +180,7 @@ namespace gfx::core::vulkan
                     "Tried to access a non Uniform Buffer as a Uniform Buffer!");
 
                 this->maybe_uniform_descriptor_handle =
-                    this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
+                    this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
                         {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
             }
 
@@ -200,7 +196,7 @@ namespace gfx::core::vulkan
                     "Tried to access a non Storage Buffer as a Storage Buffer!");
 
                 this->maybe_storage_descriptor_handle =
-                    this->allocator->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
+                    this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
                         {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
             }
 
@@ -213,18 +209,18 @@ namespace gfx::core::vulkan
 
         void free()
         {
-            if (this->allocator == nullptr)
+            if (this->renderer == nullptr)
             {
                 return;
             }
 
-            ::vmaDestroyBuffer(**this->allocator, this->buffer, this->allocation);
+            ::vmaDestroyBuffer(**this->renderer->getAllocator(), this->buffer, this->allocation);
 
             bufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);
         }
 
         std::string          name;
-        const Allocator*     allocator;
+        const Renderer*      renderer;
         vk::Buffer           buffer;
         VmaAllocation        allocation;
         std::size_t          elements;
@@ -240,12 +236,12 @@ namespace gfx::core::vulkan
     public:
 
         WriteOnlyBuffer(
-            const Allocator*        allocator_,
+            const Renderer*         renderer_,
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::core::vulkan::GpuOnlyBuffer<T> {allocator_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
+            : gfx::core::vulkan::GpuOnlyBuffer<T> {renderer_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
         {}
         ~WriteOnlyBuffer()
         {
@@ -325,7 +321,7 @@ namespace gfx::core::vulkan
             if (flushes.size() == 1)
             {
                 result = vmaFlushAllocation(
-                    **this->allocator,
+                    **this->renderer->getAllocator(),
                     this->allocation,
                     flushes[0].offset_elements * sizeof(T),
                     flushes[0].size_elements * sizeof(T));
@@ -350,7 +346,7 @@ namespace gfx::core::vulkan
                 }
 
                 result = vmaFlushAllocations(
-                    **this->allocator,
+                    **this->renderer->getAllocator(),
                     static_cast<u32>(numberOfFlushes),
                     allocations.data(),
                     offsets.data(),
@@ -366,7 +362,7 @@ namespace gfx::core::vulkan
         {
             if (this->mapped_memory != nullptr)
             {
-                ::vmaUnmapMemory(**this->allocator, this->allocation);
+                ::vmaUnmapMemory(**this->renderer->getAllocator(), this->allocation);
                 this->mapped_memory = nullptr;
             }
         }
@@ -379,7 +375,8 @@ namespace gfx::core::vulkan
             {
                 void* outputMappedMemory = nullptr;
 
-                const VkResult result = ::vmaMapMemory(**this->allocator, this->allocation, &outputMappedMemory);
+                const VkResult result =
+                    ::vmaMapMemory(**this->renderer->getAllocator(), this->allocation, &outputMappedMemory);
 
                 assert::critical(
                     result == VK_SUCCESS, "Failed to map buffer memory {}", vk::to_string(vk::Result {result}));
@@ -402,13 +399,12 @@ namespace gfx::core::vulkan
     public:
 
         CpuCachedBuffer(
-            const Allocator*        allocator_,
+            const Renderer*         renderer,
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
             std::string             name_)
-            : gfx::core::vulkan::WriteOnlyBuffer<T> {
-                  allocator_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
+            : gfx::core::vulkan::WriteOnlyBuffer<T> {renderer, usage_, memoryPropertyFlags, elements_, std::move(name_)}
         {
             assert::warn(
                 static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage_),
@@ -518,7 +514,7 @@ namespace gfx::core::vulkan
     {
     public:
 
-        explicit BufferStager(const Allocator*);
+        explicit BufferStager(const Renderer*);
         ~BufferStager() = default;
 
         BufferStager(const BufferStager&)             = delete;
@@ -558,7 +554,7 @@ namespace gfx::core::vulkan
         };
 
         mutable std::atomic<std::size_t>                      allocated;
-        const Allocator*                                      allocator;
+        const Renderer*                                       renderer;
         mutable gfx::core::vulkan::WriteOnlyBuffer<std::byte> staging_buffer;
 
         struct OverflowTransfer

@@ -1,11 +1,8 @@
 #pragma once
 
-#include "util/logger.hpp"
 #include "util/threads.hpp"
 #include "util/util.hpp"
-#include <magic_enum/magic_enum.hpp>
-#include <thread>
-#include <utility>
+#include <functional>
 #include <vulkan/vulkan.hpp>
 
 namespace gfx::core::vulkan
@@ -38,38 +35,7 @@ namespace gfx::core::vulkan
         [[nodiscard]] bool               isAmd() const noexcept;
         [[nodiscard]] const vk::Device*  operator->() const noexcept;
 
-        void acquireQueue(QueueType queueType, std::invocable<vk::Queue> auto accessFunc) const noexcept
-        {
-            const std::size_t idx = static_cast<std::size_t>(std::to_underlying(queueType));
-
-            assert::critical(
-                idx < static_cast<std::size_t>(QueueType::NumberOfQueueTypes),
-                "Tried to lookup an invalid queue of type {}",
-                idx);
-
-            const std::vector<util::Mutex<vk::Queue>>& qs = this->queues.at(std::to_underlying(queueType));
-
-            while (true)
-            {
-                for (const util::Mutex<vk::Queue>& q : qs)
-                {
-                    const bool wasLockedAndExecuted = q.tryLock(
-                        [&](vk::Queue lockedQueue)
-                        {
-                            accessFunc(lockedQueue);
-                        });
-
-                    if (wasLockedAndExecuted)
-                    {
-                        return;
-                    }
-                }
-
-                log::warn("Failed to acquire a queue of type {}, retrying", magic_enum::enum_name(queueType));
-
-                std::this_thread::yield();
-            }
-        }
+        void acquireQueue(QueueType queueType, std::function<void(vk::Queue)> accessFunc) const noexcept;
 
     private:
         std::array<std::vector<util::Mutex<vk::Queue>>, static_cast<std::size_t>(QueueType::NumberOfQueueTypes)> queues;
