@@ -69,7 +69,15 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec3 calculatePixelColor(vec3 worldPos, vec3 N, vec3 V, vec3 L, GpuRaytracedLight light, PBRVoxelMaterial material)
+vec3 calculatePixelColor(
+    vec3              worldPos,
+    vec3              N,
+    vec3              V,
+    vec3              L,
+    GpuRaytracedLight light,
+    PBRVoxelMaterial  material,
+    bool              includeSpecular,
+    bool              includeEmissive)
 {
     // HACK!
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
@@ -88,6 +96,11 @@ vec3 calculatePixelColor(vec3 worldPos, vec3 N, vec3 V, vec3 L, GpuRaytracedLigh
     float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
     vec3  specular    = numerator / max(denominator, 0.001);
 
+    if (!includeSpecular)
+    {
+        specular = vec3(0.0);
+    }
+
     float NdotL = max(dot(N, L), 0.0);
 
     // Custom light intensity calculation with exponential falloff
@@ -100,7 +113,10 @@ vec3 calculatePixelColor(vec3 worldPos, vec3 N, vec3 V, vec3 L, GpuRaytracedLigh
     vec3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, vec3(2.2)) / PI + specular)
                * (NdotL / distanceToLight) * lightIntensity;
 
-    // color += material.emission_metallic.xyz / 8.0;
+    if (includeEmissive)
+    {
+        color += material.emission_metallic.xyz / 8.0;
+    }
 
     return color;
 }

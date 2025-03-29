@@ -78,62 +78,62 @@ vec3 RandomHemisphericalDirection(vec3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
-vec3 calculateColor(
-    vec3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
-{
-    // const GpuRaytracedLight light = in_raytraced_lights[1].lights[0];
+// vec3 calculateColor(
+//     vec3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
+// {
+//     // const GpuRaytracedLight light = in_raytraced_lights[1].lights[0];
 
-    const vec3 worldStrikePosition = chunkStrikePosition + vec3(-16.0);
+//     const vec3 worldStrikePosition = chunkStrikePosition + vec3(-16.0);
 
-    // vec3 calculatedColor = calculatePixelColor(
-    //     worldStrikePosition,
-    //     unpacked.normal,
-    //     normalize(GlobalData.camera_position.xyz - worldStrikePosition),
-    //     normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
-    //     light,
-    //     firstMaterial);
+// vec3 calculatedColor = calculatePixelColor(
+//     worldStrikePosition,
+//     unpacked.normal,
+//     normalize(GlobalData.camera_position.xyz - worldStrikePosition),
+//     normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+//     light,
+//     firstMaterial);
 
-    // const VoxelTraceResult shadowResult = traceDDARay(
-    //     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz -
-    //     vec3(-16.0));
+// const VoxelTraceResult shadowResult = traceDDARay(
+//     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz -
+//     vec3(-16.0));
 
-    // if (shadowResult.intersect_occur)
-    // {
-    //     calculatedColor = vec3(0);
-    // }
+// if (shadowResult.intersect_occur)
+// {
+//     calculatedColor = vec3(0);
+// }
 
-    // return calculatedColor;
+// return calculatedColor;
 
-    vec3 incomingLight = vec3(0.0);
-    vec3 rayColor      = vec3(firstMaterial.albedo_roughness.xyz);
-    Ray  ray;
-    ray.origin    = chunkStrikePosition + 0.05 * unpacked.normal;
-    ray.direction = RandomHemisphericalDirection(unpacked.normal, rngState);
+// vec3 incomingLight = vec3(0.0);
+// vec3 rayColor      = vec3(firstMaterial.albedo_roughness.xyz);
+// Ray  ray;
+// ray.origin    = chunkStrikePosition + 0.05 * unpacked.normal;
+// ray.direction = RandomHemisphericalDirection(unpacked.normal, rngState);
 
-    const u32 maxBounceCount = 3;
+// const u32 maxBounceCount = 3;
 
-    for (int i = 0; i < maxBounceCount; ++i)
-    {
-        VoxelTraceResult traceResult = traceSingleRayInChunk(ray);
+// for (int i = 0; i < maxBounceCount; ++i)
+// {
+//     VoxelTraceResult traceResult = traceSingleRayInChunk(ray);
 
-        if (traceResult.intersect_occur)
-        {
-            ray.origin    = traceResult.chunk_local_fragment_position + 0.05 * traceResult.voxel_normal;
-            ray.direction = RandomHemisphericalDirection(traceResult.voxel_normal, rngState);
+//     if (traceResult.intersect_occur)
+//     {
+//         ray.origin    = traceResult.chunk_local_fragment_position + 0.05 * traceResult.voxel_normal;
+//         ray.direction = RandomHemisphericalDirection(traceResult.voxel_normal, rngState);
 
-            const PBRVoxelMaterial material     = traceResult.material;
-            const vec3             emittedLight = material.emission_metallic.xyz / 64.0;
-            incomingLight += emittedLight * rayColor;
-            rayColor *= (material.albedo_roughness.xyz);
-        }
-        else
-        {
-            break;
-        }
-    }
+//         const PBRVoxelMaterial material     = traceResult.material;
+//         const vec3             emittedLight = material.emission_metallic.xyz / 64.0;
+//         incomingLight += emittedLight * rayColor;
+//         rayColor *= (material.albedo_roughness.xyz);
+//     }
+//     else
+//     {
+//         break;
+//     }
+// }
 
-    return incomingLight;
-}
+// return incomingLight;
+// }
 
 void main()
 {
