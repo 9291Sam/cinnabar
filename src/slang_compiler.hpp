@@ -30,8 +30,7 @@ namespace cfi
         slang_unique_ptr<slang::IGlobalSession> global_session = {nullptr, destroy_slang};
         slang_unique_ptr<slang::ISession>       session        = {nullptr, destroy_slang};
 
-        // std::vector<std::filesystem::path> search_paths =
-        // {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
+        std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
         [[nodiscard]] slang_unique_ptr<slang::IModule> load_module(const std::string_view module_name);
 

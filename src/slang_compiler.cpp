@@ -16,7 +16,10 @@ namespace cfi
         global_session = slang_unique_ptr<slang::IGlobalSession>(global_session_ptr, destroy_slang);
 
         auto paths_as_c_strings = std::vector<const char*>();
-        paths_as_c_strings.push_back("/Users/sebs/cinnabar/src/storage/");
+        for (const auto& path : search_paths)
+        {
+            paths_as_c_strings.push_back(path.c_str());
+        }
 
         auto profile = global_session->findProfile("spirv_1_4");
 
@@ -26,47 +29,11 @@ namespace cfi
             .flags   = 0,
         };
 
-        struct MyFS : ISlangFileSystem
-        {
-            virtual ~MyFS() = default;
-
-            virtual SLANG_NO_THROW SlangResult SLANG_MCALL loadFile(const char* path, ISlangBlob** outBlob) override
-            {
-                log::trace("search {}", path);
-
-                return SLANG_E_NOT_FOUND;
-            }
-
-            virtual SLANG_NO_THROW void* SLANG_MCALL castAs(const SlangUUID& guid) override
-            {
-                return this;
-            }
-
-            virtual SLANG_NO_THROW SlangResult SLANG_MCALL
-            queryInterface(const SlangUUID& uuid, void** outObject) override
-            {
-                *outObject = this;
-
-                return 0;
-            }
-            virtual SLANG_NO_THROW uint32_t SLANG_MCALL addRef() override
-            {
-                return 0;
-            }
-            virtual SLANG_NO_THROW uint32_t SLANG_MCALL release() override
-            {
-                return 0;
-            }
-        };
-
-        MyFS f {};
-
         auto slang_session_descriptor            = slang::SessionDesc {};
         slang_session_descriptor.searchPaths     = paths_as_c_strings.data();
         slang_session_descriptor.searchPathCount = static_cast<int>(paths_as_c_strings.size());
         slang_session_descriptor.targets         = &target;
         slang_session_descriptor.targetCount     = 1;
-        // slang_session_descriptor.fileSystem      = &f;
 
         slang::ISession* session_ptr = nullptr;
         global_session->createSession(slang_session_descriptor, &session_ptr);
@@ -113,6 +80,12 @@ namespace cfi
     shader_compiler::slang_unique_ptr<slang::IEntryPoint>
     shader_compiler::find_entry_point(slang::IModule* module, const std::string_view entry_point_name)
     {
+        for (int i = 0; i < module->getDependencyFileCount(); ++i)
+        {
+            const char* const dep = module->getDependencyFilePath(i);
+
+            log::trace("dep {}", dep);
+        }
         slang::IEntryPoint* entry_point;
         if (module->findEntryPointByName(entry_point_name.data(), &entry_point) != SLANG_OK)
         {
