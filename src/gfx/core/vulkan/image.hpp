@@ -58,7 +58,7 @@ namespace gfx::core::vulkan
         vk::Extent2D         extent;
         vk::Format           format {};
         vk::ImageAspectFlags aspect;
-        vk::ImageLayout      used_layout;
+        vk::ImageLayout      used_layout {};
         vk::ImageUsageFlags  usage;
 
         std::optional<DescriptorHandle<vk::DescriptorType::eSampledImage>> maybe_sampled_image_descriptor_handle;

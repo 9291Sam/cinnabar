@@ -149,7 +149,7 @@ namespace gfx
                             .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
                             .srcQueueFamilyIndex {graphicsQueueIndex},
                             .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {*this->frame_descriptors.depth_buffer},
+                            .image {*this->frame_descriptors->depth_buffer},
                             .subresourceRange {vk::ImageSubresourceRange {
                                 .aspectMask {vk::ImageAspectFlagBits::eDepth},
                                 .baseMipLevel {0},
@@ -173,7 +173,7 @@ namespace gfx
                             .newLayout {vk::ImageLayout::eGeneral},
                             .srcQueueFamilyIndex {graphicsQueueIndex},
                             .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {*this->frame_descriptors.imgui_render_target},
+                            .image {*this->frame_descriptors->imgui_render_target},
                             .subresourceRange {vk::ImageSubresourceRange {
                                 .aspectMask {vk::ImageAspectFlagBits::eColor},
                                 .baseMipLevel {0},
@@ -197,7 +197,7 @@ namespace gfx
                             .newLayout {vk::ImageLayout::eGeneral},
                             .srcQueueFamilyIndex {graphicsQueueIndex},
                             .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {*this->frame_descriptors.voxel_render_target},
+                            .image {*this->frame_descriptors->voxel_render_target},
                             .subresourceRange {vk::ImageSubresourceRange {
                                 .aspectMask {vk::ImageAspectFlagBits::eColor},
                                 .baseMipLevel {0},
@@ -246,7 +246,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.depth_buffer},
+                        .image {*this->frame_descriptors->depth_buffer},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eDepth},
                             .baseMipLevel {0},
@@ -270,7 +270,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eColorAttachmentOptimal},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.voxel_render_target},
+                        .image {*this->frame_descriptors->voxel_render_target},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eColor},
                             .baseMipLevel {0},
@@ -294,7 +294,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eColorAttachmentOptimal},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.imgui_render_target},
+                        .image {*this->frame_descriptors->imgui_render_target},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eColor},
                             .baseMipLevel {0},
@@ -308,7 +308,7 @@ namespace gfx
                     const vk::RenderingAttachmentInfo colorAttachmentInfo {
                         .sType {vk::StructureType::eRenderingAttachmentInfo},
                         .pNext {nullptr},
-                        .imageView {this->frame_descriptors.imgui_render_target.getView()},
+                        .imageView {this->frame_descriptors->imgui_render_target.getView()},
                         .imageLayout {vk::ImageLayout::eColorAttachmentOptimal},
                         .resolveMode {vk::ResolveModeFlagBits::eNone},
                         .resolveImageView {nullptr},
@@ -351,7 +351,7 @@ namespace gfx
                     const vk::RenderingAttachmentInfo colorAttachmentInfo {
                         .sType {vk::StructureType::eRenderingAttachmentInfo},
                         .pNext {nullptr},
-                        .imageView {this->frame_descriptors.voxel_render_target.getView()},
+                        .imageView {this->frame_descriptors->voxel_render_target.getView()},
                         .imageLayout {vk::ImageLayout::eColorAttachmentOptimal},
                         .resolveMode {vk::ResolveModeFlagBits::eNone},
                         .resolveImageView {nullptr},
@@ -366,7 +366,7 @@ namespace gfx
                     const vk::RenderingAttachmentInfo depthAttachmentInfo {
                         .sType {vk::StructureType::eRenderingAttachmentInfo},
                         .pNext {nullptr},
-                        .imageView {this->frame_descriptors.depth_buffer.getView()},
+                        .imageView {this->frame_descriptors->depth_buffer.getView()},
                         .imageLayout {vk::ImageLayout::eDepthAttachmentOptimal},
                         .resolveMode {vk::ResolveModeFlagBits::eNone},
                         .resolveImageView {nullptr},
@@ -422,7 +422,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eGeneral},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.voxel_render_target},
+                        .image {*this->frame_descriptors->voxel_render_target},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eColor},
                             .baseMipLevel {0},
@@ -461,7 +461,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eGeneral},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.imgui_render_target},
+                        .image {*this->frame_descriptors->imgui_render_target},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eColor},
                             .baseMipLevel {0},
@@ -502,7 +502,7 @@ namespace gfx
                     const vk::RenderingAttachmentInfo depthAttachmentInfo {
                         .sType {vk::StructureType::eRenderingAttachmentInfo},
                         .pNext {nullptr},
-                        .imageView {this->frame_descriptors.depth_buffer.getView()},
+                        .imageView {this->frame_descriptors->depth_buffer.getView()},
                         .imageLayout {vk::ImageLayout::eDepthAttachmentOptimal},
                         .resolveMode {vk::ResolveModeFlagBits::eNone},
                         .resolveImageView {nullptr},
@@ -596,7 +596,7 @@ namespace gfx
                         .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
                         .srcQueueFamilyIndex {graphicsQueueIndex},
                         .dstQueueFamilyIndex {graphicsQueueIndex},
-                        .image {*this->frame_descriptors.depth_buffer},
+                        .image {*this->frame_descriptors->depth_buffer},
                         .subresourceRange {vk::ImageSubresourceRange {
                             .aspectMask {vk::ImageAspectFlagBits::eDepth},
                             .baseMipLevel {0},
@@ -608,6 +608,8 @@ namespace gfx
 
         if (this->has_resize_ocurred)
         {
+            this->frame_descriptors.reset();
+
             this->frame_descriptors = this->createFrameDescriptors();
         }
 

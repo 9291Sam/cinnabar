@@ -61,7 +61,8 @@ namespace gfx
 
         FrameDescriptors createFrameDescriptors();
 
-        FrameDescriptors frame_descriptors;
+        // Actually always valid, its just that sometimes I need a null state for internal reasons
+        std::optional<FrameDescriptors> frame_descriptors;
 
         struct GlobalGpuData
         {
