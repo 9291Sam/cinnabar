@@ -101,8 +101,10 @@ namespace gfx::core::vulkan
             std::vector<vk::DescriptorBindingFlags> bindingFlags {};
             bindingFlags.reserve(bindingLocations.size());
 
-            for (auto _ : bindingLocations)
+            for (auto b : bindingLocations)
             {
+                std::ignore = b;
+
                 bindingFlags.push_back(
                     vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind);
             }

@@ -12,11 +12,10 @@
 #include "gfx/generators/imgui/imgui_renderer.hpp"
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
-#include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "slang_compiler.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
-#include "util/util.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <cstddef>
@@ -184,6 +183,12 @@ int main()
 
     CPPTRACE_TRYZ
     {
+        cfi::shader_compiler c {};
+
+        auto foo = c.compile("src/hello_world.slang");
+
+        log::info("compiled {} {}", foo.size(), foo[0]);
+
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",
             CINNABAR_VERSION_MAJOR,

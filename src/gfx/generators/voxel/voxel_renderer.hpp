@@ -3,11 +3,9 @@
 #include "data_structures.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
-#include "util/gif.hpp"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 

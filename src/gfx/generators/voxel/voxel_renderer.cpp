@@ -1,7 +1,6 @@
 #include "voxel_renderer.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"

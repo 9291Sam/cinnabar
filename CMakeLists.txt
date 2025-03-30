@@ -15,6 +15,17 @@ set(Boost_USE_STATIC_RUNTIME ON)
 set(BOOST_ENABLE_CMAKE ON)
 set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
 
+set(SLANG_LIB_TYPE "SHARED" CACHE STRING "" FORCE)
+set(SLANG_ENABLE_DXIL OFF)
+set(SLANG_ENABLE_GFX OFF)
+set(SLANG_ENABLE_SLANGD OFF)
+set(SLANG_ENABLE_SLANGC OFF)
+set(SLANG_ENABLE_SLANGRT OFF)
+set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+set(SLANG_ENABLE_TESTS OFF)
+set(SLANG_ENABLE_EXAMPLES OFF)
+set(SLANG_ENABLE_SLANG_RHI OFF)
+
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
 CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
@@ -26,8 +37,10 @@ CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
 CPMAddPackage("gh:ocornut/imgui#v1.91.8")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
+CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+
 
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
 if (WIN32 AND NOT FREETYPE_DIR)
@@ -75,6 +88,7 @@ add_executable(cinnabar
     src/util/util.cpp
 
     src/main.cpp
+    src/slang_compiler.cpp
 )
 
 add_library(imgui_build_target STATIC
@@ -134,7 +148,7 @@ target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_NO_CONSTRUCTORS=1)
 target_compile_definitions(cinnabar PRIVATE VK_NO_PROTOTYPES=1)
 
-target_link_libraries(cinnabar
+target_link_libraries(cinnabar PUBLIC
     fmt::fmt
     spdlog::spdlog
     cpptrace::cpptrace
@@ -150,6 +164,7 @@ target_link_libraries(cinnabar
     Boost::sort
     Boost::pool
     imgui_build_target
+    slang
 )
 
 
@@ -178,7 +193,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-switch-default
         -Wno-weak-vtables
         -Wno-incompatible-pointer-types
-        -Wno-nan-infinity-disabled
+        # -Wno-nan-infinity-disabled
         -Wno-documentation-unknown-command
         -Wno-unsafe-buffer-usage
         -Wno-language-extension-token

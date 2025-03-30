@@ -132,9 +132,12 @@ namespace gfx::core::vulkan
                     return std::nullopt;
                 });
 
-            this->maybe_sampled_image_descriptor_handle =
-                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
-                    {.view {*this->view}, .layout {this->used_layout}}, this->name, descriptorBindingLocation, loc);
+            this->maybe_sampled_image_descriptor_handle = this->renderer->getDescriptorManager()->registerDescriptor(
+                RegisterDescriptorArgs<vk::DescriptorType::eSampledImage> {
+                    .view {*this->view}, .layout {this->used_layout}},
+                this->name,
+                descriptorBindingLocation,
+                loc);
         }
 
         if (this->usage & vk::ImageUsageFlagBits::eStorage)
@@ -149,7 +152,11 @@ namespace gfx::core::vulkan
 
             this->maybe_storage_image_descriptor_handle =
                 this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
-                    {.view {*this->view}, .layout {this->used_layout}}, this->name, descriptorBindingLocation, loc);
+                    RegisterDescriptorArgs<vk::DescriptorType::eStorageImage> {
+                        .view {*this->view}, .layout {this->used_layout}},
+                    this->name,
+                    descriptorBindingLocation,
+                    loc);
         }
     }
 

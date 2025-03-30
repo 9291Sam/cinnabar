@@ -135,12 +135,12 @@ namespace gfx::core::vulkan
                         return std::nullopt;
                     });
 
-                this->maybe_uniform_descriptor_handle =
-                    this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
-                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
-                        this->name,
-                        descriptorBindingLocation,
-                        loc);
+                this->maybe_uniform_descriptor_handle = this->renderer->getDescriptorManager()->registerDescriptor(
+                    RegisterDescriptorArgs<vk::DescriptorType::eUniformBuffer> {
+                        .buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
+                    this->name,
+                    descriptorBindingLocation,
+                    loc);
             }
 
             if (this->usage & vk::BufferUsageFlagBits::eStorageBuffer)
@@ -153,12 +153,12 @@ namespace gfx::core::vulkan
                         return std::nullopt;
                     });
 
-                this->maybe_storage_descriptor_handle =
-                    this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
-                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
-                        this->name,
-                        descriptorBindingLocation,
-                        loc);
+                this->maybe_storage_descriptor_handle = this->renderer->getDescriptorManager()->registerDescriptor(
+                    RegisterDescriptorArgs<vk::DescriptorType::eStorageBuffer> {
+                        .buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
+                    this->name,
+                    descriptorBindingLocation,
+                    loc);
             }
         }
         ~GpuOnlyBuffer()
