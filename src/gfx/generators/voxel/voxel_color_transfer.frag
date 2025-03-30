@@ -6,29 +6,13 @@
 
 layout(location = 0) out vec4 out_color;
 
-layout(push_constant) uniform PushConstants
-{
-    uint face_hash_map_offset;
-    uint visible_voxel_image_offset;
-}
-in_push_constants;
-
 layout(set = 0, binding = 2, rgba32f) uniform image2D visible_voxel_image[];
-
-// #define BRICK_MAPS_OFFSET        in_push_constants.chunk_brick_maps_buffer_offset
-// #define LIGHT_BUFFER_OFFSET      in_push_constants.lights_buffer_offset
-// #define VISIBILITY_BRICKS_OFFSET in_push_constants.visibility_bricks_buffer_offset
-// #define MATERIAL_BRICKS_OFFSET   in_push_constants.material_bricks_buffer_offset
-// #define VOXEL_MATERIALS_OFFSET   in_push_constants.voxel_material_buffer_offset
-// #define VOXEL_HASH_MAP_OFFSET    5
-#define VOXEL_HASH_MAP_OFFSET in_push_constants.visible_voxel_image_offset
 
 #include "voxel_faces.glsl"
 
 void main()
 {
-    const vec4 rawPixelData =
-        imageLoad(visible_voxel_image[in_push_constants.visible_voxel_image_offset], ivec2(floor(gl_FragCoord.xy)));
+    const vec4 rawPixelData = imageLoad(visible_voxel_image[SIO_VOXEL_RENDER_TARGET], ivec2(floor(gl_FragCoord.xy)));
     const vec3 worldStrikePosition = rawPixelData.xyz;
     const u32  uniqueFaceId        = floatBitsToUint(rawPixelData.w);
 

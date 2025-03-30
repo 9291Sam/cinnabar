@@ -250,9 +250,7 @@ namespace gfx::generators::voxel
         commandBuffer.draw(36, 1, 0, 0);
     }
 
-    void VoxelRenderer::recordColorCalculation(
-        vk::CommandBuffer                                                      commandBuffer,
-        gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
+    void VoxelRenderer::recordColorCalculation(vk::CommandBuffer commandBuffer)
     {
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eCompute,
@@ -266,19 +264,11 @@ namespace gfx::generators::voxel
             1);
     }
 
-    void VoxelRenderer::recordColorTransfer(
-        vk::CommandBuffer                                                      commandBuffer,
-        gfx::core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage)
+    void VoxelRenderer::recordColorTransfer(vk::CommandBuffer commandBuffer)
     {
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics,
             this->renderer->getPipelineManager()->getPipeline(this->color_transfer_pipeline));
-
-        commandBuffer.pushConstants<std::array<u32, 2>>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
 
         commandBuffer.draw(3, 1, 0, 0);
     }

@@ -34,10 +34,8 @@ namespace gfx::generators::voxel
 
         void recordCopyCommands(vk::CommandBuffer);
         void recordPrepass(vk::CommandBuffer, const Camera&);
-        void recordColorCalculation(
-            vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage);
-        void recordColorTransfer(
-            vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> prepassImage);
+        void recordColorCalculation(vk::CommandBuffer);
+        void recordColorTransfer(vk::CommandBuffer);
 
         void                         setLightInformation(GpuRaytracedLight);
         void                         setAnimationTime(f32) const;

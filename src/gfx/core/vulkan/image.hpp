@@ -34,7 +34,8 @@ namespace gfx::core::vulkan
             vk::ImageTiling,
             vk::MemoryPropertyFlags,
             std::string       name,
-            std::optional<u8> maybeBindingLocation);
+            std::optional<u8> maybeBindingLocation,
+            std::source_location = std::source_location::current());
         ~Image2D();
 
         Image2D(const Image2D&) = delete;
@@ -45,13 +46,6 @@ namespace gfx::core::vulkan
         [[nodiscard]] vk::Image    operator* () const;
         [[nodiscard]] vk::Format   getFormat() const;
         [[nodiscard]] vk::Extent2D getExtent() const;
-
-        // TODO: deal with images that have multiple useable layouts
-        DescriptorHandle<vk::DescriptorType::eSampledImage>
-            getSampledDescriptor(vk::ImageLayout, std::source_location = std::source_location::current());
-
-        DescriptorHandle<vk::DescriptorType::eStorageImage>
-            getStorageDescriptor(vk::ImageLayout, std::source_location = std::source_location::current());
 
         /// Returns an image view over the entire image in the type it was created with
         [[nodiscard]] vk::ImageView getView() const;

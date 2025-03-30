@@ -22,7 +22,8 @@ namespace gfx::core::vulkan
         vk::ImageTiling         tiling,
         vk::MemoryPropertyFlags memoryPropertyFlags,
         std::string             name_,
-        std::optional<u8>       maybeBindingLocation)
+        std::optional<u8>       maybeBindingLocation,
+        std::source_location    loc)
         : renderer {renderer_}
         , extent {extent_}
         , format {format_}
@@ -123,12 +124,32 @@ namespace gfx::core::vulkan
 
         if (this->usage & vk::ImageUsageFlagBits::eSampled)
         {
-            this->getSampledDescriptor(this->used_layout);
+            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
+                [] -> std::optional<u8>
+                {
+                    panic("Buffer was not given a binding location!");
+
+                    return std::nullopt;
+                });
+
+            this->maybe_sampled_image_descriptor_handle =
+                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
+                    {.view {*this->view}, .layout {this->used_layout}}, this->name, descriptorBindingLocation, loc);
         }
 
         if (this->usage & vk::ImageUsageFlagBits::eStorage)
         {
-            this->getStorageDescriptor(this->used_layout);
+            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
+                [] -> std::optional<u8>
+                {
+                    panic("Buffer was not given a binding location!");
+
+                    return std::nullopt;
+                });
+
+            this->maybe_storage_image_descriptor_handle =
+                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
+                    {.view {*this->view}, .layout {this->used_layout}}, this->name, descriptorBindingLocation, loc);
         }
     }
 
@@ -210,55 +231,6 @@ namespace gfx::core::vulkan
         return this->extent;
     }
 
-    DescriptorHandle<vk::DescriptorType::eSampledImage>
-    Image2D::getSampledDescriptor(vk::ImageLayout layout, std::source_location loc)
-    {
-        if (!this->maybe_sampled_image_descriptor_handle.has_value())
-        {
-            assert::critical(
-                static_cast<bool>(this->usage & vk::ImageUsageFlagBits::eSampled),
-                "Tried to access a non sampled image as a sampled image!");
-
-            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
-                [] -> std::optional<u8>
-                {
-                    panic("Buffer was not given a binding location!");
-
-                    return std::nullopt;
-                });
-
-            this->maybe_sampled_image_descriptor_handle =
-                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
-                    {.view {*this->view}, .layout {layout}}, this->name, descriptorBindingLocation, loc);
-        }
-
-        return this->maybe_sampled_image_descriptor_handle.value();
-    }
-
-    DescriptorHandle<vk::DescriptorType::eStorageImage>
-    Image2D::getStorageDescriptor(vk::ImageLayout layout, std::source_location loc)
-    {
-        if (!this->maybe_storage_image_descriptor_handle.has_value())
-        {
-            assert::critical(
-                static_cast<bool>(this->usage & vk::ImageUsageFlagBits::eStorage),
-                "Tried to access a non storage image as a storage image!");
-
-            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
-                [] -> std::optional<u8>
-                {
-                    panic("Buffer was not given a binding location!");
-
-                    return std::nullopt;
-                });
-
-            this->maybe_storage_image_descriptor_handle =
-                this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
-                    {.view {*this->view}, .layout {layout}}, this->name, descriptorBindingLocation, loc);
-        }
-
-        return this->maybe_storage_image_descriptor_handle.value();
-    }
     void Image2D::free()
     {
         if (this->renderer != nullptr)

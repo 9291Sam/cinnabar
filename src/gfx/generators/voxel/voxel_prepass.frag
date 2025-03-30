@@ -4,24 +4,6 @@
 #include "intersectables.glsl"
 #include "misc.glsl"
 #include "types.glsl"
-
-layout(push_constant) uniform PushConstants
-{
-    uint chunk_brick_maps_buffer_offset;
-    uint lights_buffer_offset;
-    uint visibility_bricks_buffer_offset;
-    uint material_bricks_buffer_offset;
-    uint voxel_material_buffer_offset;
-}
-in_push_constants;
-
-#define BRICK_MAPS_OFFSET        in_push_constants.chunk_brick_maps_buffer_offset
-#define LIGHT_BUFFER_OFFSET      in_push_constants.lights_buffer_offset
-#define VISIBILITY_BRICKS_OFFSET in_push_constants.visibility_bricks_buffer_offset
-#define MATERIAL_BRICKS_OFFSET   in_push_constants.material_bricks_buffer_offset
-#define VOXEL_MATERIALS_OFFSET   in_push_constants.voxel_material_buffer_offset
-#define VOXEL_HASH_MAP_OFFSET    5
-
 #include "voxel_faces.glsl"
 #include "voxel_tracing.glsl"
 

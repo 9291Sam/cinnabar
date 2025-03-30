@@ -8,7 +8,6 @@
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
-#include "util/logger.hpp"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -25,11 +24,7 @@ namespace gfx
               1,
               "Global Data",
               0}
-    {
-        const u8 offset = this->global_gpu_data.getUniformDescriptor().getOffset();
-
-        assert::critical(offset == 0, "Global Gpu Data is always at uniform slot 0");
-    }
+    {}
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
     {
@@ -447,10 +442,7 @@ namespace gfx
 
                     if (generators.maybe_voxel_renderer)
                     {
-                        generators.maybe_voxel_renderer->recordColorCalculation(
-                            commandBuffer,
-                            this->frame_descriptors.voxel_render_target.getStorageDescriptor(
-                                vk::ImageLayout::eGeneral));
+                        generators.maybe_voxel_renderer->recordColorCalculation(commandBuffer);
                     }
                 }
 
@@ -549,10 +541,7 @@ namespace gfx
 
                     if (generators.maybe_voxel_renderer)
                     {
-                        generators.maybe_voxel_renderer->recordColorTransfer(
-                            commandBuffer,
-                            this->frame_descriptors.voxel_render_target.getStorageDescriptor(
-                                vk::ImageLayout::eGeneral));
+                        generators.maybe_voxel_renderer->recordColorTransfer(commandBuffer);
                     }
 
                     if (generators.maybe_skybox_renderer)
@@ -562,9 +551,6 @@ namespace gfx
 
                     if (generators.maybe_imgui_renderer)
                     {
-                        // HACK!
-                        std::ignore =
-                            this->frame_descriptors.imgui_render_target.getStorageDescriptor(vk::ImageLayout::eGeneral);
                         generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(commandBuffer);
                     }
 
