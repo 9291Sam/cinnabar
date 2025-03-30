@@ -1,14 +1,6 @@
 #ifndef SRC_GFX_SHADER_COMMON_VOXEL_MATERIAL_GLSL
 #define SRC_GFX_SHADER_COMMON_VOXEL_MATERIAL_GLSL
 
-#ifndef VOXEL_MATERIALS_OFFSET
-#error "VOXEL_MATERIALS_OFFSET must be defined"
-#endif // VOXEL_MATERIALS_OFFSET
-
-#ifndef LIGHT_BUFFER_OFFSET
-#error "LIGHT_BUFFER_OFFSET must be defined"
-#endif // LIGHT_BUFFER_OFFSET
-
 struct PBRVoxelMaterial
 {
     // xyz - linear rgb color

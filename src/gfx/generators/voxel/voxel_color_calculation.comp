@@ -7,20 +7,6 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(set = 0, binding = 2, rgba32f) uniform image2D visible_voxel_image[];
 
-layout(push_constant) uniform PushConstants
-{
-    uint face_hash_map_offset;
-    uint visible_voxel_image_offset;
-}
-in_push_constants;
-
-#define BRICK_MAPS_OFFSET        0
-#define LIGHT_BUFFER_OFFSET      1
-#define VISIBILITY_BRICKS_OFFSET 2
-#define MATERIAL_BRICKS_OFFSET   3
-#define VOXEL_MATERIALS_OFFSET   4
-#define VOXEL_HASH_MAP_OFFSET    in_push_constants.visible_voxel_image_offset
-
 #include "misc.glsl"
 #include "voxel_faces.glsl"
 #include "voxel_tracing.glsl"
@@ -190,8 +176,7 @@ void main()
 
     if (all(lessThan(thisPixel, GlobalData.framebuffer_size)))
     {
-        const vec4 rawPixelData =
-            imageLoad(visible_voxel_image[in_push_constants.visible_voxel_image_offset], thisPixel);
+        const vec4 rawPixelData        = imageLoad(visible_voxel_image[SIO_VOXEL_RENDER_TARGET], thisPixel);
         const vec3 worldStrikePosition = rawPixelData.xyz;
         const vec3 chunkStrikePosition = worldStrikePosition - box_corner_negative;
         const u32  uniqueFaceId        = floatBitsToUint(rawPixelData.w);
@@ -207,7 +192,7 @@ void main()
         const uvec3 bP = unpacked.position_in_chunk % 8;
 
         const PBRVoxelMaterial material = getMaterialFromPosition(
-            in_global_chunk_bricks[BRICK_MAPS_OFFSET].storage[unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
+            in_global_chunk_bricks[SBO_CHUNK_BRICKS].storage[unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
 
         const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 

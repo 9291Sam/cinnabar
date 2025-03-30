@@ -4,6 +4,7 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/util.hpp"
 #include <boost/container/small_vector.hpp>
+#include <optional>
 #include <source_location>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_hash.hpp>
@@ -20,7 +21,8 @@ namespace gfx::core::vulkan
               this->renderer,
               vk::BufferUsageFlagBits::eTransferSrc,
               vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,  StagingBufferSize,
-              "Staging Buffer"
+              "Staging Buffer",
+              std::nullopt
           }
         , transfer_allocator {util::RangeAllocator {StagingBufferSize, 1024 * 128}}
         , transfers {std::vector<BufferTransfer> {}}

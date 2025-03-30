@@ -1,17 +1,5 @@
 
-
-#ifndef BRICK_MAPS_OFFSET
-#error "BRICK_MAPS_OFFSET must be defined"
-#endif // BRICK_MAPS_OFFSET
-
-#ifndef VISIBILITY_BRICKS_OFFSET
-#error "VISIBILITY_BRICKS_OFFSET must be defined"
-#endif // VISIBILITY_BRICKS_OFFSET
-
-#ifndef MATERIAL_BRICKS_OFFSET
-#error "MATERIAL_BRICKS_OFFSET must be defined"
-#endif // MATERIAL_BRICKS_OFFSET
-
+#include "globals.glsl"
 #include "voxel_material.glsl"
 
 const bool removeCheckLate = false;
@@ -52,16 +40,16 @@ in_material_bricks[];
 
 PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uvec3 bP)
 {
-    const uint16_t materialId = in_material_bricks[MATERIAL_BRICKS_OFFSET].bricks[brickPointer].data[bP.x][bP.y][bP.z];
+    const uint16_t materialId = in_material_bricks[SBO_MATERIAL_BRICKS].bricks[brickPointer].data[bP.x][bP.y][bP.z];
 
-    return in_voxel_materials[VOXEL_MATERIALS_OFFSET].materials[uint(materialId)];
+    return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER].materials[uint(materialId)];
 }
 
 uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uvec3 bC)
 {
     if (removeCheckLate || (all(greaterThanEqual(bC, ivec3(0))) && all(lessThanEqual(bC, ivec3(7)))))
     {
-        const uint16_t brickPointer = in_global_chunk_bricks[BRICK_MAPS_OFFSET].storage[chunk].data[bC.x][bC.y][bC.z];
+        const uint16_t brickPointer = in_global_chunk_bricks[SBO_CHUNK_BRICKS].storage[chunk].data[bC.x][bC.y][bC.z];
 
         if (brickPointer != u16(-1))
         {
@@ -82,7 +70,7 @@ bool loadVoxelFromBrick(uint brickPointer, ivec3 c)
     const uint idx         = linearIndex / 32;
     const uint bit         = linearIndex % 32;
 
-    const uint loadedIdx = in_global_bricks[VISIBILITY_BRICKS_OFFSET].data[brickPointer].data[idx];
+    const uint loadedIdx = in_global_bricks[SBO_VISIBILITY_BRICKS].data[brickPointer].data[idx];
 
     return (loadedIdx & (1u << bit)) != 0;
     // }

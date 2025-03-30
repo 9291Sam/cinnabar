@@ -438,19 +438,11 @@ namespace gfx::generators::imgui
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), static_cast<VkCommandBuffer>(commandBuffer));
     }
 
-    void ImguiRenderer::renderImageCopyIntoCommandBuffer(
-        vk::CommandBuffer                                                 commandBuffer,
-        core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage> menuTransferFromImage)
+    void ImguiRenderer::renderImageCopyIntoCommandBuffer(vk::CommandBuffer commandBuffer)
     {
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics,
             this->renderer->getPipelineManager()->getPipeline(this->menu_transfer_pipeline));
-
-        commandBuffer.pushConstants<u32>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            static_cast<u32>(menuTransferFromImage.getOffset()));
 
         commandBuffer.draw(3, 1, 0, 0);
     }

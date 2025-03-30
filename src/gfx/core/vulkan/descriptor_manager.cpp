@@ -2,6 +2,7 @@
 
 #include "descriptor_manager.hpp"
 #include "device.hpp"
+#include "util/logger.hpp"
 #include <limits>
 #include <ranges>
 #include <utility>
@@ -169,9 +170,7 @@ namespace gfx::core::vulkan
                     for (auto [descriptorType, maxAmount] :
                          std::views::zip(SupportedDescriptors, SupportedDescriptorAmounts))
                     {
-                        criticalSection.binding_allocators.insert({descriptorType, util::IndexAllocator {maxAmount}});
-
-                        criticalSection.debug_descriptor_info[descriptorType].resize(maxAmount);
+                        criticalSection.descriptor_info[descriptorType].resize(maxAmount, std::nullopt);
                     }
                 });
         }
@@ -185,18 +184,19 @@ namespace gfx::core::vulkan
         this->critical_section.lock(
             [&](CriticalSection& criticalSection)
             {
-                for (auto& [descriptorType, allocator] : criticalSection.binding_allocators)
+                for (auto& [descriptorType, info] : criticalSection.descriptor_info)
                 {
-                    allocator.iterateThroughAllocatedElements(
-                        [&](const u32 validBinding)
+                    u32 idx = 0;
+                    for (const std::optional<DescriptorInfo>& i : info)
+                    {
+                        if (i.has_value())
                         {
-                            output[descriptorType].push_back(DescriptorReport {
-                                .offset {validBinding},
-                                .name {criticalSection.debug_descriptor_info.at(descriptorType).at(validBinding).name},
-                                .maybe_size_bytes {criticalSection.debug_descriptor_info.at(descriptorType)
-                                                       .at(validBinding)
-                                                       .size_bytes}});
-                        });
+                            output[descriptorType].push_back(
+                                DescriptorReport {.offset {idx}, .name {i->name}, .maybe_size_bytes {i->size_bytes}});
+                        }
+
+                        idx += 1;
+                    }
                 }
             });
 
@@ -215,33 +215,27 @@ namespace gfx::core::vulkan
 
     template<vk::DescriptorType D>
     DescriptorHandle<D> DescriptorManager::registerDescriptor(
-        RegisterDescriptorArgs<D> descriptorArgs, std::string name, std::source_location location) const
+        RegisterDescriptorArgs<D> descriptorArgs,
+        std::string               name,
+        u8                        bindingLocation,
+        std::source_location      location) const
     {
         return this->critical_section.lock(
             [&](CriticalSection& criticalSection)
             {
-                const std::expected<u32, util::IndexAllocator::OutOfBlocks> maybeNewId =
-                    criticalSection.binding_allocators.at(D).allocate();
+                std::optional<DescriptorInfo>& thisBindingInfo =
+                    criticalSection.descriptor_info.at(D).at(static_cast<usize>(bindingLocation));
 
-                if (!maybeNewId.has_value())
+                if (thisBindingInfo.has_value())
                 {
-                    panic<std::string>(
-                        "Descriptor registration of type {} has failed. Too many already registered!",
+                    panic<std::string, const u8&>(
+                        "Descriptor registration of type {} has failed. Slot {} is already occupied!",
                         vk::to_string(D),
+                        bindingLocation,
                         location);
                 }
 
-                const typename DescriptorHandle<D>::StorageType shouldBeStoredId =
-                    static_cast<DescriptorHandle<D>::StorageType>(*maybeNewId);
-
-                assert::critical(
-                    static_cast<u32>(shouldBeStoredId) == *maybeNewId,
-                    "{} -> {} is not a sane cast",
-                    shouldBeStoredId,
-                    *maybeNewId);
-
-                criticalSection.debug_descriptor_info.at(D).at(shouldBeStoredId) =
-                    DebugDescriptorInfo {.name {std::move(name)}, .size_bytes {}};
+                thisBindingInfo = DescriptorInfo {.name {std::move(name)}, .size_bytes {}};
 
                 vk::DescriptorImageInfo descriptorImageInfo {.sampler {nullptr}, .imageView {nullptr}, .imageLayout {}};
                 vk::DescriptorBufferInfo descriptorBufferInfo {.buffer {nullptr}, .offset {0}, .range {}};
@@ -260,8 +254,7 @@ namespace gfx::core::vulkan
                     descriptorBufferInfo.buffer = descriptorArgs.buffer;
                     descriptorBufferInfo.range  = descriptorArgs.size_bytes;
 
-                    criticalSection.debug_descriptor_info.at(D).at(shouldBeStoredId).size_bytes =
-                        descriptorArgs.size_bytes;
+                    thisBindingInfo->size_bytes = descriptorArgs.size_bytes;
                 }
                 else
                 {
@@ -273,7 +266,7 @@ namespace gfx::core::vulkan
                     .pNext {nullptr},
                     .dstSet {this->bindless_descriptor_set},
                     .dstBinding {acquireShaderBindingLocation(D)},
-                    .dstArrayElement {shouldBeStoredId},
+                    .dstArrayElement {bindingLocation},
                     .descriptorCount {1},
                     .descriptorType {D},
                     .pImageInfo {nullptr},
@@ -295,7 +288,7 @@ namespace gfx::core::vulkan
 
                 this->device.updateDescriptorSets(descriptorSetWrite, {});
 
-                return DescriptorHandle<D> {shouldBeStoredId};
+                return DescriptorHandle<D> {bindingLocation};
             });
     }
 
@@ -305,15 +298,14 @@ namespace gfx::core::vulkan
         this->critical_section.lock(
             [&](CriticalSection& criticalSection)
             {
-                criticalSection.debug_descriptor_info.at(D).at(handle.getOffset()) = {};
-                criticalSection.binding_allocators.at(D).free(handle.getOffset());
+                criticalSection.descriptor_info.at(D).at(handle.getOffset()) = {};
             });
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_REGISTER_DESCRIPTOR(Type)                                                                          \
     template DescriptorHandle<Type> DescriptorManager::registerDescriptor<Type>(                                       \
-        RegisterDescriptorArgs<Type>, std::string, std::source_location) const;
+        RegisterDescriptorArgs<Type>, std::string, u8, std::source_location) const;
 
     INSTANTIATE_REGISTER_DESCRIPTOR(vk::DescriptorType::eSampler);
     INSTANTIATE_REGISTER_DESCRIPTOR(vk::DescriptorType::eSampledImage);

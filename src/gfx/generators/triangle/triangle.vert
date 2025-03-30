@@ -12,12 +12,6 @@ layout(set = 0, binding = 4) readonly buffer PositionBuffer
 }
 in_position_buffers[];
 
-layout(push_constant) uniform PushConstants
-{
-    uint position_buffer_offset;
-}
-in_push_constants;
-
 layout(location = 0) out vec3 fragColor;
 
 void main()
@@ -26,12 +20,11 @@ void main()
     const uint  position_within_triangle = gl_VertexIndex % 3;
     const float scale                    = 10.0;
 
-    const vec4 world_vertex_coordinate =
-        GlobalData.view_projection_matrix
-        * vec4(
-            in_position_buffers[in_push_constants.position_buffer_offset].positions[triangle_id]
-                + triangle_positions[position_within_triangle] * scale,
-            1.0);
+    const vec4 world_vertex_coordinate = GlobalData.view_projection_matrix
+                                       * vec4(
+                                             in_position_buffers[SBO_SRGB_TRIANGLE_DATA].positions[triangle_id]
+                                                 + triangle_positions[position_within_triangle] * scale,
+                                             1.0);
 
     gl_Position = world_vertex_coordinate;
     fragColor   = colors[position_within_triangle];

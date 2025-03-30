@@ -23,7 +23,8 @@ namespace gfx
               vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
-              "Global Data"}
+              "Global Data",
+              0}
     {
         const u8 offset = this->global_gpu_data.getUniformDescriptor().getOffset();
 
@@ -561,10 +562,10 @@ namespace gfx
 
                     if (generators.maybe_imgui_renderer)
                     {
-                        generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(
-                            commandBuffer,
-                            this->frame_descriptors.imgui_render_target.getStorageDescriptor(
-                                vk::ImageLayout::eGeneral));
+                        // HACK!
+                        std::ignore =
+                            this->frame_descriptors.imgui_render_target.getStorageDescriptor(vk::ImageLayout::eGeneral);
+                        generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(commandBuffer);
                     }
 
                     commandBuffer.endRendering();
@@ -642,30 +643,36 @@ namespace gfx
                 renderer->getWindow()->getFramebufferSize(),
                 vk::Format::eD32Sfloat,
                 vk::ImageLayout::eUndefined,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+                vk::ImageLayout::eDepthReadOnlyOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment,
                 vk::ImageAspectFlagBits::eDepth,
                 vk::ImageTiling::eOptimal,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                "Global Depth Buffer"},
+                "Global Depth Buffer",
+                std::nullopt},
             .imgui_render_target {
                 renderer,
                 renderer->getWindow()->getFramebufferSize(),
                 vk::Format::eB8G8R8A8Unorm,
                 vk::ImageLayout::eUndefined,
+                vk::ImageLayout::eGeneral,
                 vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage,
                 vk::ImageAspectFlagBits::eColor,
                 vk::ImageTiling::eOptimal,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                "Imgui Render Target"},
+                "Imgui Render Target",
+                1},
             .voxel_render_target {
                 renderer,
                 renderer->getWindow()->getFramebufferSize(),
                 vk::Format::eR32G32B32A32Sfloat,
                 vk::ImageLayout::eUndefined,
+                vk::ImageLayout::eGeneral,
                 vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eStorage,
                 vk::ImageAspectFlagBits::eColor,
                 vk::ImageTiling::eOptimal,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                "Voxel Render Target"}};
+                "Voxel Render Target",
+                0}};
     }
 } // namespace gfx

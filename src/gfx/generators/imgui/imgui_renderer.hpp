@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gfx/camera.hpp"
-#include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
@@ -29,8 +28,7 @@ namespace gfx::generators::imgui
         ImguiRenderer& operator= (ImguiRenderer&&)      = delete;
 
         void renderIntoCommandBuffer(vk::CommandBuffer, const Camera&, const core::vulkan::Swapchain&);
-        void renderImageCopyIntoCommandBuffer(
-            vk::CommandBuffer, core::vulkan::DescriptorHandle<vk::DescriptorType::eStorageImage>);
+        void renderImageCopyIntoCommandBuffer(vk::CommandBuffer);
     private:
         const core::Renderer* renderer;
 

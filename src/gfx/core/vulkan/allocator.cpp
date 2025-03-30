@@ -2,12 +2,9 @@
 #include "device.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
 #include "instance.hpp"
+#include "util/logger.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_structs.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
 namespace gfx::core::vulkan
 {

@@ -68,32 +68,37 @@ namespace gfx::generators::voxel
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
-              "Chunk Bricks")
+              "Chunk Bricks",
+              0)
         , lights(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
-              "Voxel Lights")
+              "Voxel Lights",
+              1)
         , visible_bricks(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
-              "Visible Bricks")
+              "Visible Bricks",
+              2)
         , material_bricks(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
-              "Material Bricks")
+              "Material Bricks",
+              3)
         , materials {generateMaterialBuffer(this->renderer)}
         , face_hash_map(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxFaceHashMapNodes,
-              "Face Hash Map")
+              "Face Hash Map",
+              5)
     {
         std::vector<std::byte> badAppleData =
             util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
@@ -242,17 +247,6 @@ namespace gfx::generators::voxel
             vk::PipelineBindPoint::eGraphics,
             this->renderer->getPipelineManager()->getPipeline(this->prepass_pipeline));
 
-        commandBuffer.pushConstants<std::array<u32, 5>>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            std::array<u32, 5> {
-                this->chunk_bricks.getStorageDescriptor().getOffset(),
-                this->lights.getStorageDescriptor().getOffset(),
-                this->visible_bricks.getStorageDescriptor().getOffset(),
-                this->material_bricks.getStorageDescriptor().getOffset(),
-                this->materials.getStorageDescriptor().getOffset()});
-
         commandBuffer.draw(36, 1, 0, 0);
     }
 
@@ -263,12 +257,6 @@ namespace gfx::generators::voxel
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eCompute,
             this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
-
-        commandBuffer.pushConstants<std::array<u32, 2>>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            std::array<u32, 2> {this->face_hash_map.getStorageDescriptor().getOffset(), prepassImage.getOffset()});
 
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 

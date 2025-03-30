@@ -33,7 +33,8 @@ namespace gfx::generators::triangle
               vk::BufferUsageFlagBits::eStorageBuffer,
               vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
               Triangle::MaxValidElement,
-              "SRGB Triangle Data"}
+              "SRGB Triangle Data",
+              6}
     {}
 
     TriangleRenderer::~TriangleRenderer()
@@ -65,25 +66,10 @@ namespace gfx::generators::triangle
 
     void TriangleRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
     {
-        struct PushConstants
-        {
-            u32 position_buffer;
-        };
-
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eGraphics, this->renderer->getPipelineManager()->getPipeline(this->pipeline));
 
         const u32 maxTriangles = this->triangle_allocator.getUpperBoundOnAllocatedElements();
-
-        const PushConstants pushConstants {
-            .position_buffer {this->triangle_gpu_data.getStorageDescriptor().getOffset()},
-        };
-
-        commandBuffer.pushConstants<PushConstants>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
-            vk::ShaderStageFlagBits::eAll,
-            0,
-            pushConstants);
 
         commandBuffer.draw(maxTriangles * 3, 1, 0, 0);
     }

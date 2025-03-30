@@ -14,6 +14,7 @@
 #include <vector>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -46,13 +47,15 @@ namespace gfx::core::vulkan
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
-            std::string             name_)
+            std::string             name_,
+            std::optional<u8>       maybeDescriptorBindingLocation)
             : name {std::move(name_)}
             , renderer {renderer_}
             , buffer {nullptr}
             , allocation {nullptr}
             , elements {elements_}
             , usage {usage_}
+            , maybe_descriptor_binding_location {maybeDescriptorBindingLocation}
         {
             assert::critical(!this->name.empty(), "Tried to create buffer with empty name!");
 
@@ -120,6 +123,16 @@ namespace gfx::core::vulkan
             }
 
             bufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
+
+            if (this->usage & vk::BufferUsageFlagBits::eUniformBuffer)
+            {
+                this->getUniformDescriptor();
+            }
+
+            if (this->usage & vk::BufferUsageFlagBits::eStorageBuffer)
+            {
+                this->getStorageDescriptor();
+            }
         }
         ~GpuOnlyBuffer()
         {
@@ -171,7 +184,8 @@ namespace gfx::core::vulkan
             return vk::Buffer {this->buffer};
         }
 
-        DescriptorHandle<vk::DescriptorType::eUniformBuffer> getUniformDescriptor()
+        DescriptorHandle<vk::DescriptorType::eUniformBuffer>
+        getUniformDescriptor(std::source_location loc = std::source_location::current())
         {
             if (!this->maybe_uniform_descriptor_handle.has_value())
             {
@@ -179,15 +193,27 @@ namespace gfx::core::vulkan
                     static_cast<bool>(this->usage & vk::BufferUsageFlagBits::eUniformBuffer),
                     "Tried to access a non Uniform Buffer as a Uniform Buffer!");
 
+                const u8 descriptorBindingLocation = *this->maybe_descriptor_binding_location.or_else(
+                    [] -> std::optional<u8>
+                    {
+                        panic("Buffer was not given a binding location!");
+
+                        return std::nullopt;
+                    });
+
                 this->maybe_uniform_descriptor_handle =
                     this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eUniformBuffer>(
-                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
+                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
+                        this->name,
+                        descriptorBindingLocation,
+                        loc);
             }
 
             return this->maybe_uniform_descriptor_handle.value();
         }
 
-        DescriptorHandle<vk::DescriptorType::eStorageBuffer> getStorageDescriptor()
+        DescriptorHandle<vk::DescriptorType::eStorageBuffer>
+        getStorageDescriptor(std::source_location loc = std::source_location::current())
         {
             if (!this->maybe_storage_descriptor_handle.has_value())
             {
@@ -195,9 +221,20 @@ namespace gfx::core::vulkan
                     static_cast<bool>(this->usage & vk::BufferUsageFlagBits::eStorageBuffer),
                     "Tried to access a non Storage Buffer as a Storage Buffer!");
 
+                const u8 descriptorBindingLocation = *this->maybe_descriptor_binding_location.or_else(
+                    [] -> std::optional<u8>
+                    {
+                        panic("Buffer was not given a binding location!");
+
+                        return std::nullopt;
+                    });
+
                 this->maybe_storage_descriptor_handle =
                     this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageBuffer>(
-                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}}, this->name);
+                        {.buffer {this->buffer}, .size_bytes {this->elements * sizeof(T)}},
+                        this->name,
+                        descriptorBindingLocation,
+                        loc);
             }
 
             return this->maybe_storage_descriptor_handle.value();
@@ -228,6 +265,7 @@ namespace gfx::core::vulkan
 
         std::optional<DescriptorHandle<vk::DescriptorType::eUniformBuffer>> maybe_uniform_descriptor_handle;
         std::optional<DescriptorHandle<vk::DescriptorType::eStorageBuffer>> maybe_storage_descriptor_handle;
+        std::optional<u8>                                                   maybe_descriptor_binding_location;
     };
 
     template<class T>
@@ -240,8 +278,10 @@ namespace gfx::core::vulkan
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
-            std::string             name_)
-            : gfx::core::vulkan::GpuOnlyBuffer<T> {renderer_, usage_, memoryPropertyFlags, elements_, std::move(name_)}
+            std::string             name_,
+            std::optional<u8>       maybeDescriptorBindingLocation)
+            : gfx::core::vulkan::GpuOnlyBuffer<T> {
+                  renderer_, usage_, memoryPropertyFlags, elements_, std::move(name_), maybeDescriptorBindingLocation}
         {}
         ~WriteOnlyBuffer()
         {
@@ -403,8 +443,10 @@ namespace gfx::core::vulkan
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
-            std::string             name_)
-            : gfx::core::vulkan::WriteOnlyBuffer<T> {renderer, usage_, memoryPropertyFlags, elements_, std::move(name_)}
+            std::string             name_,
+            std::optional<u8>       maybeDescriptorBindingLocation)
+            : gfx::core::vulkan::WriteOnlyBuffer<T> {
+                  renderer, usage_, memoryPropertyFlags, elements_, std::move(name_), maybeDescriptorBindingLocation}
         {
             assert::warn(
                 static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage_),

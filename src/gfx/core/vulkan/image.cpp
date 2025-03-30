@@ -4,7 +4,9 @@
 #include "gfx/core/vulkan/device.hpp"
 #include "util/logger.hpp"
 #include <optional>
+#include <source_location>
 #include <vk_mem_alloc.h>
+#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
@@ -13,21 +15,25 @@ namespace gfx::core::vulkan
         const Renderer*         renderer_,
         vk::Extent2D            extent_,
         vk::Format              format_,
-        vk::ImageLayout         layout,
+        vk::ImageLayout         initalLayout, // NOLINT
+        vk::ImageLayout         usageLayout,
         vk::ImageUsageFlags     usage_,
         vk::ImageAspectFlags    aspect_,
         vk::ImageTiling         tiling,
         vk::MemoryPropertyFlags memoryPropertyFlags,
-        std::string             name_)
+        std::string             name_,
+        std::optional<u8>       maybeBindingLocation)
         : renderer {renderer_}
         , extent {extent_}
         , format {format_}
         , aspect {aspect_}
+        , used_layout {usageLayout}
         , usage {usage_}
         , image {nullptr}
         , memory {nullptr}
         , view {nullptr}
         , name {std::move(name_)}
+        , maybe_shader_binding_location {maybeBindingLocation}
     {
         const VkImageCreateInfo imageCreateInfo {
             .sType {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO},
@@ -44,7 +50,7 @@ namespace gfx::core::vulkan
             .sharingMode {VK_SHARING_MODE_EXCLUSIVE},
             .queueFamilyIndexCount {0},
             .pQueueFamilyIndices {nullptr},
-            .initialLayout {static_cast<VkImageLayout>(layout)}};
+            .initialLayout {static_cast<VkImageLayout>(initalLayout)}};
 
         const VmaAllocationCreateInfo imageAllocationCreateInfo {
             .flags {},
@@ -114,6 +120,16 @@ namespace gfx::core::vulkan
                 .pObjectName {viewName.c_str()},
             });
         }
+
+        if (this->usage & vk::ImageUsageFlagBits::eSampled)
+        {
+            this->getSampledDescriptor(this->used_layout);
+        }
+
+        if (this->usage & vk::ImageUsageFlagBits::eStorage)
+        {
+            this->getStorageDescriptor(this->used_layout);
+        }
     }
 
     Image2D::~Image2D()
@@ -138,6 +154,7 @@ namespace gfx::core::vulkan
         , extent {other.extent}
         , format {other.format}
         , aspect {other.aspect}
+        , used_layout {other.used_layout}
         , usage {other.usage}
         , maybe_sampled_image_descriptor_handle {other.maybe_sampled_image_descriptor_handle}
         , maybe_storage_image_descriptor_handle {other.maybe_storage_image_descriptor_handle}
@@ -150,6 +167,7 @@ namespace gfx::core::vulkan
         other.extent                                = vk::Extent2D {};
         other.format                                = {};
         other.aspect                                = {};
+        other.used_layout                           = {};
         other.usage                                 = {};
         other.maybe_sampled_image_descriptor_handle = std::nullopt;
         other.maybe_storage_image_descriptor_handle = std::nullopt;
@@ -192,33 +210,51 @@ namespace gfx::core::vulkan
         return this->extent;
     }
 
-    DescriptorHandle<vk::DescriptorType::eSampledImage> Image2D::getSampledDescriptor(vk::ImageLayout layout)
+    DescriptorHandle<vk::DescriptorType::eSampledImage>
+    Image2D::getSampledDescriptor(vk::ImageLayout layout, std::source_location loc)
     {
         if (!this->maybe_sampled_image_descriptor_handle.has_value())
         {
             assert::critical(
-                static_cast<bool>(this->usage | vk::ImageUsageFlagBits::eSampled),
+                static_cast<bool>(this->usage & vk::ImageUsageFlagBits::eSampled),
                 "Tried to access a non sampled image as a sampled image!");
+
+            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
+                [] -> std::optional<u8>
+                {
+                    panic("Buffer was not given a binding location!");
+
+                    return std::nullopt;
+                });
 
             this->maybe_sampled_image_descriptor_handle =
                 this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eSampledImage>(
-                    {.view {*this->view}, .layout {layout}}, this->name);
+                    {.view {*this->view}, .layout {layout}}, this->name, descriptorBindingLocation, loc);
         }
 
         return this->maybe_sampled_image_descriptor_handle.value();
     }
 
-    DescriptorHandle<vk::DescriptorType::eStorageImage> Image2D::getStorageDescriptor(vk::ImageLayout layout)
+    DescriptorHandle<vk::DescriptorType::eStorageImage>
+    Image2D::getStorageDescriptor(vk::ImageLayout layout, std::source_location loc)
     {
         if (!this->maybe_storage_image_descriptor_handle.has_value())
         {
             assert::critical(
-                static_cast<bool>(this->usage | vk::ImageUsageFlagBits::eStorage),
+                static_cast<bool>(this->usage & vk::ImageUsageFlagBits::eStorage),
                 "Tried to access a non storage image as a storage image!");
+
+            const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
+                [] -> std::optional<u8>
+                {
+                    panic("Buffer was not given a binding location!");
+
+                    return std::nullopt;
+                });
 
             this->maybe_storage_image_descriptor_handle =
                 this->renderer->getDescriptorManager()->registerDescriptor<vk::DescriptorType::eStorageImage>(
-                    {.view {*this->view}, .layout {layout}}, this->name);
+                    {.view {*this->view}, .layout {layout}}, this->name, descriptorBindingLocation, loc);
         }
 
         return this->maybe_storage_image_descriptor_handle.value();

@@ -622,7 +622,8 @@ namespace gfx::generators::voxel
             vk::BufferUsageFlagBits::eStorageBuffer,
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
             materials.size(),
-            "Voxel Material Buffer"};
+            "Voxel Material Buffer",
+            4};
 
         buffer.uploadImmediate(0, materials);
 

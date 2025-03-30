@@ -4,10 +4,6 @@
 #include "globals.glsl"
 #include "misc.glsl"
 
-#ifndef VOXEL_HASH_MAP_OFFSET
-#error "VOXEL_HASH_MAP_OFFSET must be defined"
-#endif // VOXEL_HASH_MAP_OFFSET
-
 struct GpuColorHashMapNode
 {
     u32 key;
