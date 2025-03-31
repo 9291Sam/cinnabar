@@ -16,6 +16,7 @@
 #include "slang_compiler.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/util.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <cstddef>
@@ -183,11 +184,17 @@ int main()
 
     CPPTRACE_TRYZ
     {
-        cfi::shader_compiler c {};
+        cfi::SaneSlangCompiler c {};
 
-        auto foo = c.compile("src/hello_world.slang");
+        auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/hello_world.slang"));
 
-        log::info("compiled {} {}", foo.size(), foo[0]);
+        log::info(
+            "compiled {} {} {}",
+            foo.maybe_vertex_data.size(),
+            foo.maybe_fragment_data.size(),
+            foo.maybe_compute_data.size());
+
+        return 0;
 
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",

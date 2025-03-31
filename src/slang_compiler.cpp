@@ -1,138 +1,195 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <filesystem>
 #include <fmt/format.h>
+#include <slang-deprecated.h>
+#include <slang.h>
+#include <vector>
 
 namespace cfi
 {
 
-    shader_compiler::shader_compiler(std::filesystem::path cache_path)
-        : cache_path(cache_path.empty() ? std::nullopt : std::make_optional(cache_path))
+    SaneSlangCompiler::SaneSlangCompiler()
     {
-        const auto                  slang_global_session_description = SlangGlobalSessionDesc {};
-        slang::IGlobalSession*      global_session_ptr               = nullptr;
-        [[maybe_unused]] const auto result =
-            slang::createGlobalSession(&slang_global_session_description, &global_session_ptr);
-        global_session = slang_unique_ptr<slang::IGlobalSession>(global_session_ptr, destroy_slang);
-
-        auto paths_as_c_strings = std::vector<const char*>();
-        for (const auto& path : search_paths)
+        // Initialize Global Session
         {
-            paths_as_c_strings.push_back(path.c_str());
+            const SlangGlobalSessionDesc globalSessionDescriptor {};
+
+            slang::IGlobalSession* rawGlobalSessionPtr = nullptr;
+
+            // Literally the dumbest API in all of existence, it requires a fucking T**. WHY
+            const SlangResult result = slang::createGlobalSession(&globalSessionDescriptor, &rawGlobalSessionPtr);
+            assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
+            assert::critical(rawGlobalSessionPtr != nullptr, "slang::createGlobalSession returned nullptr");
+            this->global_session = {rawGlobalSessionPtr, SaneSlangCompiler::releaseSlangObject};
         }
 
-        auto profile = global_session->findProfile("spirv_1_4");
+        // Initialize Session
+        {
+            std::vector<const char*> cStringPaths {};
+            for (const std::filesystem::path& path : this->search_paths)
+            {
+                this->lifetime_extender.push_back(path.generic_string());
 
-        auto target = slang::TargetDesc {
-            .format  = SlangCompileTarget::SLANG_SPIRV,
-            .profile = profile,
-            .flags   = 0,
+                cStringPaths.push_back(this->lifetime_extender.back().c_str());
+            }
+
+            slang::TargetDesc target {
+                .format {SlangCompileTarget::SLANG_SPIRV},
+                .profile {this->global_session->findProfile("spirv_1_5")},
+                .flags {0},
+            };
+
+            slang::SessionDesc slangSessionDescriptor {};
+            slangSessionDescriptor.searchPaths     = cStringPaths.data();
+            slangSessionDescriptor.searchPathCount = static_cast<int>(cStringPaths.size());
+            slangSessionDescriptor.targets         = &target;
+            slangSessionDescriptor.targetCount     = 1;
+
+            const SlangResult result = this->global_session->createSession(slangSessionDescriptor, &this->session);
+            assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
+            assert::critical(this->session != nullptr, "SlangGlobalSession::createSession returned nullptr!");
+        }
+    }
+
+    SaneSlangCompiler::~SaneSlangCompiler() = default;
+
+    SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(const std::filesystem::path& path)
+    {
+        const SlangUniquePtr<slang::IModule>                    module = this->loadModule(path.generic_string());
+        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeFragmentEntry =
+            this->tryFindEntryPoint(module.get(), "fragmentMain");
+        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeVertexEntry =
+            this->tryFindEntryPoint(module.get(), "vertexMain");
+        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeComputeEntry =
+            this->tryFindEntryPoint(module.get(), "computeMain");
+
+        auto tryComposeEntrypoint =
+            [&](const std::optional<SlangUniquePtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<std::byte>
+        {
+            if (!maybeEntryPoint.has_value())
+            {
+                return {};
+            }
+
+            const SlangUniquePtr<slang::IComponentType> composedProgram =
+                this->composeProgram(&*module, &**maybeEntryPoint);
+            const SlangUniquePtr<slang::IBlob> spirvBlob = this->compileComposedProgram(composedProgram.get());
+
+            const usize outputSize = spirvBlob->getBufferSize();
+            assert::critical(
+                outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
+
+            std::vector<std::byte> data {};
+            data.resize(outputSize);
+
+            std::memcpy(data.data(), spirvBlob->getBufferPointer(), data.size());
+
+            return data;
         };
 
-        auto slang_session_descriptor            = slang::SessionDesc {};
-        slang_session_descriptor.searchPaths     = paths_as_c_strings.data();
-        slang_session_descriptor.searchPathCount = static_cast<int>(paths_as_c_strings.size());
-        slang_session_descriptor.targets         = &target;
-        slang_session_descriptor.targetCount     = 1;
-
-        slang::ISession* session_ptr = nullptr;
-        global_session->createSession(slang_session_descriptor, &session_ptr);
-        session = slang_unique_ptr<slang::ISession>(session_ptr, destroy_slang);
+        return CompileResult {
+            .maybe_vertex_data {tryComposeEntrypoint(maybeVertexEntry)},
+            .maybe_fragment_data {tryComposeEntrypoint(maybeFragmentEntry)},
+            .maybe_compute_data {tryComposeEntrypoint(maybeComputeEntry)},
+            .dependent_files {this->getDependencies(module.get())}};
     }
 
-    std::vector<std::byte> shader_compiler::compile(const std::string_view module_name)
+    SaneSlangCompiler::SlangUniquePtr<slang::IModule>
+    SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath)
     {
-        const auto initial_path = util::getCanonicalPathOfShaderFile(module_name);
+        const std::string modulePathString = modulePath.generic_string();
 
-        log::trace("{}", initial_path.generic_string());
+        slang::IBlob*                  rawModuleBlobPtr = nullptr;
+        SlangUniquePtr<slang::IModule> maybeModule {
+            this->session->loadModule(modulePathString.c_str(), &rawModuleBlobPtr),
+            SaneSlangCompiler::releaseSlangObject};
+        SlangUniquePtr<slang::IBlob> moduleBlob = {rawModuleBlobPtr, SaneSlangCompiler::releaseSlangObject};
 
-        const auto module           = load_module(initial_path.generic_string());
-        const auto entry_point      = find_entry_point(module.get(), "main");
-        const auto composed_program = create_composed_program(module.get(), entry_point.get());
-        const auto spirv_blob       = compile_to_spirv(composed_program.get());
-
-        auto size = spirv_blob->getBufferSize();
-        size      = (size + 3) & ~3; // Round up to the nearest multiple of 4
-        auto data = std::vector<std::byte>(size);
-        std::memcpy(data.data(), spirv_blob->getBufferPointer(), data.size());
-
-        return data;
-    }
-
-    shader_compiler::slang_unique_ptr<slang::IModule> shader_compiler::load_module(const std::string_view module_name)
-    {
-        slang::IBlob* module_blob_ptr = nullptr;
-        auto          module          = session->loadModule(module_name.data(), &module_blob_ptr);
-        auto          module_blob     = slang_unique_ptr<slang::IBlob>(module_blob_ptr, destroy_slang);
-
-        if (!module)
+        if (maybeModule == nullptr)
         {
-            throw_error("loading module", module_blob.get());
+            std::string_view errorMessage {
+                static_cast<const char*>(moduleBlob->getBufferPointer()), moduleBlob->getBufferSize()};
+
+            panic("Failed to load module @ {}: {}", modulePath.string(), errorMessage);
         }
-        return slang_unique_ptr<slang::IModule>(module, destroy_slang);
+        return maybeModule;
     }
 
-    void shader_compiler::throw_error(const std::string_view context, slang::IBlob* diagnostic_blob)
+    std::optional<SaneSlangCompiler::SlangUniquePtr<slang::IEntryPoint>>
+    SaneSlangCompiler::tryFindEntryPoint(slang::IModule* module, const char* entryPointName)
     {
-        const auto message = fmt::format("{}: {}", context, diagnostic_blob->getBufferPointer());
-        throw std::runtime_error(message);
-    }
-    shader_compiler::slang_unique_ptr<slang::IEntryPoint>
-    shader_compiler::find_entry_point(slang::IModule* module, const std::string_view entry_point_name)
-    {
-        for (int i = 0; i < module->getDependencyFileCount(); ++i)
+        slang::IEntryPoint* entryPoint = nullptr;
+        std::ignore                    = module->findEntryPointByName(entryPointName, &entryPoint);
+
+        if (entryPoint == nullptr)
         {
-            const char* const dep = module->getDependencyFilePath(i);
-
-            log::trace("dep {}", dep);
+            return std::nullopt;
         }
-        slang::IEntryPoint* entry_point;
-        if (module->findEntryPointByName(entry_point_name.data(), &entry_point) != SLANG_OK)
+        else
         {
-            throw_error(fmt::format("finding entry point {}", entry_point_name));
+            return SlangUniquePtr<slang::IEntryPoint> {entryPoint, SaneSlangCompiler::releaseSlangObject};
         }
-        return slang_unique_ptr<slang::IEntryPoint>(entry_point, destroy_slang);
     }
 
-    void shader_compiler::throw_error(const std::string_view context)
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    std::vector<std::filesystem::path> SaneSlangCompiler::getDependencies(slang::IModule* module)
     {
-        throw std::runtime_error(std::string(context));
+        std::vector<std::filesystem::path> result {};
+        result.resize(static_cast<usize>(module->getDependencyFileCount()));
+
+        for (usize i = 0; i < result.size(); ++i)
+        {
+            result[i] = module->getDependencyFilePath(static_cast<i32>(i));
+        }
+
+        return result;
     }
-    shader_compiler::slang_unique_ptr<slang::IComponentType>
-    shader_compiler::create_composed_program(slang::IModule* module, slang::IEntryPoint* entry_point)
+
+    SaneSlangCompiler::SlangUniquePtr<slang::IComponentType>
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    SaneSlangCompiler::composeProgram(slang::IModule* module, slang::IEntryPoint* entry_point)
     {
-        auto diagnostic_blob     = slang_unique_ptr<slang::IBlob>(nullptr, destroy_slang);
-        auto diagnostic_blob_ptr = diagnostic_blob.get();
+        SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
+        slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
 
-        auto component_types = std::vector<slang::IComponentType*>();
-        component_types.push_back(module);
-        component_types.push_back(entry_point);
+        std::vector<slang::IComponentType*> components {};
+        components.push_back(module);
+        components.push_back(entry_point);
 
-        slang::IComponentType* composed_program = nullptr;
+        slang::IComponentType* composedProgram = nullptr;
 
         if (session->createCompositeComponentType(
-                component_types.data(), component_types.size(), &composed_program, &diagnostic_blob_ptr)
+                components.data(), static_cast<SlangInt>(components.size()), &composedProgram, &rawDiagnosticBlobPtr)
             != SLANG_OK)
         {
-            throw_error("creating composed program", diagnostic_blob.get());
+            const std::string_view error {
+                static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
+
+            panic("Failed to compose program: \n{}", error);
         }
 
-        return slang_unique_ptr<slang::IComponentType>(composed_program, destroy_slang);
+        return SlangUniquePtr<slang::IComponentType>(composedProgram, SaneSlangCompiler::releaseSlangObject);
     }
-    shader_compiler::slang_unique_ptr<slang::IBlob>
-    shader_compiler::compile_to_spirv(slang::IComponentType* composed_program)
+    SaneSlangCompiler::SlangUniquePtr<slang::IBlob>
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram)
     {
-        auto diagnostic_blob     = slang_unique_ptr<slang::IBlob>(nullptr, destroy_slang);
-        auto diagnostic_blob_ptr = diagnostic_blob.get();
+        SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
+        slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
 
-        slang::IBlob* spirv_blob = nullptr;
+        slang::IBlob* rawSpirvBlob = nullptr;
 
-        if (composed_program->getEntryPointCode(0, 0, &spirv_blob, &diagnostic_blob_ptr) != SLANG_OK)
+        if (composedProgram->getEntryPointCode(0, 0, &rawSpirvBlob, &rawDiagnosticBlobPtr) != SLANG_OK)
         {
-            throw_error("compiling to spirv", diagnostic_blob.get());
+            const std::string_view error {
+                static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
+
+            panic("Failed to compile composed program: {}", error);
         }
 
-        return slang_unique_ptr<slang::IBlob>(spirv_blob, destroy_slang);
+        return SlangUniquePtr<slang::IBlob> {rawSpirvBlob, SaneSlangCompiler::releaseSlangObject};
     }
 
 } // namespace cfi

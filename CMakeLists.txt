@@ -25,6 +25,7 @@ set(SLANG_ENABLE_SLANG_GLSLANG OFF)
 set(SLANG_ENABLE_TESTS OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 set(SLANG_ENABLE_SLANG_RHI OFF)
+set(SLANG_ENABLE_ASAN ON)
 
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
@@ -125,6 +126,7 @@ target_link_libraries(
     glfw
     plutovg::plutovg
     ${FREETYPE_LIBRARIES}
+    Vulkan::shaderc_combined
 )
 
 target_include_directories(cinnabar PRIVATE src)
@@ -154,7 +156,6 @@ target_link_libraries(cinnabar PUBLIC
     cpptrace::cpptrace
     VulkanMemoryAllocator
     glm
-    Vulkan::shaderc_combined
     magic_enum::magic_enum
     Boost::container
     Boost::unordered
@@ -208,11 +209,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         # Don't forget to run with ASAN_OPTIONS=detect_container_overflow=0 ./cinnabar
         # because shaderc is built without asan and there are vector mismatch issues
 
-        # target_compile_options(cinnabar PUBLIC -fsanitize=address)
-        # target_link_options(cinnabar PUBLIC -fsanitize=address)
+        target_compile_options(cinnabar PUBLIC -fsanitize=address)
+        target_link_options(cinnabar PUBLIC -fsanitize=address)
 
-        # target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
-        # target_link_options(imgui_build_target PUBLIC -fsanitize=address)
+        target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
+        target_link_options(imgui_build_target PUBLIC -fsanitize=address)
 
         
 

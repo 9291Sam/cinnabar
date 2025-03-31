@@ -1,5 +1,4 @@
-#ifndef CFI_SHADER_COMPILER_HPP
-#define CFI_SHADER_COMPILER_HPP
+#pragma once
 
 #include "util/util.hpp"
 #include <filesystem>
@@ -7,46 +6,49 @@
 #include <slang.h>
 #include <string_view>
 
+/// Thanks to wakamatsu / Caio / Legend this lovely file
+/// Tweaked to my style. but the majority is his code.
+
 namespace cfi
 {
+    // TODO: get separate modules out
 
-    class shader_compiler
+    class SaneSlangCompiler
     {
     public:
-        explicit shader_compiler(std::filesystem::path cache_path = {});
+        struct CompileResult
+        {
+            std::vector<std::byte>             maybe_vertex_data;
+            std::vector<std::byte>             maybe_fragment_data;
+            std::vector<std::byte>             maybe_compute_data;
+            std::vector<std::filesystem::path> dependent_files;
+        };
+    public:
+        explicit SaneSlangCompiler();
+        ~SaneSlangCompiler();
 
-        [[nodiscard]] std::vector<std::byte> compile(const std::string_view module_name);
+        [[nodiscard]] CompileResult compile(const std::filesystem::path&);
 
     private:
-        static void destroy_slang(ISlangUnknown* object)
+        static void releaseSlangObject(ISlangUnknown* object)
         {
             object->release();
         }
         template<typename T>
-        using slang_unique_ptr = std::unique_ptr<T, decltype(&destroy_slang)>;
+        using SlangUniquePtr = std::unique_ptr<T, decltype(&releaseSlangObject)>;
 
-        std::optional<std::filesystem::path> cache_path;
+        std::vector<std::string> lifetime_extender;
 
-        slang_unique_ptr<slang::IGlobalSession> global_session = {nullptr, destroy_slang};
-        slang_unique_ptr<slang::ISession>       session        = {nullptr, destroy_slang};
+        SlangUniquePtr<slang::IGlobalSession> global_session {nullptr, releaseSlangObject};
+        slang::ISession*                      session;
 
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
-        [[nodiscard]] slang_unique_ptr<slang::IModule> load_module(const std::string_view module_name);
-
-        [[nodiscard]] slang_unique_ptr<slang::IEntryPoint>
-        find_entry_point(slang::IModule* module, const std::string_view entry_point_name);
-
-        [[nodiscard]] slang_unique_ptr<slang::IComponentType>
-        create_composed_program(slang::IModule* module, slang::IEntryPoint* entry_point);
-
-        [[nodiscard]] slang_unique_ptr<slang::IBlob> compile_to_spirv(slang::IComponentType* composed_program);
-
-        [[noreturn]] void throw_error(const std::string_view context, slang::IBlob* diagnostic_blob);
-
-        [[noreturn]] void throw_error(const std::string_view context);
+        [[nodiscard]] SlangUniquePtr<slang::IModule>                    loadModule(const std::filesystem::path&);
+        [[nodiscard]] std::optional<SlangUniquePtr<slang::IEntryPoint>> tryFindEntryPoint(slang::IModule*, const char*);
+        [[nodiscard]] std::vector<std::filesystem::path>                getDependencies(slang::IModule*);
+        [[nodiscard]] SlangUniquePtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*);
+        [[nodiscard]] SlangUniquePtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*);
     };
 
 } // namespace cfi
-
-#endif // CFI_SHADER_COMPILER_HPP
