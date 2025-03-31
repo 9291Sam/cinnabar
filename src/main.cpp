@@ -20,6 +20,7 @@
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
 #include <cstddef>
+#include <exception>
 #include <glm/ext/scalar_common.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
@@ -194,8 +195,6 @@ int main()
             foo.maybe_fragment_data.size(),
             foo.maybe_compute_data.size());
 
-        return 0;
-
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",
             CINNABAR_VERSION_MAJOR,
@@ -226,6 +225,8 @@ int main()
         log::critical(
             "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
             cpptrace::from_current_exception().to_string(true));
+
+        throw;
     }
 
     log::info("Cinnabar has shutdown successfully!");

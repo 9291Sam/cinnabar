@@ -47,6 +47,26 @@ namespace cfi
             slangSessionDescriptor.targets         = &target;
             slangSessionDescriptor.targetCount     = 1;
 
+            std::vector<slang::CompilerOptionEntry> compileOptions {};
+
+            compileOptions.push_back(slang::CompilerOptionEntry {
+                .name {slang::CompilerOptionName::FloatingPointMode},
+                .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
+
+            compileOptions.push_back(slang::CompilerOptionEntry {
+                .name {slang::CompilerOptionName::Optimization},
+                .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
+
+            compileOptions.push_back(slang::CompilerOptionEntry {
+                .name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
+
+            compileOptions.push_back(slang::CompilerOptionEntry {
+                .name {slang::CompilerOptionName::DebugInformation},
+                .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
+
+            slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
+            slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
+
             const SlangResult result = this->global_session->createSession(slangSessionDescriptor, &this->session);
             assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
             assert::critical(this->session != nullptr, "SlangGlobalSession::createSession returned nullptr!");
@@ -107,12 +127,20 @@ namespace cfi
             SaneSlangCompiler::releaseSlangObject};
         SlangUniquePtr<slang::IBlob> moduleBlob = {rawModuleBlobPtr, SaneSlangCompiler::releaseSlangObject};
 
-        if (maybeModule == nullptr)
+        if (moduleBlob != nullptr)
         {
             std::string_view errorMessage {
                 static_cast<const char*>(moduleBlob->getBufferPointer()), moduleBlob->getBufferSize()};
 
-            panic("Failed to load module @ {}: {}", modulePath.string(), errorMessage);
+            if (!errorMessage.empty())
+            {
+                log::warn("Slang Compilation Output: \n{}", errorMessage);
+            }
+        }
+
+        if (maybeModule == nullptr)
+        {
+            panic("Failed to load module @ {}", modulePath.string());
         }
         return maybeModule;
     }
