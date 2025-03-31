@@ -12,15 +12,15 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     result[index] = buffer0[index] + buffer1[index];
 }
 
-// shaders.slang
+// // shaders.slang
 
-//
-// This file provides a simple vertex and fragment shader that can be compiled
-// using Slang. This code should also be valid as HLSL, and thus it does not
-// use any of the new language features supported by Slang.
-//
+// //
+// // This file provides a simple vertex and fragment shader that can be compiled
+// // using Slang. This code should also be valid as HLSL, and thus it does not
+// // use any of the new language features supported by Slang.
+// //
 
-// Uniform data to be passed from application -> shader.
+// // Uniform data to be passed from application -> shader.
 cbuffer Uniforms
 {
     float4x4 modelViewProjection;
@@ -68,7 +68,7 @@ VertexStageOutput vertexMain(
     return output;
 }
 
-// Fragment Shader
+// // Fragment Shader
 
 [shader("fragment")]
 Fragment fragmentMain(
@@ -79,4 +79,10 @@ Fragment fragmentMain(
     Fragment output;
     output.color = float4(color, 1.0);
     return output;
+}
+
+void foo()
+{
+
+    
 }

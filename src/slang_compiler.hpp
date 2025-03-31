@@ -11,8 +11,6 @@
 
 namespace cfi
 {
-    // TODO: get separate modules out
-
     class SaneSlangCompiler
     {
     public:

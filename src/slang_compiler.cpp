@@ -3,7 +3,6 @@
 #include "util/util.hpp"
 #include <filesystem>
 #include <fmt/format.h>
-#include <slang-deprecated.h>
 #include <slang.h>
 #include <vector>
 
@@ -11,6 +10,7 @@ namespace cfi
 {
 
     SaneSlangCompiler::SaneSlangCompiler()
+        : session {nullptr}
     {
         // Initialize Global Session
         {
