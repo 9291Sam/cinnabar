@@ -93,10 +93,10 @@ vec3 calculateColor(
 
     const vec3 toFragmentDir = normalize(worldStrikePosition - GlobalData.camera_position.xyz);
 
-    // const Ray giRay =
-    //     Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
+    const Ray giRay =
+        Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-    // // normalize(unpacked.normal + RandomDirection(rngState)
+    // normalize(unpacked.normal + RandomDirection(rngState)
     // const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
 
     // vec3 giColor = vec3(0);

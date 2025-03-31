@@ -49,20 +49,23 @@ namespace cfi
 
             std::vector<slang::CompilerOptionEntry> compileOptions {};
 
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::FloatingPointMode},
-                .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
+            // compileOptions.push_back(slang::CompilerOptionEntry {
+            //     .name {slang::CompilerOptionName::FloatingPointMode},
+            //     .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
+
+            // compileOptions.push_back(slang::CompilerOptionEntry {
+            //     .name {slang::CompilerOptionName::Optimization},
+            //     .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
+
+            // compileOptions.push_back(slang::CompilerOptionEntry {
+            //     .name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
+
+            // compileOptions.push_back(slang::CompilerOptionEntry {
+            //     .name {slang::CompilerOptionName::DebugInformation},
+            //     .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
 
             compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::Optimization},
-                .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::DebugInformation},
-                .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
+                .name {slang::CompilerOptionName::MatrixLayoutColumn}, .value {.intValue0 {1}}});
 
             slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
             slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
@@ -86,7 +89,7 @@ namespace cfi
             this->tryFindEntryPoint(module.get(), "computeMain");
 
         auto tryComposeEntrypoint =
-            [&](const std::optional<SlangUniquePtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<std::byte>
+            [&](const std::optional<SlangUniquePtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<u32>
         {
             if (!maybeEntryPoint.has_value())
             {
@@ -101,10 +104,10 @@ namespace cfi
             assert::critical(
                 outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
 
-            std::vector<std::byte> data {};
-            data.resize(outputSize);
+            std::vector<u32> data {};
+            data.resize(outputSize / 4);
 
-            std::memcpy(data.data(), spirvBlob->getBufferPointer(), data.size());
+            std::memcpy(data.data(), spirvBlob->getBufferPointer(), spirvBlob->getBufferSize());
 
             return data;
         };

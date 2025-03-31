@@ -188,7 +188,7 @@ int main()
     {
         cfi::SaneSlangCompiler c {};
 
-        auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/hello_world.slang"));
+        auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/triangle.slang"));
 
         log::info(
             "compiled {} {} {}",

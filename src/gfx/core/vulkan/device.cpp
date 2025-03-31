@@ -177,11 +177,12 @@ namespace gfx::core::vulkan
             std::array {numberOfGraphicsQueues, numberOfAsyncComputeQueues, numberOfAsyncTransferQueues};
 
         std::array requiredExtensions {
+            "VK_KHR_shader_non_semantic_info",
             vk::KHRDynamicRenderingExtensionName,
             vk::KHRSwapchainExtensionName,
 #ifdef __APPLE__
             "VK_KHR_portability_subset",
-#endif // __APPLE__,
+#endif // __APPLE__
         };
 
         vk::PhysicalDeviceVulkan12Features features12 {};

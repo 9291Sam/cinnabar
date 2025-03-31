@@ -16,9 +16,9 @@ namespace cfi
     public:
         struct CompileResult
         {
-            std::vector<std::byte>             maybe_vertex_data;
-            std::vector<std::byte>             maybe_fragment_data;
-            std::vector<std::byte>             maybe_compute_data;
+            std::vector<u32>                   maybe_vertex_data;
+            std::vector<u32>                   maybe_fragment_data;
+            std::vector<u32>                   maybe_compute_data;
             std::vector<std::filesystem::path> dependent_files;
         };
     public:

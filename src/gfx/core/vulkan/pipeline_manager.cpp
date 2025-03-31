@@ -1,5 +1,6 @@
 #include "pipeline_manager.hpp"
 #include "device.hpp"
+#include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
 #include "util/util.hpp"
@@ -8,6 +9,7 @@
 #include <expected>
 #include <filesystem>
 #include <ranges>
+#include <shaderc/shaderc.h>
 #include <shaderc/shaderc.hpp>
 #include <span>
 #include <variant>
@@ -324,6 +326,48 @@ namespace gfx::core::vulkan
             "Invalid GLSL Source of length {} with a back character of {}",
             glslShaderSource.size(),
             static_cast<u32>(glslShaderSource.back()));
+
+        if (filename.contains("triangle."))
+        {
+            cfi::SaneSlangCompiler c {};
+
+            auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/triangle.slang"));
+
+            log::trace("compiling |{}|", filename);
+
+            if (kind == shaderc_vertex_shader)
+            {
+                std::span<const u32> compiledSPV {foo.maybe_vertex_data.cbegin(), foo.maybe_vertex_data.cend()};
+
+                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                    .sType {vk::StructureType::eShaderModuleCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .codeSize {compiledSPV.size_bytes()},
+                    .pCode {compiledSPV.data()},
+                };
+
+                return FormShaderModuleFromShaderSourceResult {
+                    .module {this->device.createShaderModuleUnique(shaderModuleCreateInfo)}, .dependent_files {}};
+            }
+            else if (kind == shaderc_fragment_shader)
+            {
+                std::span<const u32> compiledSPV {foo.maybe_fragment_data.cbegin(), foo.maybe_fragment_data.cend()};
+
+                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                    .sType {vk::StructureType::eShaderModuleCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .codeSize {compiledSPV.size_bytes()},
+                    .pCode {compiledSPV.data()},
+                };
+
+                return FormShaderModuleFromShaderSourceResult {
+                    .module {this->device.createShaderModuleUnique(shaderModuleCreateInfo)}, .dependent_files {}};
+            }
+
+            panic("noop");
+        }
 
         std::unique_ptr<ShaderCommonIncluder> includer {new ShaderCommonIncluder {}};
         ShaderCommonIncluder*                 rawIncluder = includer.get();
