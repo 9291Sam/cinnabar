@@ -81,7 +81,10 @@ namespace gfx
                 commandBuffer.setViewport(0, {renderViewport});
                 commandBuffer.setScissor(0, {scissor});
 
-                generators.maybe_voxel_renderer->recordCopyCommands(commandBuffer);
+                if (generators.maybe_voxel_renderer != nullptr)
+                {
+                    generators.maybe_voxel_renderer->recordCopyCommands(commandBuffer);
+                }
 
                 commandBuffer.pipelineBarrier(
                     vk::PipelineStageFlagBits::eTransfer,
@@ -431,6 +434,30 @@ namespace gfx
                             .layerCount {1}}},
                     }});
 
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eLateFragmentTests,
+                    vk::PipelineStageFlagBits::eEarlyFragmentTests,
+                    vk::DependencyFlags {},
+                    {},
+                    {},
+                    {vk::ImageMemoryBarrier {
+                        .sType {vk::StructureType::eImageMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eDepthStencilAttachmentRead},
+                        .oldLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .newLayout {vk::ImageLayout::eDepthAttachmentOptimal},
+                        .srcQueueFamilyIndex {graphicsQueueIndex},
+                        .dstQueueFamilyIndex {graphicsQueueIndex},
+                        .image {*this->frame_descriptors->depth_buffer},
+                        .subresourceRange {vk::ImageSubresourceRange {
+                            .aspectMask {vk::ImageAspectFlagBits::eDepth},
+                            .baseMipLevel {0},
+                            .levelCount {1},
+                            .baseArrayLayer {0},
+                            .layerCount {1}}},
+                    }});
+
                 // voxel color calculation
                 {
                     commandBuffer.bindDescriptorSets(
@@ -534,14 +561,14 @@ namespace gfx
                         {this->renderer->getDescriptorManager()->getGlobalDescriptorSet()},
                         {});
 
-                    if (generators.maybe_triangle_renderer)
-                    {
-                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
-                    }
-
                     if (generators.maybe_voxel_renderer)
                     {
                         generators.maybe_voxel_renderer->recordColorTransfer(commandBuffer);
+                    }
+
+                    if (generators.maybe_triangle_renderer)
+                    {
+                        generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
                     if (generators.maybe_skybox_renderer)

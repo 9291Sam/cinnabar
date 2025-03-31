@@ -1,6 +1,30 @@
 #version 460
 
-#include "globals.glsl"
+#define SBO_SRGB_TRIANGLE_DATA 6
+
+struct GlobalGpuData
+{
+    mat4  view_matrix;
+    mat4  projection_matrix;
+    mat4  view_projection_matrix;
+    vec4  camera_forward_vector;
+    vec4  camera_right_vector;
+    vec4  camera_up_vector;
+    vec4  camera_position;
+    float fov_y;
+    float tan_half_fov_y;
+    float aspect_ratio;
+    float time_alive;
+    uvec2 framebuffer_size;
+};
+
+layout(set = 0, binding = 3) readonly uniform GlobalGpuDataBuffer
+{
+    GlobalGpuData data;
+}
+in_global_gpu_data[];
+
+#define GlobalData in_global_gpu_data[0].data
 
 const vec3 triangle_positions[3] = vec3[](vec3(0.0, 0.5, 0.0), vec3(-0.5, -0.5, 0.0), vec3(0.5, -0.5, 0.0));
 
