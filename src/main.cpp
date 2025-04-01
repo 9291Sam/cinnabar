@@ -26,6 +26,7 @@
 #include <imgui.h>
 #include <shaderc/shaderc.hpp>
 #include <shaderc/status.h>
+#include <slang.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
@@ -214,10 +215,9 @@ int main()
     CPPTRACE_CATCH_ALT(...)
     {
         log::critical(
-            "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
-            cpptrace::from_current_exception().to_string(true));
-
-        throw;
+            "Cinnabar has crashed! | Unknown Exception type thrown!\n{} {}",
+            cpptrace::from_current_exception().to_string(true),
+            slang::getLastInternalErrorMessage());
     }
 
     log::info("Cinnabar has shutdown successfully!");

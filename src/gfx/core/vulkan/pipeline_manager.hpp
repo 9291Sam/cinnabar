@@ -68,7 +68,8 @@ namespace gfx::core::vulkan
         vk::UniquePipelineCache pipeline_cache;
         shaderc::Compiler       shader_compiler;
         cfi::SaneSlangCompiler  sane_slang_compiler;
-        vk::PipelineLayout      bindless_pipeline_layout;
+
+        vk::PipelineLayout bindless_pipeline_layout;
 
         struct PipelineInternalStorage
         {

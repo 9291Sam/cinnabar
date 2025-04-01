@@ -11,8 +11,8 @@ namespace gfx::generators::skybox
     SkyboxRenderer::SkyboxRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , pipeline {this->renderer->getPipelineManager()->createPipeline(core::vulkan::GraphicsPipelineDescriptor {
-              .vertex_shader_path {"src/gfx/generators/skybox/skybox.vert"},
-              .fragment_shader_path {"src/gfx/generators/skybox/skybox.frag"},
+              .vertex_shader_path {"src/gfx/generators/skybox/skybox.slang"},
+              .fragment_shader_path {},
               .topology {vk::PrimitiveTopology::eTriangleList},
               .polygon_mode {vk::PolygonMode::eFill},
               .cull_mode {vk::CullModeFlagBits::eNone},

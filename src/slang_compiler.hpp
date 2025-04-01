@@ -3,6 +3,7 @@
 #include "util/util.hpp"
 #include <filesystem>
 #include <optional>
+#include <slang-com-ptr.h>
 #include <slang.h>
 #include <string_view>
 
@@ -28,26 +29,20 @@ namespace cfi
         [[nodiscard]] CompileResult compile(const std::filesystem::path&) const;
 
     private:
-        static void releaseSlangObject(ISlangUnknown* object)
-        {
-            object->release();
-        }
-        template<typename T>
-        using SlangUniquePtr = std::unique_ptr<T, decltype(&releaseSlangObject)>;
 
         std::vector<std::string> lifetime_extender;
 
-        SlangUniquePtr<slang::IGlobalSession> global_session {nullptr, releaseSlangObject};
-        slang::ISession*                      session;
+        slang::IGlobalSession* global_session;
+        slang::ISession*       session;
 
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
-        [[nodiscard]] SlangUniquePtr<slang::IModule> loadModule(const std::filesystem::path&) const;
-        [[nodiscard]] std::optional<SlangUniquePtr<slang::IEntryPoint>>
-                                                            tryFindEntryPoint(slang::IModule*, const char*) const;
-        [[nodiscard]] std::vector<std::filesystem::path>    getDependencies(slang::IModule*) const;
-        [[nodiscard]] SlangUniquePtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*) const;
-        [[nodiscard]] SlangUniquePtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*) const;
+        [[nodiscard]] slang::IModule* loadModule(const std::filesystem::path&) const;
+        [[nodiscard]] std::optional<Slang::ComPtr<slang::IEntryPoint>>
+                                                           tryFindEntryPoint(slang::IModule*, const char*) const;
+        [[nodiscard]] std::vector<std::filesystem::path>   getDependencies(slang::IModule*) const;
+        [[nodiscard]] Slang::ComPtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*) const;
+        [[nodiscard]] Slang::ComPtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*) const;
     };
 
 } // namespace cfi

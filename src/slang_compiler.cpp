@@ -3,6 +3,7 @@
 #include "util/util.hpp"
 #include <filesystem>
 #include <fmt/format.h>
+#include <slang-com-ptr.h>
 #include <slang.h>
 #include <vector>
 
@@ -10,19 +11,13 @@ namespace cfi
 {
 
     SaneSlangCompiler::SaneSlangCompiler()
-        : session {nullptr}
     {
         // Initialize Global Session
         {
             const SlangGlobalSessionDesc globalSessionDescriptor {};
 
-            slang::IGlobalSession* rawGlobalSessionPtr = nullptr;
-
-            // Literally the dumbest API in all of existence, it requires a fucking T**. WHY
-            const SlangResult result = slang::createGlobalSession(&globalSessionDescriptor, &rawGlobalSessionPtr);
+            const SlangResult result = slang::createGlobalSession(&globalSessionDescriptor, &this->global_session);
             assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
-            assert::critical(rawGlobalSessionPtr != nullptr, "slang::createGlobalSession returned nullptr");
-            this->global_session = {rawGlobalSessionPtr, SaneSlangCompiler::releaseSlangObject};
         }
 
         // Initialize Session
@@ -69,7 +64,6 @@ namespace cfi
 
             const SlangResult result = this->global_session->createSession(slangSessionDescriptor, &this->session);
             assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
-            assert::critical(this->session != nullptr, "SlangGlobalSession::createSession returned nullptr!");
         }
     }
 
@@ -77,27 +71,28 @@ namespace cfi
 
     SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(const std::filesystem::path& path) const
     {
-        const SlangUniquePtr<slang::IModule>                    module = this->loadModule(path.generic_string());
-        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeFragmentEntry =
-            this->tryFindEntryPoint(module.get(), "fragmentMain");
-        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeVertexEntry =
-            this->tryFindEntryPoint(module.get(), "vertexMain");
-        const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeComputeEntry =
-            this->tryFindEntryPoint(module.get(), "computeMain");
+        slang::IModule*                                        module = this->loadModule(path.generic_string());
+        const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeFragmentEntry =
+            this->tryFindEntryPoint(module, "fragmentMain");
+        const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeVertexEntry =
+            this->tryFindEntryPoint(module, "vertexMain");
+        const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeComputeEntry =
+            this->tryFindEntryPoint(module, "computeMain");
 
         auto tryComposeEntrypoint =
-            [&](const std::optional<SlangUniquePtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<u32>
+            [&](const std::optional<Slang::ComPtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<u32>
         {
             if (!maybeEntryPoint.has_value())
             {
                 return {};
             }
 
-            const SlangUniquePtr<slang::IComponentType> composedProgram =
+            const Slang::ComPtr<slang::IComponentType> composedProgram =
                 this->composeProgram(&*module, &**maybeEntryPoint);
-            const SlangUniquePtr<slang::IBlob> spirvBlob = this->compileComposedProgram(composedProgram.get());
+            const Slang::ComPtr<slang::IBlob> spirvBlob = this->compileComposedProgram(composedProgram.get());
 
             const usize outputSize = spirvBlob->getBufferSize();
+
             assert::critical(
                 outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
 
@@ -113,19 +108,16 @@ namespace cfi
             .maybe_vertex_data {tryComposeEntrypoint(maybeVertexEntry)},
             .maybe_fragment_data {tryComposeEntrypoint(maybeFragmentEntry)},
             .maybe_compute_data {tryComposeEntrypoint(maybeComputeEntry)},
-            .dependent_files {this->getDependencies(module.get())}};
+            .dependent_files {this->getDependencies(module)}};
     }
 
-    SaneSlangCompiler::SlangUniquePtr<slang::IModule>
-    SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
+    slang::IModule* SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
     {
         const std::string modulePathString = modulePath.generic_string();
 
-        slang::IBlob*                  rawModuleBlobPtr = nullptr;
-        SlangUniquePtr<slang::IModule> maybeModule {
-            this->session->loadModule(modulePathString.c_str(), &rawModuleBlobPtr),
-            SaneSlangCompiler::releaseSlangObject};
-        SlangUniquePtr<slang::IBlob> moduleBlob = {rawModuleBlobPtr, SaneSlangCompiler::releaseSlangObject};
+        Slang::ComPtr<slang::IBlob> moduleBlob;
+        log::trace("loading modile |{}|", modulePathString);
+        slang::IModule* maybeModule = this->session->loadModule(modulePathString.c_str(), moduleBlob.writeRef());
 
         if (moduleBlob != nullptr)
         {
@@ -142,16 +134,16 @@ namespace cfi
         {
             panic("Failed to load module @ {}", modulePath.string());
         }
+
         return maybeModule;
     }
 
-    std::optional<SaneSlangCompiler::SlangUniquePtr<slang::IEntryPoint>>
+    std::optional<Slang::ComPtr<slang::IEntryPoint>>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     SaneSlangCompiler::tryFindEntryPoint(slang::IModule* module, const char* entryPointName) const
     {
-        assert::critical(module != nullptr, "erm");
-        slang::IEntryPoint* entryPoint = nullptr;
-        std::ignore                    = module->findEntryPointByName(entryPointName, &entryPoint);
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        std::ignore = module->findEntryPointByName(entryPointName, entryPoint.writeRef());
 
         if (entryPoint == nullptr)
         {
@@ -159,7 +151,7 @@ namespace cfi
         }
         else
         {
-            return SlangUniquePtr<slang::IEntryPoint> {entryPoint, SaneSlangCompiler::releaseSlangObject};
+            return entryPoint;
         }
     }
 
@@ -177,21 +169,23 @@ namespace cfi
         return result;
     }
 
-    SaneSlangCompiler::SlangUniquePtr<slang::IComponentType>
+    Slang::ComPtr<slang::IComponentType>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     SaneSlangCompiler::composeProgram(slang::IModule* module, slang::IEntryPoint* entryPoint) const
     {
-        SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
-        slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
+        Slang::ComPtr<slang::IBlob> diagnosticBlob;
 
         std::vector<slang::IComponentType*> components {};
         components.push_back(module);
         components.push_back(entryPoint);
 
-        slang::IComponentType* composedProgram = nullptr;
+        Slang::ComPtr<slang::IComponentType> composedProgram;
 
         if (session->createCompositeComponentType(
-                components.data(), static_cast<SlangInt>(components.size()), &composedProgram, &rawDiagnosticBlobPtr)
+                components.data(),
+                static_cast<SlangInt>(components.size()),
+                composedProgram.writeRef(),
+                diagnosticBlob.writeRef())
             != SLANG_OK)
         {
             const std::string_view error {
@@ -200,27 +194,33 @@ namespace cfi
             panic("Failed to compose program: \n{}", error);
         }
 
-        return SlangUniquePtr<slang::IComponentType>(composedProgram, SaneSlangCompiler::releaseSlangObject);
+        return composedProgram;
     }
-    SaneSlangCompiler::SlangUniquePtr<slang::IBlob>
+    Slang::ComPtr<slang::IBlob>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram) const
     {
-        SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
-        slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
+        Slang::ComPtr<slang::IBlob> spirvBlob      = nullptr;
+        Slang::ComPtr<slang::IBlob> diagnosticBlob = nullptr;
 
-        slang::IBlob* rawSpirvBlob = nullptr;
+        const SlangResult result =
+            composedProgram->getEntryPointCode(0, 0, spirvBlob.writeRef(), diagnosticBlob.writeRef());
 
-        if (composedProgram->getEntryPointCode(0, 0, &rawSpirvBlob, &rawDiagnosticBlobPtr) != SLANG_OK
-            || rawSpirvBlob == nullptr)
+        if (result != SLANG_OK)
         {
-            const std::string_view error {
-                static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
+            log::error(
+                "Create Composed Program failed! Blob: {}", static_cast<const void*>(spirvBlob->getBufferPointer()));
 
-            panic("Failed to compile composed program: {}", error);
+            if (diagnosticBlob != nullptr)
+            {
+                const std::string_view error {
+                    static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
+
+                panic("Failed to compile composed program: {}", error);
+            }
         }
 
-        return SlangUniquePtr<slang::IBlob> {rawSpirvBlob, SaneSlangCompiler::releaseSlangObject};
+        return spirvBlob;
     }
 
 } // namespace cfi
