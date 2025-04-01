@@ -1,6 +1,7 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <__expected/unexpected.h>
 #include <filesystem>
 #include <fmt/format.h>
 #include <slang-com-ptr.h>
@@ -69,15 +70,22 @@ namespace cfi
 
     SaneSlangCompiler::~SaneSlangCompiler() = default;
 
-    SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(const std::filesystem::path& path) const
+    std::expected<SaneSlangCompiler::CompileResult, std::string>
+    SaneSlangCompiler::compile(const std::filesystem::path& path) const
     {
-        slang::IModule*                                        module = this->loadModule(path.generic_string());
+        auto [maybeModule, maybeCompileMessage] = this->loadModule(path.generic_string());
+
+        if (maybeModule == nullptr)
+        {
+            return std::unexpected(std::move(maybeCompileMessage));
+        }
+
         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeFragmentEntry =
-            this->tryFindEntryPoint(module, "fragmentMain");
+            this->tryFindEntryPoint(maybeModule, "fragmentMain");
         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeVertexEntry =
-            this->tryFindEntryPoint(module, "vertexMain");
+            this->tryFindEntryPoint(maybeModule, "vertexMain");
         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeComputeEntry =
-            this->tryFindEntryPoint(module, "computeMain");
+            this->tryFindEntryPoint(maybeModule, "computeMain");
 
         auto tryComposeEntrypoint =
             [&](const std::optional<Slang::ComPtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<u32>
@@ -88,7 +96,7 @@ namespace cfi
             }
 
             const Slang::ComPtr<slang::IComponentType> composedProgram =
-                this->composeProgram(&*module, &**maybeEntryPoint);
+                this->composeProgram(maybeModule, &**maybeEntryPoint);
             const Slang::ComPtr<slang::IBlob> spirvBlob = this->compileComposedProgram(composedProgram.get());
 
             const usize outputSize = spirvBlob->getBufferSize();
@@ -108,34 +116,45 @@ namespace cfi
             .maybe_vertex_data {tryComposeEntrypoint(maybeVertexEntry)},
             .maybe_fragment_data {tryComposeEntrypoint(maybeFragmentEntry)},
             .maybe_compute_data {tryComposeEntrypoint(maybeComputeEntry)},
-            .dependent_files {this->getDependencies(module)}};
+            .dependent_files {this->getDependencies(maybeModule, std::move(path))},
+            .maybe_warnings {std::move(maybeCompileMessage)}};
     }
 
-    slang::IModule* SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
+    std::pair<slang::IModule*, std::string> SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
     {
         const std::string modulePathString = modulePath.generic_string();
 
         Slang::ComPtr<slang::IBlob> moduleBlob;
-        log::trace("loading modile |{}|", modulePathString);
-        slang::IModule* maybeModule = this->session->loadModule(modulePathString.c_str(), moduleBlob.writeRef());
+        // slang::IModule* maybeModule = this->session->loadModule(modulePathString.c_str(), moduleBlob.writeRef());
+
+        std::vector<std::byte> entireFile = util::loadEntireFileFromPath(modulePath);
+
+        std::string str {};
+        str.resize(entireFile.size());
+
+        std::memcpy(str.data(), entireFile.data(), str.size());
+
+        static int i = 0;
+
+        const std::string uniqueFileName = std::format("UNIQUE_FILE_LOADED_IDENTIFIER{}", i++);
+
+        slang::IModule* maybeModule = this->session->loadModuleFromSourceString(
+            uniqueFileName.c_str(), uniqueFileName.c_str(), str.data(), moduleBlob.writeRef());
+
+        // this->session->loadModuleFromSource(const char *moduleName, const char *path, slang::IBlob *source)
+        // this->session->loadModuleFromSourceString(const char* moduleName, const char* path, const char* string)
+
+        std::string compilerOutput {};
 
         if (moduleBlob != nullptr)
         {
             std::string_view errorMessage {
                 static_cast<const char*>(moduleBlob->getBufferPointer()), moduleBlob->getBufferSize()};
 
-            if (!errorMessage.empty())
-            {
-                log::warn("Slang Compilation Output: \n{}", errorMessage);
-            }
+            compilerOutput = errorMessage;
         }
 
-        if (maybeModule == nullptr)
-        {
-            panic("Failed to load module @ {}", modulePath.string());
-        }
-
-        return maybeModule;
+        return {maybeModule, std::move(compilerOutput)};
     }
 
     std::optional<Slang::ComPtr<slang::IEntryPoint>>
@@ -156,14 +175,36 @@ namespace cfi
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    std::vector<std::filesystem::path> SaneSlangCompiler::getDependencies(slang::IModule* module) const
+    std::vector<std::filesystem::path>
+    SaneSlangCompiler::getDependencies(slang::IModule* module, std::filesystem::path selfPath) const
     {
         std::vector<std::filesystem::path> result {};
-        result.resize(static_cast<usize>(module->getDependencyFileCount()));
 
-        for (usize i = 0; i < result.size(); ++i)
+        result.push_back(std::move(selfPath));
+
+        const i32 deps = module->getDependencyFileCount();
+
+        log::trace("{} deps", deps);
+
+        for (i32 i = 0; i < deps; ++i)
         {
-            result[i] = module->getDependencyFilePath(static_cast<i32>(i));
+            const char* p = module->getDependencyFilePath(i);
+
+            std::string p2 = p;
+
+            log::trace("testing dep {}", p2);
+
+            if (p2.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
+            {
+                log::trace("skipped {}", p2);
+                continue;
+            }
+            else
+            {
+                log::trace("validated {}", p2);
+            }
+
+            result.push_back(std::filesystem::path {p});
         }
 
         return result;

@@ -417,12 +417,18 @@ namespace gfx::core::vulkan
         {
             assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-            auto foo =
+            std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
                 this->sane_slang_compiler.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+
+            if (!maybeCompiledCode.has_value())
+            {
+                return std::unexpected(std::move(maybeCompiledCode.error()));
+            }
 
             // Vertex
             {
-                std::span<const u32> compiledSPV {foo.maybe_vertex_data.cbegin(), foo.maybe_vertex_data.cend()};
+                std::span<const u32> compiledSPV {
+                    maybeCompiledCode->maybe_vertex_data.cbegin(), maybeCompiledCode->maybe_vertex_data.cend()};
 
                 const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                     .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -437,7 +443,8 @@ namespace gfx::core::vulkan
 
             // Fragment
             {
-                std::span<const u32> compiledSPV {foo.maybe_fragment_data.cbegin(), foo.maybe_fragment_data.cend()};
+                std::span<const u32> compiledSPV {
+                    maybeCompiledCode->maybe_fragment_data.cbegin(), maybeCompiledCode->maybe_fragment_data.cend()};
 
                 const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                     .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -450,7 +457,7 @@ namespace gfx::core::vulkan
                 fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
             }
 
-            for (std::filesystem::path& p : foo.dependent_files)
+            for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
             {
                 std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
 

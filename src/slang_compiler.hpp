@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/util.hpp"
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <slang-com-ptr.h>
@@ -21,12 +22,14 @@ namespace cfi
             std::vector<u32>                   maybe_fragment_data;
             std::vector<u32>                   maybe_compute_data;
             std::vector<std::filesystem::path> dependent_files;
+            std::string                        maybe_warnings;
         };
     public:
         explicit SaneSlangCompiler();
         ~SaneSlangCompiler();
 
-        [[nodiscard]] CompileResult compile(const std::filesystem::path&) const;
+        // Compile result or error string
+        [[nodiscard]] std::expected<CompileResult, std::string> compile(const std::filesystem::path&) const;
 
     private:
 
@@ -37,10 +40,12 @@ namespace cfi
 
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
-        [[nodiscard]] slang::IModule* loadModule(const std::filesystem::path&) const;
+        // Module or an error string
+        [[nodiscard]] std::pair<slang::IModule*, std::string> loadModule(const std::filesystem::path&) const;
         [[nodiscard]] std::optional<Slang::ComPtr<slang::IEntryPoint>>
-                                                           tryFindEntryPoint(slang::IModule*, const char*) const;
-        [[nodiscard]] std::vector<std::filesystem::path>   getDependencies(slang::IModule*) const;
+        tryFindEntryPoint(slang::IModule*, const char*) const;
+        [[nodiscard]] std::vector<std::filesystem::path>
+        getDependencies(slang::IModule*, std::filesystem::path selfPath) const;
         [[nodiscard]] Slang::ComPtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*) const;
         [[nodiscard]] Slang::ComPtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*) const;
     };
