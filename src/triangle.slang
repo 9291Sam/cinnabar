@@ -1,8 +1,9 @@
+
 struct GlobalGpuData
 {
-    float4x4  view_matrix;
-    float4x4  projection_matrix;
-    float4x4  view_projection_matrix;
+    column_major float4x4  view_matrix;
+    column_major float4x4  projection_matrix;
+    column_major float4x4  view_projection_matrix;
     float4  camera_forward_vector;
     float4  camera_right_vector;
     float4  camera_up_vector;
