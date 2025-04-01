@@ -186,16 +186,6 @@ int main()
 
     CPPTRACE_TRYZ
     {
-        cfi::SaneSlangCompiler c {};
-
-        auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/triangle.slang"));
-
-        log::info(
-            "compiled {} {} {}",
-            foo.maybe_vertex_data.size(),
-            foo.maybe_fragment_data.size(),
-            foo.maybe_compute_data.size());
-
         log::info(
             "Cinnabar has started v{}.{}.{}.{}{}",
             CINNABAR_VERSION_MAJOR,

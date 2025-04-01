@@ -97,26 +97,25 @@ vec3 calculateColor(
         Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
     // normalize(unpacked.normal + RandomDirection(rngState)
-    // const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
+    const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 64.0f);
 
-    // vec3 giColor = vec3(0);
+    vec3 giColor = vec3(0);
 
-    // if (giResult.intersect_occur)
-    // {
-    //     giColor = calculatePixelColor(
-    //         giResult.chunk_local_fragment_position + vec3(-16.0),
-    //         giResult.voxel_normal,
-    //         normalize(giRay.origin - giResult.chunk_local_fragment_position),
-    //         normalize(
-    //             light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position +
-    //             vec3(-16.0)),
-    //         light,
-    //         giResult.material,
-    //         false,
-    //         true);
-    // }
+    if (giResult.intersect_occur)
+    {
+        giColor = calculatePixelColor(
+            giResult.chunk_local_fragment_position + vec3(-16.0),
+            giResult.voxel_normal,
+            normalize(giRay.origin - giResult.chunk_local_fragment_position),
+            normalize(
+                light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position + vec3(-16.0)),
+            light,
+            giResult.material,
+            false,
+            true);
+    }
 
-    // calculatedColor += giColor;
+    calculatedColor += giColor;
 
     return calculatedColor;
 }

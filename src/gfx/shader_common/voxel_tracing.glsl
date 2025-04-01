@@ -122,8 +122,8 @@ VoxelTraceResult traceBlock(u32 brick, vec3 rayPos, vec3 rayDir, vec3 iMask)
     vec3 mask      = iMask;
 
     int i;
-
-    for (i = 0; i < 27 && all(lessThanEqual(mapPos, vec3(7.0))) && all(greaterThanEqual(mapPos, vec3(0.0))); ++i)
+    // ccrazy range check maopos in 0-7
+    for (i = 0; i < 27 && all(lessThanEqual(abs(mapPos - vec3(3.5)), vec3(3.5))); ++i)
     {
         if (loadVoxelFromBrick(brick, ivec3(mapPos)))
         {

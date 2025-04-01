@@ -13,8 +13,8 @@ namespace gfx::generators::triangle
     TriangleRenderer::TriangleRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , pipeline(this->renderer->getPipelineManager()->createPipeline(core::vulkan::GraphicsPipelineDescriptor {
-              .vertex_shader_path {"src/gfx/generators/triangle/triangle.vert"},
-              .fragment_shader_path {"src/gfx/generators/triangle/triangle.frag"},
+              .vertex_shader_path {"src/gfx/generators/triangle/triangle.slang"},
+              .fragment_shader_path {},
               .topology {vk::PrimitiveTopology::eTriangleList},
               .polygon_mode {vk::PolygonMode::eFill},
               .cull_mode {vk::CullModeFlagBits::eNone},

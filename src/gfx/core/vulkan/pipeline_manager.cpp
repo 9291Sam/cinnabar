@@ -327,48 +327,6 @@ namespace gfx::core::vulkan
             glslShaderSource.size(),
             static_cast<u32>(glslShaderSource.back()));
 
-        if (filename.contains("triangle."))
-        {
-            cfi::SaneSlangCompiler c {};
-
-            auto foo = c.compile(util::getCanonicalPathOfShaderFile("src/triangle.slang"));
-
-            log::trace("compiling |{}|", filename);
-
-            if (kind == shaderc_vertex_shader)
-            {
-                std::span<const u32> compiledSPV {foo.maybe_vertex_data.cbegin(), foo.maybe_vertex_data.cend()};
-
-                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                    .sType {vk::StructureType::eShaderModuleCreateInfo},
-                    .pNext {nullptr},
-                    .flags {},
-                    .codeSize {compiledSPV.size_bytes()},
-                    .pCode {compiledSPV.data()},
-                };
-
-                return FormShaderModuleFromShaderSourceResult {
-                    .module {this->device.createShaderModuleUnique(shaderModuleCreateInfo)}, .dependent_files {}};
-            }
-            else if (kind == shaderc_fragment_shader)
-            {
-                std::span<const u32> compiledSPV {foo.maybe_fragment_data.cbegin(), foo.maybe_fragment_data.cend()};
-
-                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                    .sType {vk::StructureType::eShaderModuleCreateInfo},
-                    .pNext {nullptr},
-                    .flags {},
-                    .codeSize {compiledSPV.size_bytes()},
-                    .pCode {compiledSPV.data()},
-                };
-
-                return FormShaderModuleFromShaderSourceResult {
-                    .module {this->device.createShaderModuleUnique(shaderModuleCreateInfo)}, .dependent_files {}};
-            }
-
-            panic("noop");
-        }
-
         std::unique_ptr<ShaderCommonIncluder> includer {new ShaderCommonIncluder {}};
         ShaderCommonIncluder*                 rawIncluder = includer.get();
 
@@ -407,45 +365,99 @@ namespace gfx::core::vulkan
     std::expected<PipelineManager::PipelineInternalStorage, std::string>
     PipelineManager::tryCompilePipeline(GraphicsPipelineDescriptor& descriptor) const
     {
-        const auto [vertexSourceGLSL, vertexFileDependency]     = loadShaderFile(descriptor.vertex_shader_path);
-        const auto [fragmentSourceGLSL, fragmentFileDependency] = loadShaderFile(descriptor.fragment_shader_path);
-
-        std::expected<FormShaderModuleFromShaderSourceResult, std::string> vertexResult =
-            this->formShaderModuleFromShaderSource(
-                vertexSourceGLSL, descriptor.vertex_shader_path, shaderc_vertex_shader);
-
-        if (!vertexResult.has_value())
-        {
-            return std::unexpected(std::move(vertexResult.error()));
-        }
-
-        std::expected<FormShaderModuleFromShaderSourceResult, std::string> fragmentResult =
-            this->formShaderModuleFromShaderSource(
-                fragmentSourceGLSL, descriptor.fragment_shader_path, shaderc_fragment_shader);
-
-        if (!fragmentResult.has_value())
-        {
-            return std::unexpected(std::move(fragmentResult.error()));
-        }
-
+        vk::UniqueShaderModule                                                         vertexShader;
+        vk::UniqueShaderModule                                                         fragmentShader;
         std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
-        allDependentFiles.reserve(vertexResult->dependent_files.size() + fragmentResult->dependent_files.size() + 2);
 
-        for (const auto& d : vertexResult->dependent_files)
+        if (!descriptor.vertex_shader_path.ends_with("slang"))
         {
-            allDependentFiles.push_back(d);
-        }
+            log::warn("loading legacy glsl file!");
 
-        for (const auto& d : fragmentResult->dependent_files)
+            const auto [vertexSourceGLSL, vertexFileDependency]     = loadShaderFile(descriptor.vertex_shader_path);
+            const auto [fragmentSourceGLSL, fragmentFileDependency] = loadShaderFile(descriptor.fragment_shader_path);
+
+            std::expected<FormShaderModuleFromShaderSourceResult, std::string> vertexResult =
+                this->formShaderModuleFromShaderSource(
+                    vertexSourceGLSL, descriptor.vertex_shader_path, shaderc_vertex_shader);
+
+            if (!vertexResult.has_value())
+            {
+                return std::unexpected(std::move(vertexResult.error()));
+            }
+
+            std::expected<FormShaderModuleFromShaderSourceResult, std::string> fragmentResult =
+                this->formShaderModuleFromShaderSource(
+                    fragmentSourceGLSL, descriptor.fragment_shader_path, shaderc_fragment_shader);
+
+            if (!fragmentResult.has_value())
+            {
+                return std::unexpected(std::move(fragmentResult.error()));
+            }
+
+            allDependentFiles.reserve(
+                vertexResult->dependent_files.size() + fragmentResult->dependent_files.size() + 2);
+
+            for (const auto& d : vertexResult->dependent_files)
+            {
+                allDependentFiles.push_back(d);
+            }
+
+            for (const auto& d : fragmentResult->dependent_files)
+            {
+                allDependentFiles.push_back(d);
+            }
+
+            allDependentFiles.push_back(vertexFileDependency);
+            allDependentFiles.push_back(fragmentFileDependency);
+
+            vertexShader   = std::move(vertexResult->module);
+            fragmentShader = std::move(fragmentResult->module);
+        }
+        else
         {
-            allDependentFiles.push_back(d);
+            assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+
+            cfi::SaneSlangCompiler c {};
+
+            auto foo = c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+
+            // Vertex
+            {
+                std::span<const u32> compiledSPV {foo.maybe_vertex_data.cbegin(), foo.maybe_vertex_data.cend()};
+
+                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                    .sType {vk::StructureType::eShaderModuleCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .codeSize {compiledSPV.size_bytes()},
+                    .pCode {compiledSPV.data()},
+                };
+
+                vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+            }
+
+            // Fragment
+            {
+                std::span<const u32> compiledSPV {foo.maybe_fragment_data.cbegin(), foo.maybe_fragment_data.cend()};
+
+                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                    .sType {vk::StructureType::eShaderModuleCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .codeSize {compiledSPV.size_bytes()},
+                    .pCode {compiledSPV.data()},
+                };
+
+                fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+            }
+
+            for (std::filesystem::path& p : foo.dependent_files)
+            {
+                std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
+
+                allDependentFiles.push_back({std::move(p), writeTime});
+            }
         }
-
-        allDependentFiles.push_back(vertexFileDependency);
-        allDependentFiles.push_back(fragmentFileDependency);
-
-        vk::UniqueShaderModule vertexShader   = std::move(vertexResult->module);
-        vk::UniqueShaderModule fragmentShader = std::move(fragmentResult->module);
 
         const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
             vk::PipelineShaderStageCreateInfo {

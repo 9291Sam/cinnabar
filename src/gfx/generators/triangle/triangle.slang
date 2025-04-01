@@ -49,6 +49,7 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
         global_gpu_data[0].view_projection_matrix,
         float4(in_position_buffers[6][triangle_id] + trianglePositions[position_within_triangle] * scale, 1.0)
     );
+
                                             
     VertexOutput o;
 
@@ -63,5 +64,6 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(float3 color: COLOR0) : COLOR0
 {
+    // discard;
     return float4(color, 1.0);
 }
