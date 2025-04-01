@@ -418,7 +418,11 @@ namespace gfx::core::vulkan
             assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
             std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
-                this->sane_slang_compiler.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+                this->sane_slang_compiler.lock(
+                    [&](cfi::SaneSlangCompiler& c)
+                    {
+                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+                    });
 
             if (!maybeCompiledCode.has_value())
             {

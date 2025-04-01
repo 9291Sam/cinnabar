@@ -70,8 +70,7 @@ namespace cfi
 
     SaneSlangCompiler::~SaneSlangCompiler() = default;
 
-    std::expected<SaneSlangCompiler::CompileResult, std::string>
-    SaneSlangCompiler::compile(const std::filesystem::path& path) const
+    std::expected<SaneSlangCompiler::CompileResult, std::string> SaneSlangCompiler::compile(std::filesystem::path path)
     {
         auto [maybeModule, maybeCompileMessage] = this->loadModule(path.generic_string());
 
@@ -120,7 +119,7 @@ namespace cfi
             .maybe_warnings {std::move(maybeCompileMessage)}};
     }
 
-    std::pair<slang::IModule*, std::string> SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
+    std::pair<slang::IModule*, std::string> SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath)
     {
         const std::string modulePathString = modulePath.generic_string();
 
@@ -134,9 +133,8 @@ namespace cfi
 
         std::memcpy(str.data(), entireFile.data(), str.size());
 
-        static int i = 0;
-
-        const std::string uniqueFileName = std::format("UNIQUE_FILE_LOADED_IDENTIFIER{}", i++);
+        const std::string uniqueFileName =
+            std::format("UNIQUE_FILE_LOADED_IDENTIFIER{}", this->unique_filename_integer++);
 
         slang::IModule* maybeModule = this->session->loadModuleFromSourceString(
             uniqueFileName.c_str(), uniqueFileName.c_str(), str.data(), moduleBlob.writeRef());

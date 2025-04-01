@@ -29,7 +29,7 @@ namespace cfi
         ~SaneSlangCompiler();
 
         // Compile result or error string
-        [[nodiscard]] std::expected<CompileResult, std::string> compile(const std::filesystem::path&) const;
+        [[nodiscard]] std::expected<CompileResult, std::string> compile(std::filesystem::path);
 
     private:
 
@@ -38,10 +38,12 @@ namespace cfi
         slang::IGlobalSession* global_session;
         slang::ISession*       session;
 
+        usize unique_filename_integer;
+
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
         // Module or an error string
-        [[nodiscard]] std::pair<slang::IModule*, std::string> loadModule(const std::filesystem::path&) const;
+        [[nodiscard]] std::pair<slang::IModule*, std::string> loadModule(const std::filesystem::path&);
         [[nodiscard]] std::optional<Slang::ComPtr<slang::IEntryPoint>>
         tryFindEntryPoint(slang::IModule*, const char*) const;
         [[nodiscard]] std::vector<std::filesystem::path>

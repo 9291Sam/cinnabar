@@ -64,10 +64,10 @@ namespace gfx::core::vulkan
 
     private:
 
-        vk::Device              device;
-        vk::UniquePipelineCache pipeline_cache;
-        shaderc::Compiler       shader_compiler;
-        cfi::SaneSlangCompiler  sane_slang_compiler;
+        vk::Device                          device;
+        vk::UniquePipelineCache             pipeline_cache;
+        shaderc::Compiler                   shader_compiler;
+        util::Mutex<cfi::SaneSlangCompiler> sane_slang_compiler;
 
         vk::PipelineLayout bindless_pipeline_layout;
 
