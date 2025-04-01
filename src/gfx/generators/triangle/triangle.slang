@@ -1,21 +1,5 @@
+#include "globals.slang" 
 
-struct GlobalGpuData
-{
-    column_major float4x4  view_matrix;
-    column_major float4x4  projection_matrix;
-    column_major float4x4  view_projection_matrix;
-    float4  camera_forward_vector;
-    float4  camera_right_vector;
-    float4  camera_up_vector;
-    float4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
-    float2 framebuffer_size;
-};
-
-[[vk::binding(3, 0)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];
 [[vk::binding(4, 0)]] StructuredBuffer<float3> in_position_buffers[];
 
 
@@ -46,7 +30,7 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
     const float scale                    = 10.0;
 
     const float4 world_vertex_coordinate = mul(
-        global_gpu_data[0].view_projection_matrix,
+       global_gpu_data[0].view_projection_matrix,
         float4(in_position_buffers[6][triangle_id] + trianglePositions[position_within_triangle] * scale, 1.0)
     );
 

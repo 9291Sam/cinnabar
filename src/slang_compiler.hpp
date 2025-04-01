@@ -25,7 +25,7 @@ namespace cfi
         explicit SaneSlangCompiler();
         ~SaneSlangCompiler();
 
-        [[nodiscard]] CompileResult compile(const std::filesystem::path&);
+        [[nodiscard]] CompileResult compile(const std::filesystem::path&) const;
 
     private:
         static void releaseSlangObject(ISlangUnknown* object)
@@ -42,11 +42,12 @@ namespace cfi
 
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 
-        [[nodiscard]] SlangUniquePtr<slang::IModule>                    loadModule(const std::filesystem::path&);
-        [[nodiscard]] std::optional<SlangUniquePtr<slang::IEntryPoint>> tryFindEntryPoint(slang::IModule*, const char*);
-        [[nodiscard]] std::vector<std::filesystem::path>                getDependencies(slang::IModule*);
-        [[nodiscard]] SlangUniquePtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*);
-        [[nodiscard]] SlangUniquePtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*);
+        [[nodiscard]] SlangUniquePtr<slang::IModule> loadModule(const std::filesystem::path&) const;
+        [[nodiscard]] std::optional<SlangUniquePtr<slang::IEntryPoint>>
+                                                            tryFindEntryPoint(slang::IModule*, const char*) const;
+        [[nodiscard]] std::vector<std::filesystem::path>    getDependencies(slang::IModule*) const;
+        [[nodiscard]] SlangUniquePtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*) const;
+        [[nodiscard]] SlangUniquePtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*) const;
     };
 
 } // namespace cfi

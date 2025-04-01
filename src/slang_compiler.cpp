@@ -75,7 +75,7 @@ namespace cfi
 
     SaneSlangCompiler::~SaneSlangCompiler() = default;
 
-    SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(const std::filesystem::path& path)
+    SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(const std::filesystem::path& path) const
     {
         const SlangUniquePtr<slang::IModule>                    module = this->loadModule(path.generic_string());
         const std::optional<SlangUniquePtr<slang::IEntryPoint>> maybeFragmentEntry =
@@ -117,7 +117,7 @@ namespace cfi
     }
 
     SaneSlangCompiler::SlangUniquePtr<slang::IModule>
-    SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath)
+    SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath) const
     {
         const std::string modulePathString = modulePath.generic_string();
 
@@ -146,8 +146,10 @@ namespace cfi
     }
 
     std::optional<SaneSlangCompiler::SlangUniquePtr<slang::IEntryPoint>>
-    SaneSlangCompiler::tryFindEntryPoint(slang::IModule* module, const char* entryPointName)
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    SaneSlangCompiler::tryFindEntryPoint(slang::IModule* module, const char* entryPointName) const
     {
+        assert::critical(module != nullptr, "erm");
         slang::IEntryPoint* entryPoint = nullptr;
         std::ignore                    = module->findEntryPointByName(entryPointName, &entryPoint);
 
@@ -162,7 +164,7 @@ namespace cfi
     }
 
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    std::vector<std::filesystem::path> SaneSlangCompiler::getDependencies(slang::IModule* module)
+    std::vector<std::filesystem::path> SaneSlangCompiler::getDependencies(slang::IModule* module) const
     {
         std::vector<std::filesystem::path> result {};
         result.resize(static_cast<usize>(module->getDependencyFileCount()));
@@ -177,14 +179,14 @@ namespace cfi
 
     SaneSlangCompiler::SlangUniquePtr<slang::IComponentType>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    SaneSlangCompiler::composeProgram(slang::IModule* module, slang::IEntryPoint* entry_point)
+    SaneSlangCompiler::composeProgram(slang::IModule* module, slang::IEntryPoint* entryPoint) const
     {
         SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
         slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
 
         std::vector<slang::IComponentType*> components {};
         components.push_back(module);
-        components.push_back(entry_point);
+        components.push_back(entryPoint);
 
         slang::IComponentType* composedProgram = nullptr;
 
@@ -202,14 +204,15 @@ namespace cfi
     }
     SaneSlangCompiler::SlangUniquePtr<slang::IBlob>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-    SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram)
+    SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram) const
     {
         SlangUniquePtr<slang::IBlob> diagnosticBlob {nullptr, SaneSlangCompiler::releaseSlangObject};
         slang::IBlob*                rawDiagnosticBlobPtr = diagnosticBlob.get();
 
         slang::IBlob* rawSpirvBlob = nullptr;
 
-        if (composedProgram->getEntryPointCode(0, 0, &rawSpirvBlob, &rawDiagnosticBlobPtr) != SLANG_OK)
+        if (composedProgram->getEntryPointCode(0, 0, &rawSpirvBlob, &rawDiagnosticBlobPtr) != SLANG_OK
+            || rawSpirvBlob == nullptr)
         {
             const std::string_view error {
                 static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};

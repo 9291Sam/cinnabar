@@ -417,9 +417,8 @@ namespace gfx::core::vulkan
         {
             assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-            cfi::SaneSlangCompiler c {};
-
-            auto foo = c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+            auto foo =
+                this->sane_slang_compiler.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
 
             // Vertex
             {
