@@ -127,6 +127,7 @@ target_link_libraries(
     plutovg::plutovg
     ${FREETYPE_LIBRARIES}
     Vulkan::shaderc_combined
+    slang # here so no warnings
 )
 
 target_include_directories(cinnabar PRIVATE src)
@@ -172,7 +173,7 @@ target_link_libraries(cinnabar PUBLIC
 
 
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
+# if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
     target_compile_options(cinnabar PUBLIC
         -Weverything
         -Wno-c++98-compat
@@ -196,7 +197,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-incompatible-pointer-types
         # -Wno-nan-infinity-disabled
         -Wno-documentation-unknown-command
-        -Wno-unsafe-buffer-usage
         -Wno-language-extension-token
     )
 
@@ -219,4 +219,4 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
 
     endif ()
 
-endif()
+# endif()

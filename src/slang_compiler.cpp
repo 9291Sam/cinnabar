@@ -1,7 +1,7 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
-#include <__expected/unexpected.h>
+#include <expected>
 #include <filesystem>
 #include <fmt/format.h>
 #include <slang-com-ptr.h>

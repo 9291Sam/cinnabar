@@ -4,6 +4,8 @@
 #include <expected>
 #include <optional>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_hpp_macros.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -178,7 +180,8 @@ namespace gfx::core::vulkan
                     .pResults {nullptr},
                 };
 
-                const vk::Result presentResult = queue.presentKHR(presentInfo);
+                const vk::Result presentResult = vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
+                    queue, reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
 
                 switch (presentResult) // NOLINT
                 {
