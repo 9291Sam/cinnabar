@@ -137,7 +137,7 @@ namespace cfi
         std::memcpy(str.data(), entireFile.data(), str.size());
 
         const std::string uniqueFileName =
-            std::format("UNIQUE_FILE_LOADED_IDENTIFIER{}", this->unique_filename_integer++);
+            std::format("UNIQUE_FILE_LOADED_IDENTIFIER{} {}", this->unique_filename_integer++, modulePathString);
 
         slang::IModule* maybeModule = this->session->loadModuleFromSourceString(
             uniqueFileName.c_str(), uniqueFileName.c_str(), str.data(), moduleBlob.writeRef());

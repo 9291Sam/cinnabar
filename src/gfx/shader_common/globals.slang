@@ -32,6 +32,8 @@ struct GlobalGpuData
     float2 framebuffer_size;
 };
 
+// int a = 39333393993939333333333333;
+
 // Descrip
 
 [[vk::binding(3, 0)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];

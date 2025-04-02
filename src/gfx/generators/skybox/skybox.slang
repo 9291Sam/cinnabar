@@ -34,7 +34,7 @@ float noise(float2 P)
 {
     float4 Pi  = floor(P.xyxy) + float4(0.0, 0.0, 1.0, 1.0);
     float4 Pf  = fract(P.xyxy) - float4(0.0, 0.0, 1.0, 1.0);
-    Pi         = fmod(Pi, 289.0); // To avoid truncation effects in permutation
+    Pi         = fmod(Pi, 289.0); // To avoid truncation effects permutation
     float4 ix  = Pi.xzxz;
     float4 iy  = Pi.yyww;
     float4 fx  = Pf.xzxz;
@@ -65,7 +65,7 @@ float noise(float2 P)
 }
 
 #define OCTAVES 4
-float fbm(in float2 st)
+float fbm(float2 st)
 {
     // Initial values
     float value     = 0.0;
@@ -82,7 +82,7 @@ float fbm(in float2 st)
     }
     return value;
 }
-float3 Sky(in float3 ro, in float3 rd, in float iTime, in float3 sunDir)
+float3 Sky(float3 ro, float3 rd, float iTime, float3 sunDir)
 {
     const float SC = 1e5;
 
@@ -146,7 +146,7 @@ float3 uncharted2_filmic(float3 v)
 }
 
 // https://iquilezles.org/articles/intersectors
-float2 traceSphere(in float3 ro, in float3 rd, in float3 ce, float ra)
+float2 traceSphere(float3 ro, float3 rd, float3 ce, float ra)
 {
     float3 oc = ro - ce;
     float  b  = dot(oc, rd);
@@ -161,7 +161,7 @@ float2 traceSphere(in float3 ro, in float3 rd, in float3 ce, float ra)
 }
 
 // https://iquilezles.org/articles/intersectors
-float2 boxIntersection(in float3 ro, in float3 rd, in float3 boxSize, out float3 outNormal)
+float2 boxIntersection(float3 ro, float3 rd, float3 boxSize, out float3 outNormal)
 {
     float3 m  = 1.0 / rd; // can precompute if traversing a set of aligned boxes
     float3 n  = m * ro;   // can precompute if traversing a set of aligned boxes
@@ -178,7 +178,7 @@ float2 boxIntersection(in float3 ro, in float3 rd, in float3 boxSize, out float3
     return float2(tN, tF);
 }
 
-float scene(in float3 ro, in float3 rd)
+float scene(float3 ro, float3 rd)
 {
     float res = -1.0;
 
@@ -196,7 +196,7 @@ float scene(in float3 ro, in float3 rd)
     return res;
 }
 
-float3 atmosphere(in float3 ro, in float3 rd, in float3 sd)
+float3 atmosphere(float3 ro, float3 rd, float3 sd)
 {
     const float  atmosphereRayleighHeight       = 8000.0;
     const float  atmosphereMieHeight            = 1200.0;

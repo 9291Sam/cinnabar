@@ -218,6 +218,8 @@ int main()
             "Cinnabar has crashed! | Unknown Exception type thrown!\n{} {}",
             cpptrace::from_current_exception().to_string(true),
             slang::getLastInternalErrorMessage());
+
+        throw;
     }
 
     log::info("Cinnabar has shutdown successfully!");

@@ -467,6 +467,12 @@ namespace gfx::core::vulkan
 
                 allDependentFiles.push_back({std::move(p), writeTime});
             }
+
+            if (!maybeCompiledCode->maybe_warnings.empty())
+            {
+                // HACK: this shouldn't be here
+                log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
+            }
         }
 
         const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {

@@ -30,7 +30,7 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
     const float scale                    = 10.0;
 
     const float4 world_vertex_coordinate = mul(
-       global_gpu_data[0].view_projection_matrix,
+        global_gpu_data[0].view_projection_matrix,
         float4(in_position_buffers[6][triangle_id] + trianglePositions[position_within_triangle] * scale, 1.0)
     );
 
@@ -48,6 +48,7 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(float3 color: COLOR0) : COLOR0
 {
-    // discard;
+    int a = 9339939393939393939393;
+    // discard;a
     return float4(color, 1.0);
 }
