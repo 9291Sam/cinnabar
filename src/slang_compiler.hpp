@@ -35,8 +35,8 @@ namespace cfi
 
         std::vector<std::string> lifetime_extender;
 
-        slang::IGlobalSession* global_session;
-        slang::ISession*       session;
+        Slang::ComPtr<slang::IGlobalSession> global_session;
+        Slang::ComPtr<slang::ISession>       session;
 
         usize unique_filename_integer;
 

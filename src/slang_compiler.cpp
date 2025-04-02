@@ -12,12 +12,14 @@ namespace cfi
 {
 
     SaneSlangCompiler::SaneSlangCompiler()
+        : unique_filename_integer {0}
     {
         // Initialize Global Session
         {
             const SlangGlobalSessionDesc globalSessionDescriptor {};
 
-            const SlangResult result = slang::createGlobalSession(&globalSessionDescriptor, &this->global_session);
+            const SlangResult result =
+                slang::createGlobalSession(&globalSessionDescriptor, this->global_session.writeRef());
             assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
         }
 
@@ -63,7 +65,8 @@ namespace cfi
             slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
             slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
 
-            const SlangResult result = this->global_session->createSession(slangSessionDescriptor, &this->session);
+            const SlangResult result =
+                this->global_session->createSession(slangSessionDescriptor, this->session.writeRef());
             assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
         }
     }
