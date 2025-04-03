@@ -240,13 +240,16 @@ namespace cfi
         if (result != SLANG_OK)
         {
             log::error(
-                "Create Composed Program failed! Blob: {}", static_cast<const void*>(spirvBlob->getBufferPointer()));
+                "Create Composed Program failed! | Spirv Blob: {} | Diagnostic Blob: {}",
+                static_cast<const void*>(spirvBlob.get()),
+                static_cast<const void*>(diagnosticBlob.get()));
 
             if (diagnosticBlob != nullptr)
             {
                 const std::string_view error {
                     static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
 
+#warning make recoverable
                 panic("Failed to compile composed program: {}", error);
             }
         }
