@@ -48,7 +48,7 @@ namespace gfx::generators::voxel
                   .name {"Voxel Color Calculation"}})}
         , color_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.vert"},
+                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.slang"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList},
                   .polygon_mode {vk::PolygonMode::eFill},
