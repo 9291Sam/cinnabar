@@ -48,7 +48,5 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(float3 color: COLOR0) : COLOR0
 {
-    int a = 9339939393939393939393;
-    // discard;a
     return float4(color, 1.0);
 }

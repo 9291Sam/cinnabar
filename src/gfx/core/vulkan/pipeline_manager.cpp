@@ -260,16 +260,18 @@ namespace gfx::core::vulkan
                             auto [newInternalStorage, maybeErrorString] =
                                 this->tryRecompilePipeline(std::move(pipelineStorage));
 
+                            pipelineStorage = std::move(newInternalStorage);
+
                             std::string_view pipelineName {};
 
                             if (GraphicsPipelineDescriptor* g =
-                                    std::get_if<GraphicsPipelineDescriptor>(&newInternalStorage.descriptor))
+                                    std::get_if<GraphicsPipelineDescriptor>(&pipelineStorage.descriptor))
                             {
                                 pipelineName = g->name;
                             }
                             else if (
                                 ComputePipelineDescriptor* c =
-                                    std::get_if<ComputePipelineDescriptor>(&newInternalStorage.descriptor))
+                                    std::get_if<ComputePipelineDescriptor>(&pipelineStorage.descriptor))
                             {
                                 pipelineName = c->name;
                             }
@@ -277,8 +279,6 @@ namespace gfx::core::vulkan
                             {
                                 panic("unhandled variant");
                             }
-
-                            pipelineStorage = std::move(newInternalStorage);
 
                             if (maybeErrorString.has_value())
                             {

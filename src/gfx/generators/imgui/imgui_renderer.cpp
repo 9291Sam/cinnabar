@@ -29,7 +29,7 @@ namespace gfx::generators::imgui
         , font {nullptr}
         , menu_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/imgui/menu_color_transfer.vert"},
+                  .vertex_shader_path {"src/gfx/generators/imgui/menu_color_transfer.slang"},
                   .fragment_shader_path {"src/gfx/generators/imgui/menu_color_transfer.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList}, // remove
                   .polygon_mode {vk::PolygonMode::eFill},           // replace with dynamic state

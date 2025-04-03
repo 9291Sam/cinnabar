@@ -170,11 +170,11 @@ float2 boxIntersection(float3 ro, float3 rd, float3 boxSize, out float3 outNorma
     float3 t2 = -n + k;
     float  tN = max(max(t1.x, t1.y), t1.z);
     float  tF = min(min(t2.x, t2.y), t2.z);
+    outNormal = -sign(rd) * step(t1.yzx, t1.xyz) * step(t1.zxy, t1.xyz);
     if (tN > tF || tF < 0.0)
     {
         return float2(-1.0); // no intersection
     }
-    outNormal = -sign(rd) * step(t1.yzx, t1.xyz) * step(t1.zxy, t1.xyz);
     return float2(tN, tF);
 }
 

@@ -10,7 +10,7 @@ void main()
 {
     vec4 color = imageLoad(menu_transfer_image[SIO_IMGUI_RENDER_TARGET], ivec2(gl_FragCoord.xy));
 
-    color.rgb = color.rgb * color.rgb; // fast srgb approximation
+    color.rgb = color.rgb * color.rgb;
 
     out_color = color;
 }

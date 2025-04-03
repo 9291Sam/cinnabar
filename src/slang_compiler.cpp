@@ -185,24 +185,13 @@ namespace cfi
 
         const i32 deps = module->getDependencyFileCount();
 
-        log::trace("{} deps", deps);
-
         for (i32 i = 0; i < deps; ++i)
         {
-            const char* p = module->getDependencyFilePath(i);
+            std::string_view p = module->getDependencyFilePath(i);
 
-            std::string p2 = p;
-
-            log::trace("testing dep {}", p2);
-
-            if (p2.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
+            if (p.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
             {
-                log::trace("skipped {}", p2);
                 continue;
-            }
-            else
-            {
-                log::trace("validated {}", p2);
             }
 
             result.push_back(std::filesystem::path {p});
