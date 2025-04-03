@@ -371,7 +371,7 @@ namespace gfx::core::vulkan
 
         if (!descriptor.vertex_shader_path.ends_with("slang"))
         {
-            log::warn("loading legacy glsl file!");
+            log::warn("loading legacy glsl file! |{}|", descriptor.vertex_shader_path);
 
             const auto [vertexSourceGLSL, vertexFileDependency]     = loadShaderFile(descriptor.vertex_shader_path);
             const auto [fragmentSourceGLSL, fragmentFileDependency] = loadShaderFile(descriptor.fragment_shader_path);

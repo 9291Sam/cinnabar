@@ -15,11 +15,9 @@ float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position
 [shader("fragment")]
 float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 {
-    const float4 color = menu_transfer_image[SIO_IMGUI_RENDER_TARGET].Load(int2(floor(pos.xy)));
+    float4 color = menu_transfer_image[SIO_IMGUI_RENDER_TARGET].Load(int2(floor(pos.xy)));
 
-    float4 o;
+    color.xyz = color.xyz * color.xyz;
 
-    o.xyz = color.xyz * color.xyz;
-
-    return o;
+    return color;
 }

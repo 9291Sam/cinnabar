@@ -1,5 +1,6 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <expected>
 #include <filesystem>
@@ -16,6 +17,7 @@ namespace cfi
     {
         // Initialize Global Session
         {
+            util::Timer                  t {"init global session"};
             const SlangGlobalSessionDesc globalSessionDescriptor {};
 
             const SlangResult result =
@@ -23,6 +25,7 @@ namespace cfi
             assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
         }
 
+        util::Timer t {"init slang session"};
         // Initialize Session
         {
             std::vector<const char*> cStringPaths {};

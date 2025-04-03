@@ -86,6 +86,7 @@ add_executable(cinnabar
     src/util/events.cpp
     src/util/gif.cpp
     src/util/logger.cpp
+    src/util/timer.cpp
     src/util/util.cpp
 
     src/main.cpp
