@@ -4,12 +4,6 @@
 
 struct PBRVoxelMaterial
 {
-    static PBRVoxelMaterial getUninitialized()
-    {
-        PBRVoxelMaterial m;
-
-        return m;
-    }
     // xyz - linear rgb color
     // w - roughness
     float4 albedo_roughness;

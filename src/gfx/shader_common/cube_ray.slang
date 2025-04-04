@@ -15,6 +15,10 @@ struct IntersectionResult
     __init()
     {
         this.intersection_occurred = false;
+        this.maybe_distance = 0.0;
+        this.maybe_hit_point = float3(0.0);
+        this.maybe_normal = float3(0.0);
+        this.t_far = 0.0;
     }
     
     bool  intersection_occurred;

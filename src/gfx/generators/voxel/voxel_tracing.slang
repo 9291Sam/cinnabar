@@ -63,9 +63,6 @@ bool loadVoxelFromBrick(uint brickPointer, int3 c)
     const uint loadedIdx = in_global_bricks[SBO_VISIBILITY_BRICKS][brickPointer].data[idx];
 
     return (loadedIdx & (1u << bit)) != 0;
-    // }
-
-    return false;
 }
 
 float3 stepMask(float3 sideDist)
@@ -99,7 +96,7 @@ struct VoxelTraceResult
 VoxelTraceResult VoxelTraceResult_getMiss(uint steps)
 {
     return VoxelTraceResult(
-        false, float3(0.0), int3(0), float3(0.0), float3(0.0), 0.0, steps, PBRVoxelMaterial::getUninitialized());
+        false, float3(0.0), int3(0), float3(0.0), float3(0.0), 0.0, steps, PBRVoxelMaterial(float4(0.0), float4(0.0)));
 }
 
 VoxelTraceResult traceBlock(u32 brick, float3 rayPos, float3 rayDir, float3 iMask)
