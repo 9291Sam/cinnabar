@@ -38,7 +38,7 @@ namespace cfi
         Slang::ComPtr<slang::IGlobalSession> global_session;
         Slang::ComPtr<slang::ISession>       session;
 
-        usize unique_filename_integer;
+        void loadNewSession();
 
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
 

@@ -13,64 +13,15 @@ namespace cfi
 {
 
     SaneSlangCompiler::SaneSlangCompiler()
-        : unique_filename_integer {0}
+    // : unique_filename_integer {0}
     {
         // Initialize Global Session
         {
-            util::Timer                  t {"init global session"};
             const SlangGlobalSessionDesc globalSessionDescriptor {};
 
             const SlangResult result =
                 slang::createGlobalSession(&globalSessionDescriptor, this->global_session.writeRef());
             assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
-        }
-
-        util::Timer t {"init slang session"};
-        // Initialize Session
-        {
-            std::vector<const char*> cStringPaths {};
-            for (const std::filesystem::path& path : this->search_paths)
-            {
-                this->lifetime_extender.push_back(path.generic_string());
-
-                cStringPaths.push_back(this->lifetime_extender.back().c_str());
-            }
-
-            slang::TargetDesc target {
-                .format {SlangCompileTarget::SLANG_SPIRV},
-                .profile {this->global_session->findProfile("spirv_1_5")},
-                .flags {0},
-            };
-
-            slang::SessionDesc slangSessionDescriptor {};
-            slangSessionDescriptor.searchPaths     = cStringPaths.data();
-            slangSessionDescriptor.searchPathCount = static_cast<int>(cStringPaths.size());
-            slangSessionDescriptor.targets         = &target;
-            slangSessionDescriptor.targetCount     = 1;
-
-            std::vector<slang::CompilerOptionEntry> compileOptions {};
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::FloatingPointMode},
-                .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::Optimization},
-                .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
-
-            compileOptions.push_back(slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::DebugInformation},
-                .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
-
-            slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
-            slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
-
-            const SlangResult result =
-                this->global_session->createSession(slangSessionDescriptor, this->session.writeRef());
-            assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
         }
     }
 
@@ -125,8 +76,59 @@ namespace cfi
             .maybe_warnings {std::move(maybeCompileMessage)}};
     }
 
+    void SaneSlangCompiler::loadNewSession()
+    {
+        this->session = nullptr;
+
+        std::vector<const char*> cStringPaths {};
+        for (const std::filesystem::path& path : this->search_paths)
+        {
+            this->lifetime_extender.push_back(path.generic_string());
+
+            cStringPaths.push_back(this->lifetime_extender.back().c_str());
+        }
+
+        slang::TargetDesc target {
+            .format {SlangCompileTarget::SLANG_SPIRV},
+            .profile {this->global_session->findProfile("spirv_1_5")},
+            .flags {0},
+        };
+
+        slang::SessionDesc slangSessionDescriptor {};
+        slangSessionDescriptor.searchPaths     = cStringPaths.data();
+        slangSessionDescriptor.searchPathCount = static_cast<int>(cStringPaths.size());
+        slangSessionDescriptor.targets         = &target;
+        slangSessionDescriptor.targetCount     = 1;
+
+        std::vector<slang::CompilerOptionEntry> compileOptions {};
+
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::FloatingPointMode},
+            .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
+
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::Optimization},
+            .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
+
+        compileOptions.push_back(
+            slang::CompilerOptionEntry {.name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
+
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::DebugInformation},
+            .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
+
+        slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
+        slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
+
+        const SlangResult result =
+            this->global_session->createSession(slangSessionDescriptor, this->session.writeRef());
+        assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
+    }
+
     std::pair<slang::IModule*, std::string> SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath)
     {
+        this->loadNewSession();
+
         const std::string modulePathString = modulePath.generic_string();
 
         Slang::ComPtr<slang::IBlob> moduleBlob;
@@ -139,11 +141,8 @@ namespace cfi
 
         std::memcpy(str.data(), entireFile.data(), str.size());
 
-        const std::string uniqueFileName =
-            std::format("UNIQUE_FILE_LOADED_IDENTIFIER{} {}", this->unique_filename_integer++, modulePathString);
-
         slang::IModule* maybeModule = this->session->loadModuleFromSourceString(
-            uniqueFileName.c_str(), uniqueFileName.c_str(), str.data(), moduleBlob.writeRef());
+            modulePathString.c_str(), modulePathString.c_str(), str.data(), moduleBlob.writeRef());
 
         // this->session->loadModuleFromSource(const char *moduleName, const char *path, slang::IBlob *source)
         // this->session->loadModuleFromSourceString(const char* moduleName, const char* path, const char* string)
@@ -192,10 +191,10 @@ namespace cfi
         {
             std::string_view p = module->getDependencyFilePath(i);
 
-            if (p.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
-            {
-                continue;
-            }
+            // if (p.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
+            // {
+            //     continue;
+            // }
 
             result.push_back(std::filesystem::path {p});
         }

@@ -28,7 +28,7 @@ namespace gfx::generators::voxel
         : renderer {renderer_}
         , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_prepass.vert"},
+                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_prepass.slang"},
                   .fragment_shader_path {"src/gfx/generators/voxel/voxel_prepass.frag"},
                   .topology {vk::PrimitiveTopology::eTriangleList},
                   .polygon_mode {vk::PolygonMode::eFill},

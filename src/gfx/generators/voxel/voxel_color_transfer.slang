@@ -1,6 +1,6 @@
 #include "globals.slang"
+#include "voxel_faces.slang"
 
-typedef uint32_t u32;
 
 [shader("vertex")]
 float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position
@@ -11,44 +11,13 @@ float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position
 }
 
 
-
-struct GpuColorHashMapNode
-{
-    u32 key;
-    u32 r_1024;
-    u32 g_1024;
-    u32 b_1024;
-    u32 samples;
-};
-
-u32 gpu_hashU32(u32 x)
-{
-    x ^= x >> 17;
-    x *= 0xed5ad4bbU;
-    x ^= x >> 11;
-    x *= 0xac4c1b51U;
-    x ^= x >> 15;
-    x *= 0x31848babU;
-    x ^= x >> 14;
-
-    return x;
-}
-
-
-[[vk::binding(4, 0)]] StructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
-
-[format("rgba32f")]
-[[vk::binding(2, 0)]] RWTexture2D<float4> voxel_render_target[];
-
-
 [shader("fragment")]
 float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 {
+    // discard;
 
-const u32 kHashTableCapacity = 1u << 20u;
-const u32 kEmpty             = ~0u;
-
-
+    // return float4(0);
+    
     float4 rawPixelData = voxel_render_target[SIO_VOXEL_RENDER_TARGET].Load(int2(floor(pos.xy)));
 
     const float3 worldStrikePosition = rawPixelData.xyz;
