@@ -45,10 +45,9 @@ float3 calculateColor(
 
     const float3 toFragmentDir = normalize(worldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
 
-    const Ray giRay =
+     Ray giRay =
         Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-    // normalize(unpacked.normal + RandomDirection(rngState)
     const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 96.0f);
 
     float3 giColor = float3(0);
