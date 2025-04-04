@@ -46,7 +46,7 @@ struct GlobalGpuData
     float tan_half_fov_y;
     float aspect_ratio;
     float time_alive;
-    float2 framebuffer_size;
+    uint2 framebuffer_size;
 };
 
 [[vk::binding(3, 0)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];

@@ -44,7 +44,7 @@ namespace gfx::generators::voxel
               })}
         , color_calculation_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::ComputePipelineDescriptor {
-                  .compute_shader_path {"src/gfx/generators/voxel/voxel_color_calculation.comp"},
+                  .compute_shader_path {"src/gfx/generators/voxel/voxel_color_calculation.slang"},
                   .name {"Voxel Color Calculation"}})}
         , color_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {

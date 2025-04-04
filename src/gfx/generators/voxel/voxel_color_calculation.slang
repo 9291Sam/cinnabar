@@ -76,7 +76,8 @@ float3 calculateColor(
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID)
 {
-    // return;
+
+
     const float3  box_corner_negative = float3(-16.0f); // TODO: fix
     const int2 thisPixel           = int2(threadId.xy);
 
@@ -87,55 +88,54 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
         const float3 chunkStrikePosition = worldStrikePosition - box_corner_negative;
         const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
 
-        // if (uniqueFaceId == ~0u)
-        // {
-        //     return;
-        // }
-        UnpackUniqueFaceIdResult unpacked = {uniqueFaceId};
-        
-        const uint3 bC = unpacked.position_in_chunk / 8;
-        const uint3 bP = unpacked.position_in_chunk % 8;
-
-        const PBRVoxelMaterial material = getMaterialFromPosition(
-            in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
-
-        const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
-
-        for (uint i = 0; i < 32; ++i)
+        if (uniqueFaceId != ~0u)
         {
-            const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
+            UnpackUniqueFaceIdResult unpacked = {uniqueFaceId};
             
-            // const u32 prev = atomicCompSwap(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId);
+            const uint3 bC = unpacked.position_in_chunk / 8;
+            const uint3 bP = unpacked.position_in_chunk % 8;
 
-            u32 prev;
-            InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId, prev);
+            const PBRVoxelMaterial material = getMaterialFromPosition(
+                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
 
-            if (prev == kEmpty || prev == uniqueFaceId)
+            const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
+
+            for (uint i = 0; i < 32; ++i)
             {
-                u32 rngState = gpu_hashCombineU32(
-                    gpu_hashU32(uniqueFaceId),
-                    reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + threadId.x + 872347
-                        + threadId.y * 4444);
+                const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
+                
+                // const u32 prev = atomicCompSwap(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId);
 
-                const float3 calculatedColor = calculateColor(chunkStrikePosition, material, unpacked, rngState);
+                u32 prev;
+                InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId, prev);
 
-                InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, uint(calculatedColor.x * 1024));
-                InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, uint(calculatedColor.y * 1024));
-                InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, uint(calculatedColor.z * 1024));
-                InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples, 1);
-
-                if (prev == kEmpty)
+                if (prev == kEmpty || prev == uniqueFaceId)
                 {
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, 1);
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, 1);
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, 1);
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples, 1);
-                }
+                    u32 rngState = gpu_hashCombineU32(
+                        gpu_hashU32(uniqueFaceId),
+                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + threadId.x + 872347
+                            + threadId.y * 4444);
 
-                break;
+                    const float3 calculatedColor = calculateColor(chunkStrikePosition, material, unpacked, rngState);
+
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, uint(calculatedColor.x * 1024));
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, uint(calculatedColor.y * 1024));
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, uint(calculatedColor.z * 1024));
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples, 1);
+
+                    if (prev == kEmpty)
+                    {
+                        InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, 1);
+                        InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, 1);
+                        InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, 1);
+                        InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples, 1);
+                    }
+
+                    break;
+                }
             }
-        }
         
+        }
     }
 
 }

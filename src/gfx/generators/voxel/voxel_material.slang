@@ -18,8 +18,8 @@ struct GpuRaytracedLight
     float4 color_and_power;
 };
 
-[[vk::binding(4, 0)]] StructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
-[[vk::binding(4, 0)]] StructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
 
 
 
