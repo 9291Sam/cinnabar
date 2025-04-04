@@ -24,8 +24,6 @@
 #include <glm/ext/scalar_common.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
-#include <shaderc/shaderc.hpp>
-#include <shaderc/status.h>
 #include <slang.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>

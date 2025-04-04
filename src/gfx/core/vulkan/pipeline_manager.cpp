@@ -9,8 +9,6 @@
 #include <expected>
 #include <filesystem>
 #include <ranges>
-#include <shaderc/shaderc.h>
-#include <shaderc/shaderc.hpp>
 #include <span>
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -19,84 +17,6 @@
 namespace gfx::core::vulkan
 {
     static constexpr u32 MaxPipelines = 512;
-
-    namespace
-    {
-        struct ShaderCommonIncluder : shaderc::CompileOptions::IncluderInterface
-        {
-            shaderc_include_result* GetInclude(
-                const char*          requestedSource,
-                shaderc_include_type type,
-                const char*          requestingSource,
-                size_t               includeDepth) override
-            {
-                assert::critical(
-                    includeDepth < 1000,
-                    "Include Infinite loop detected. |{}| is requesting |{}|",
-                    requestingSource,
-                    requestedSource);
-
-                std::ignore = type;
-
-                const std::filesystem::path searchPath = util::getCanonicalPathOfShaderFile("src/gfx/shader_common");
-
-                assert::critical(std::filesystem::is_directory(searchPath), "oops");
-
-                std::filesystem::path requestedPath = searchPath / requestedSource;
-                requestedPath.make_preferred();
-
-                this->dependent_files.push_back({requestedPath, std::filesystem::last_write_time(requestedPath)});
-
-                const std::string foundSourceName = requestedPath.string();
-
-                assert::warn(
-                    std::filesystem::exists(requestedPath),
-                    "Compilation of |{}| has requested |{}| which does not exist!",
-                    requestingSource,
-                    foundSourceName);
-
-                assert::warn(
-                    std::filesystem::is_regular_file(requestedPath),
-                    "Compilation of |{}| has requested |{}| which is not a regular file!",
-                    requestingSource,
-                    foundSourceName);
-
-                const std::vector<std::byte> foundSourceContent = util::loadEntireFileFromPath(requestedPath);
-
-                std::string sourceNameOwned {foundSourceName};
-                std::string sourceContentOwned {};
-
-                sourceContentOwned.resize(foundSourceContent.size());
-                std::memcpy(sourceContentOwned.data(), foundSourceContent.data(), foundSourceContent.size());
-
-                shaderc_include_result localNewResult {
-                    .source_name {sourceNameOwned.data()},
-                    .source_name_length {sourceNameOwned.size()},
-                    .content {sourceContentOwned.data()},
-                    .content_length {sourceContentOwned.size()},
-                    .user_data {this}};
-
-                this->lifetime_extension_storage.push_back(std::move(sourceNameOwned));
-                this->lifetime_extension_storage.push_back(std::move(sourceContentOwned));
-
-                // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-                return new shaderc_include_result {localNewResult};
-            }
-
-            void ReleaseInclude(shaderc_include_result* oldResult) override
-            {
-                // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-                delete oldResult;
-            }
-
-            ~ShaderCommonIncluder() override = default;
-
-            std::deque<std::string> lifetime_extension_storage;
-
-            std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
-        };
-
-    } // namespace
 
     PipelineManager::PipelineManager(const Device& device_, vk::PipelineLayout bindlessPipelineLayout)
         : device {device_.getDevice()}
@@ -301,68 +221,6 @@ namespace gfx::core::vulkan
             });
     }
 
-    namespace
-    {
-        std::pair<std::vector<char>, std::pair<std::filesystem::path, std::filesystem::file_time_type>>
-        loadShaderFile(std::string_view requestedFile)
-        {
-            const std::filesystem::path canonicalPath = util::getCanonicalPathOfShaderFile(requestedFile);
-
-            const std::vector<std::byte> rawSource = util::loadEntireFileFromPath(canonicalPath);
-            std::vector<char>            result {};
-            result.resize(rawSource.size());
-
-            std::memcpy(result.data(), rawSource.data(), rawSource.size());
-
-            return {result, std::make_pair(canonicalPath, std::filesystem::last_write_time(canonicalPath))};
-        }
-    } // namespace
-
-    std::expected<PipelineManager::FormShaderModuleFromShaderSourceResult, std::string>
-    PipelineManager::formShaderModuleFromShaderSource(
-        std::span<const char> glslShaderSource, const std::string& filename, shaderc_shader_kind kind) const
-    {
-        assert::critical(
-            !glslShaderSource.empty(),
-            "Invalid GLSL Source of length {} with a back character of {}",
-            glslShaderSource.size(),
-            static_cast<u32>(glslShaderSource.back()));
-
-        std::unique_ptr<ShaderCommonIncluder> includer {new ShaderCommonIncluder {}};
-        ShaderCommonIncluder*                 rawIncluder = includer.get();
-
-        shaderc::CompileOptions options {};
-        options.SetSourceLanguage(shaderc_source_language_glsl);
-        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-        options.SetTargetSpirv(shaderc_spirv_version_1_5);
-        options.SetIncluder(std::move(includer));
-
-        options.SetOptimizationLevel(shaderc_optimization_level_performance);
-        options.SetGenerateDebugInfo();
-
-        shaderc::SpvCompilationResult compileResult = this->shader_compiler.CompileGlslToSpv(
-            glslShaderSource.data(), glslShaderSource.size(), kind, filename.c_str(), options);
-
-        if (compileResult.GetCompilationStatus() != shaderc_compilation_status_success)
-        {
-            return std::unexpected(compileResult.GetErrorMessage());
-        }
-
-        std::span<const u32> compiledSPV {compileResult.cbegin(), compileResult.cend()};
-
-        const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-            .sType {vk::StructureType::eShaderModuleCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .codeSize {compiledSPV.size_bytes()},
-            .pCode {compiledSPV.data()},
-        };
-
-        return FormShaderModuleFromShaderSourceResult {
-            .module {this->device.createShaderModuleUnique(shaderModuleCreateInfo)},
-            .dependent_files {std::move(rawIncluder->dependent_files)}};
-    }
-
     std::expected<PipelineManager::PipelineInternalStorage, std::string>
     PipelineManager::tryCompilePipeline(GraphicsPipelineDescriptor& descriptor) const
     {
@@ -370,110 +228,63 @@ namespace gfx::core::vulkan
         vk::UniqueShaderModule                                                         fragmentShader;
         std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
 
-        if (!descriptor.vertex_shader_path.ends_with("slang"))
+        assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+
+        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
+            this->sane_slang_compiler.lock(
+                [&](cfi::SaneSlangCompiler& c)
+                {
+                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+                });
+
+        if (!maybeCompiledCode.has_value())
         {
-            log::warn("loading legacy glsl file! |{}|", descriptor.vertex_shader_path);
-
-            const auto [vertexSourceGLSL, vertexFileDependency]     = loadShaderFile(descriptor.vertex_shader_path);
-            const auto [fragmentSourceGLSL, fragmentFileDependency] = loadShaderFile(descriptor.fragment_shader_path);
-
-            std::expected<FormShaderModuleFromShaderSourceResult, std::string> vertexResult =
-                this->formShaderModuleFromShaderSource(
-                    vertexSourceGLSL, descriptor.vertex_shader_path, shaderc_vertex_shader);
-
-            if (!vertexResult.has_value())
-            {
-                return std::unexpected(std::move(vertexResult.error()));
-            }
-
-            std::expected<FormShaderModuleFromShaderSourceResult, std::string> fragmentResult =
-                this->formShaderModuleFromShaderSource(
-                    fragmentSourceGLSL, descriptor.fragment_shader_path, shaderc_fragment_shader);
-
-            if (!fragmentResult.has_value())
-            {
-                return std::unexpected(std::move(fragmentResult.error()));
-            }
-
-            allDependentFiles.reserve(
-                vertexResult->dependent_files.size() + fragmentResult->dependent_files.size() + 2);
-
-            for (const auto& d : vertexResult->dependent_files)
-            {
-                allDependentFiles.push_back(d);
-            }
-
-            for (const auto& d : fragmentResult->dependent_files)
-            {
-                allDependentFiles.push_back(d);
-            }
-
-            allDependentFiles.push_back(vertexFileDependency);
-            allDependentFiles.push_back(fragmentFileDependency);
-
-            vertexShader   = std::move(vertexResult->module);
-            fragmentShader = std::move(fragmentResult->module);
+            return std::unexpected(std::move(maybeCompiledCode.error()));
         }
-        else
+
+        // Vertex
         {
-            assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+            std::span<const u32> compiledSPV {
+                maybeCompiledCode->maybe_vertex_data.cbegin(), maybeCompiledCode->maybe_vertex_data.cend()};
 
-            std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
-                this->sane_slang_compiler.lock(
-                    [&](cfi::SaneSlangCompiler& c)
-                    {
-                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
-                    });
+            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                .sType {vk::StructureType::eShaderModuleCreateInfo},
+                .pNext {nullptr},
+                .flags {},
+                .codeSize {compiledSPV.size_bytes()},
+                .pCode {compiledSPV.data()},
+            };
 
-            if (!maybeCompiledCode.has_value())
-            {
-                return std::unexpected(std::move(maybeCompiledCode.error()));
-            }
+            vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+        }
 
-            // Vertex
-            {
-                std::span<const u32> compiledSPV {
-                    maybeCompiledCode->maybe_vertex_data.cbegin(), maybeCompiledCode->maybe_vertex_data.cend()};
+        // Fragment
+        {
+            std::span<const u32> compiledSPV {
+                maybeCompiledCode->maybe_fragment_data.cbegin(), maybeCompiledCode->maybe_fragment_data.cend()};
 
-                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                    .sType {vk::StructureType::eShaderModuleCreateInfo},
-                    .pNext {nullptr},
-                    .flags {},
-                    .codeSize {compiledSPV.size_bytes()},
-                    .pCode {compiledSPV.data()},
-                };
+            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                .sType {vk::StructureType::eShaderModuleCreateInfo},
+                .pNext {nullptr},
+                .flags {},
+                .codeSize {compiledSPV.size_bytes()},
+                .pCode {compiledSPV.data()},
+            };
 
-                vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-            }
+            fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+        }
 
-            // Fragment
-            {
-                std::span<const u32> compiledSPV {
-                    maybeCompiledCode->maybe_fragment_data.cbegin(), maybeCompiledCode->maybe_fragment_data.cend()};
+        for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
+        {
+            std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
 
-                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                    .sType {vk::StructureType::eShaderModuleCreateInfo},
-                    .pNext {nullptr},
-                    .flags {},
-                    .codeSize {compiledSPV.size_bytes()},
-                    .pCode {compiledSPV.data()},
-                };
+            allDependentFiles.push_back({std::move(p), writeTime});
+        }
 
-                fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-            }
-
-            for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
-            {
-                std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
-
-                allDependentFiles.push_back({std::move(p), writeTime});
-            }
-
-            if (!maybeCompiledCode->maybe_warnings.empty())
-            {
-                // HACK: this shouldn't be here
-                log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
-            }
+        if (!maybeCompiledCode->maybe_warnings.empty())
+        {
+            // HACK: this shouldn't be here
+            log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
         }
 
         const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
@@ -658,76 +469,47 @@ namespace gfx::core::vulkan
         vk::UniqueShaderModule                                                         computeShader;
         std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
 
-        if (!descriptor.compute_shader_path.ends_with("slang"))
+        assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+
+        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
+            this->sane_slang_compiler.lock(
+                [&](cfi::SaneSlangCompiler& c)
+                {
+                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
+                });
+
+        if (!maybeCompiledCode.has_value())
         {
-            log::warn("loading legacy glsl file! |{}|", descriptor.compute_shader_path);
-
-            const auto [computeSourceGLSL, computeFileDependency] = loadShaderFile(descriptor.compute_shader_path);
-
-            std::expected<FormShaderModuleFromShaderSourceResult, std::string> computeResult =
-                this->formShaderModuleFromShaderSource(
-                    computeSourceGLSL, descriptor.compute_shader_path, shaderc_compute_shader);
-
-            if (!computeResult.has_value())
-            {
-                return std::unexpected(std::move(computeResult.error()));
-            }
-
-            allDependentFiles.reserve(computeResult->dependent_files.size() + 1);
-
-            for (const auto& d : computeResult->dependent_files)
-            {
-                allDependentFiles.push_back(d);
-            }
-
-            allDependentFiles.push_back(computeFileDependency);
-
-            computeShader = std::move(computeResult->module);
+            return std::unexpected(std::move(maybeCompiledCode.error()));
         }
-        else
+
+        // Compute
         {
-            assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+            std::span<const u32> compiledSPV {
+                maybeCompiledCode->maybe_compute_data.cbegin(), maybeCompiledCode->maybe_compute_data.cend()};
 
-            std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
-                this->sane_slang_compiler.lock(
-                    [&](cfi::SaneSlangCompiler& c)
-                    {
-                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
-                    });
+            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                .sType {vk::StructureType::eShaderModuleCreateInfo},
+                .pNext {nullptr},
+                .flags {},
+                .codeSize {compiledSPV.size_bytes()},
+                .pCode {compiledSPV.data()},
+            };
 
-            if (!maybeCompiledCode.has_value())
-            {
-                return std::unexpected(std::move(maybeCompiledCode.error()));
-            }
+            computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+        }
 
-            // Compute
-            {
-                std::span<const u32> compiledSPV {
-                    maybeCompiledCode->maybe_compute_data.cbegin(), maybeCompiledCode->maybe_compute_data.cend()};
+        for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
+        {
+            std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
 
-                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                    .sType {vk::StructureType::eShaderModuleCreateInfo},
-                    .pNext {nullptr},
-                    .flags {},
-                    .codeSize {compiledSPV.size_bytes()},
-                    .pCode {compiledSPV.data()},
-                };
+            allDependentFiles.push_back({std::move(p), writeTime});
+        }
 
-                computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-            }
-
-            for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
-            {
-                std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
-
-                allDependentFiles.push_back({std::move(p), writeTime});
-            }
-
-            if (!maybeCompiledCode->maybe_warnings.empty())
-            {
-                // HACK: this shouldn't be here
-                log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
-            }
+        if (!maybeCompiledCode->maybe_warnings.empty())
+        {
+            // HACK: this shouldn't be here
+            log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
         }
 
         const vk::PipelineShaderStageCreateInfo shaderCreateInfo {

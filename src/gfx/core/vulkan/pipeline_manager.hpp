@@ -4,7 +4,6 @@
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/threads.hpp"
 #include <filesystem>
-#include <shaderc/shaderc.hpp>
 #include <variant>
 #include <vulkan/vulkan.hpp>
 
@@ -66,7 +65,6 @@ namespace gfx::core::vulkan
 
         vk::Device                          device;
         vk::UniquePipelineCache             pipeline_cache;
-        shaderc::Compiler                   shader_compiler;
         util::Mutex<cfi::SaneSlangCompiler> sane_slang_compiler;
 
         vk::PipelineLayout bindless_pipeline_layout;
@@ -99,7 +97,5 @@ namespace gfx::core::vulkan
             vk::UniqueShaderModule                                                         module;
             std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
         };
-        std::expected<FormShaderModuleFromShaderSourceResult, std::string>
-        formShaderModuleFromShaderSource(std::span<const char>, const std::string&, shaderc_shader_kind) const;
     };
 } // namespace gfx::core::vulkan

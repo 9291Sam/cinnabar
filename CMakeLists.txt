@@ -40,7 +40,7 @@ CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
-find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
+find_package(Vulkan REQUIRED COMPONENTS)
 
 
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
@@ -127,7 +127,6 @@ target_link_libraries(
     glfw
     plutovg::plutovg
     ${FREETYPE_LIBRARIES}
-    Vulkan::shaderc_combined
     slang # here so no warnings
 )
 
@@ -206,10 +205,7 @@ target_link_libraries(cinnabar PUBLIC
         # target_compile_options(cinnabar PUBLIC -glldb)
         # target_compile_options(cinnabar PUBLIC -gdwarf-4)
         # target_compile_options(cinnabar PUBLIC -g3)
-
-        # Don't forget to run with ASAN_OPTIONS=detect_container_overflow=0 ./cinnabar
-        # because shaderc is built without asan and there are vector mismatch issues
-
+        
         # target_compile_options(cinnabar PUBLIC -fsanitize=address)
         # target_link_options(cinnabar PUBLIC -fsanitize=address)
 
