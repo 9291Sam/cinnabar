@@ -14,6 +14,7 @@
 #include <span>
 #include <variant>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -654,28 +655,80 @@ namespace gfx::core::vulkan
     std::expected<PipelineManager::PipelineInternalStorage, std::string>
     PipelineManager::tryCompilePipeline(ComputePipelineDescriptor& descriptor) const
     {
-        const auto [computeSourceGLSL, computeFileDependency] = loadShaderFile(descriptor.compute_shader_path);
-
-        std::expected<FormShaderModuleFromShaderSourceResult, std::string> computeResult =
-            this->formShaderModuleFromShaderSource(
-                computeSourceGLSL, descriptor.compute_shader_path, shaderc_compute_shader);
-
-        if (!computeResult.has_value())
-        {
-            return std::unexpected(std::move(computeResult.error()));
-        }
-
+        vk::UniqueShaderModule                                                         computeShader;
         std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
-        allDependentFiles.reserve(computeResult->dependent_files.size() + 1);
 
-        for (const auto& d : computeResult->dependent_files)
+        if (!descriptor.compute_shader_path.ends_with("slang"))
         {
-            allDependentFiles.push_back(d);
+            log::warn("loading legacy glsl file! |{}|", descriptor.compute_shader_path);
+
+            const auto [computeSourceGLSL, computeFileDependency] = loadShaderFile(descriptor.compute_shader_path);
+
+            std::expected<FormShaderModuleFromShaderSourceResult, std::string> computeResult =
+                this->formShaderModuleFromShaderSource(
+                    computeSourceGLSL, descriptor.compute_shader_path, shaderc_compute_shader);
+
+            if (!computeResult.has_value())
+            {
+                return std::unexpected(std::move(computeResult.error()));
+            }
+
+            allDependentFiles.reserve(computeResult->dependent_files.size() + 1);
+
+            for (const auto& d : computeResult->dependent_files)
+            {
+                allDependentFiles.push_back(d);
+            }
+
+            allDependentFiles.push_back(computeFileDependency);
+
+            computeShader = std::move(computeResult->module);
         }
+        else
+        {
+            assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        allDependentFiles.push_back(computeFileDependency);
+            std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
+                this->sane_slang_compiler.lock(
+                    [&](cfi::SaneSlangCompiler& c)
+                    {
+                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
+                    });
 
-        vk::UniqueShaderModule computeShader = std::move(computeResult->module);
+            if (!maybeCompiledCode.has_value())
+            {
+                return std::unexpected(std::move(maybeCompiledCode.error()));
+            }
+
+            // Compute
+            {
+                std::span<const u32> compiledSPV {
+                    maybeCompiledCode->maybe_compute_data.cbegin(), maybeCompiledCode->maybe_compute_data.cend()};
+
+                const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                    .sType {vk::StructureType::eShaderModuleCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .codeSize {compiledSPV.size_bytes()},
+                    .pCode {compiledSPV.data()},
+                };
+
+                computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+            }
+
+            for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
+            {
+                std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
+
+                allDependentFiles.push_back({std::move(p), writeTime});
+            }
+
+            if (!maybeCompiledCode->maybe_warnings.empty())
+            {
+                // HACK: this shouldn't be here
+                log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
+            }
+        }
 
         const vk::PipelineShaderStageCreateInfo shaderCreateInfo {
             .sType {vk::StructureType::ePipelineShaderStageCreateInfo},

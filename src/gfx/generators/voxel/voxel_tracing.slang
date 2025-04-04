@@ -11,7 +11,7 @@ struct BooleanBrick
 };
 
 
-[[vk::binding(4, 0)]] StructuredBuffer<BooleanBrick> in_global_bricks[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<BooleanBrick> in_global_bricks[];
 
 struct ChunkBrickStorage
 {
@@ -19,14 +19,14 @@ struct ChunkBrickStorage
 };
 
 
-[[vk::binding(4, 0)]] StructuredBuffer<ChunkBrickStorage> in_global_chunk_bricks[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<ChunkBrickStorage> in_global_chunk_bricks[];
 
 struct MaterialBrick
 {
     uint16_t data[8][8][8];
 };
 
-[[vk::binding(4, 0)]] StructuredBuffer<MaterialBrick> in_material_bricks[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<MaterialBrick> in_material_bricks[];
 
 PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
 {

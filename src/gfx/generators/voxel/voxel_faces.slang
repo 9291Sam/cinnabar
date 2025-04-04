@@ -14,7 +14,7 @@ struct GpuColorHashMapNode
     u32 samples;
 };
 
-[[vk::binding(4, 0)]] StructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
+[[vk::binding(4, 0)]] RWStructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
 
 [format("rgba32f")]
 [[vk::binding(2, 0)]] RWTexture2D<float4> voxel_render_target[];
