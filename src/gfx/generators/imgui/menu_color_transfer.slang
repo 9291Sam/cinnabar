@@ -2,7 +2,7 @@
 
 
 [format("rgba32f")]
-[[vk::binding(2, 0)]] RWTexture2D<float4> menu_transfer_image[];
+[[vk::binding(2)]] RWTexture2D<float4> menu_transfer_image[];
 
 [shader("vertex")]
 float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position

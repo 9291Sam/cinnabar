@@ -49,7 +49,7 @@ struct GlobalGpuData
     uint2 framebuffer_size;
 };
 
-[[vk::binding(3, 0)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];
+[[vk::binding(3)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];
 
 float3 plasma_quintic(float x)
 {

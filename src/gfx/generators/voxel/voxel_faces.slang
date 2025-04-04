@@ -14,10 +14,10 @@ struct GpuColorHashMapNode
     u32 samples;
 };
 
-[[vk::binding(4, 0)]] RWStructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
+[[vk::binding(4)]] RWStructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
 
 [format("rgba32f")]
-[[vk::binding(2, 0)]] RWTexture2D<float4> voxel_render_target[];
+[[vk::binding(2)]] RWTexture2D<float4> voxel_render_target[];
 
 const static Array<float3, 6> available_normals = {
     float3(0.0, 1.0, 0.0),

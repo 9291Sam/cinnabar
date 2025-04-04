@@ -1,6 +1,6 @@
 #include "globals.slang" 
 
-[[vk::binding(4, 0)]] StructuredBuffer<float3> in_position_buffers[];
+[[vk::binding(4)]] StructuredBuffer<float3> in_position_buffers[];
 
 
 struct VertexOutput

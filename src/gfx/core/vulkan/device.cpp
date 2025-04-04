@@ -7,6 +7,8 @@
 #include <optional>
 #include <utility>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -177,7 +179,8 @@ namespace gfx::core::vulkan
             std::array {numberOfGraphicsQueues, numberOfAsyncComputeQueues, numberOfAsyncTransferQueues};
 
         std::array requiredExtensions {
-            "VK_KHR_shader_non_semantic_info",
+            vk::KHRShaderNonSemanticInfoExtensionName,
+            vk::KHRVariablePointersExtensionName,
             vk::KHRDynamicRenderingExtensionName,
             vk::KHRSwapchainExtensionName,
 #ifdef __APPLE__
@@ -204,10 +207,12 @@ namespace gfx::core::vulkan
         features12.descriptorBindingStorageBufferUpdateAfterBind = vk::True;
 
         vk::PhysicalDeviceVulkan11Features features11 {};
-        features11.sType                    = vk::StructureType::ePhysicalDeviceVulkan11Features;
-        features11.pNext                    = &features12;
-        features11.storageBuffer16BitAccess = vk::True;
-        features11.shaderDrawParameters     = vk::True;
+        features11.sType                         = vk::StructureType::ePhysicalDeviceVulkan11Features;
+        features11.pNext                         = &features12;
+        features11.storageBuffer16BitAccess      = vk::True;
+        features11.shaderDrawParameters          = vk::True;
+        features11.variablePointersStorageBuffer = vk::True;
+        features11.variablePointers              = vk::True;
 
         vk::PhysicalDeviceFeatures2 features102 {};
         features102.sType                             = vk::StructureType::ePhysicalDeviceFeatures2;

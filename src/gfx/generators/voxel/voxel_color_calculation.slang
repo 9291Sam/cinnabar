@@ -7,7 +7,7 @@
 
 
 [format("rgba32f")]
-[[vk::binding(2, 0)]] RWTexture2D<float4> visible_voxel_image[];
+[[vk::binding(2)]] RWTexture2D<float4> visible_voxel_image[];
 
 VoxelTraceResult traceSingleRayInChunk(Ray ray, float dist)
 {
@@ -75,8 +75,6 @@ float3 calculateColor(
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID)
 {
-
-
     const float3  box_corner_negative = float3(-16.0f); // TODO: fix
     const int2 thisPixel           = int2(threadId.xy);
 
@@ -105,6 +103,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
                 
                 // const u32 prev = atomicCompSwap(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId);
 
+                
                 u32 prev;
                 InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId, prev);
 
