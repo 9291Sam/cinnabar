@@ -87,8 +87,8 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
 
         if (uniqueFaceId != ~0u)
         {
-            UnpackUniqueFaceIdResult unpacked = {uniqueFaceId};
-            
+            const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
+          
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
 

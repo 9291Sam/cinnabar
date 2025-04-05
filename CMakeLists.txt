@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 project(cinnabar VERSION 0.0.0.1)
 
-
-
 include(CPM.cmake)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -38,17 +36,13 @@ CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
 CPMAddPackage("gh:ocornut/imgui#v1.91.8")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
-CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS)
-
-
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
 if (WIN32 AND NOT FREETYPE_DIR)
     message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable")
 endif()
 find_package(Freetype REQUIRED)
-
 
 add_executable(cinnabar
     src/game/game.cpp
@@ -105,7 +99,6 @@ add_library(imgui_build_target STATIC
     
     ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
 
-    
     ${plutosvg_SOURCE_DIR}/source/plutosvg.c
 )
 target_include_directories(imgui_build_target SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
@@ -127,7 +120,6 @@ target_link_libraries(
     glfw
     plutovg::plutovg
     ${FREETYPE_LIBRARIES}
-    slang # here so no warnings
 )
 
 target_include_directories(cinnabar PRIVATE src)
@@ -141,7 +133,6 @@ target_compile_definitions(cinnabar PUBLIC GLM_SWIZZLE=1)
 target_compile_definitions(cinnabar PUBLIC GLM_FORCE_RADIANS=1)
 target_compile_definitions(cinnabar PUBLIC GLM_FORCE_SIZE_T_LENGTH=1)
 target_compile_definitions(cinnabar PUBLIC GLM_ENABLE_EXPERIMENTAL=1)
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_definitions(cinnabar PUBLIC CINNABAR_DEBUG_BUILD=1)
 else()
@@ -150,7 +141,6 @@ endif()
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_NO_CONSTRUCTORS=1)
 target_compile_definitions(cinnabar PRIVATE VK_NO_PROTOTYPES=1)
-
 target_link_libraries(cinnabar PUBLIC
     fmt::fmt
     spdlog::spdlog
@@ -166,14 +156,9 @@ target_link_libraries(cinnabar PUBLIC
     Boost::sort
     Boost::pool
     imgui_build_target
-    slang
 )
 
-
-
-
-
-# if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
     target_compile_options(cinnabar PUBLIC
         -Weverything
         -Wno-c++98-compat
@@ -216,4 +201,19 @@ target_link_libraries(cinnabar PUBLIC
 
     endif ()
 
-# endif()
+endif()
+
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
+endif()
+CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
+target_link_libraries(cinnabar PUBLIC slang)
+
+
+
+
+
+

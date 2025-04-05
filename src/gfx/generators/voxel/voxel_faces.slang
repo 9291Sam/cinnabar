@@ -49,10 +49,9 @@ u32 packNormalId(float3 normal)
 
 struct UnpackUniqueFaceIdResult
 {
-    __init(u32 packed)
+    static UnpackUniqueFaceIdResult unpack(u32 packed)
     {
         UnpackUniqueFaceIdResult res;
-
         res.position_in_chunk.x = bitfieldExtract(packed, 0, 6);
         res.position_in_chunk.y = bitfieldExtract(packed, 6, 6);
         res.position_in_chunk.z = bitfieldExtract(packed, 12, 6);
