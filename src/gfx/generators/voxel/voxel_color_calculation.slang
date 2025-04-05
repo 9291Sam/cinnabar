@@ -98,8 +98,10 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
 
-            const PBRVoxelMaterial material = getMaterialFromPosition(
-                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
+            const uint offset = 0;
+
+            const PBRVoxelMaterial material = getMaterialFromPosition( // TODO: bad!
+                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z].data + offset, bP);
  
             const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 

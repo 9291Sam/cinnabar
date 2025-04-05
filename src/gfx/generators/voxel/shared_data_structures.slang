@@ -68,7 +68,7 @@ struct MaybeBrickOffsetOrMaterialId
         return data >= u16(512);
     }
 
-    NODISCARD bool isVoxel() CONST_MEMBER_FUNCTION
+    NODISCARD bool isPointer() CONST_MEMBER_FUNCTION
     {
         return !isMaterial();
     }
@@ -173,4 +173,9 @@ struct GpuColorHashMapNode
     u32 g_1024;
     u32 b_1024;
     u32 samples;
+};
+
+struct ChunkBrickStorage
+{
+    MaybeBrickOffsetOrMaterialId data[8][8][8];
 };

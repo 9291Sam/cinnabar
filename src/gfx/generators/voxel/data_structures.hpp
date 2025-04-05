@@ -140,24 +140,11 @@ namespace gfx::generators::voxel
         }
     };
 
-#include "shared_data_structures.slang" // HACK
+// NOLINTNEXTLINE(unused-includes) HACK
+#include "shared_data_structures.slang"
 
-    struct ChunkBrickStorage
+    namespace
     {
-        ChunkBrickStorage()
-            : data {}
-        {
-            std::memset(static_cast<void*>(data.data()->data()->data()), -1, sizeof(this->data));
-        }
-        std::array<
-            std::array<std::array<MaybeBrickOffsetOrMaterialId, ChunkSizeBricks>, ChunkSizeBricks>,
-            ChunkSizeBricks>
-            data;
-
-        MaybeBrickOffsetOrMaterialId& modify(BrickCoordinate bC)
-        {
-            return this->data[bC.x][bC.y][bC.z];
-        }
-    };
-
+        using User = ChunkBrickStorage;
+    } // namespace
 } // namespace gfx::generators::voxel

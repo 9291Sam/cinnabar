@@ -184,7 +184,7 @@ namespace gfx::generators::voxel
                         const ChunkLocalPosition cP {x, y, z};
                         const auto [bC, bP] = cP.split();
 
-                        MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.modify(bC);
+                        MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.data[bC.x][bC.y][bC.z];
 
                         const glm::u32vec3 sample = thisDemo.sampler(glm::u32vec3 {x, y, z}, thisDemo.model);
 
