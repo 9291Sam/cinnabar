@@ -179,3 +179,13 @@ struct ChunkBrickStorage
 {
     MaybeBrickOffsetOrMaterialId data[8][8][8];
 };
+
+struct PBRVoxelMaterial
+{
+    // xyz - linear rgb color
+    // w - roughness
+    float4 albedo_roughness;
+    // xyz - emissive color (values over 1 indicate more than 1 unit of brightness)
+    // w - metallic
+    float4 emission_metallic;
+};

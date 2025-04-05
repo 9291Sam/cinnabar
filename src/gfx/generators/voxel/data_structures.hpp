@@ -1,11 +1,11 @@
 #pragma once
 
-#include "material.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <array>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <limits>
 #include <optional>
 
@@ -143,8 +143,8 @@ namespace gfx::generators::voxel
 // NOLINTNEXTLINE(unused-includes) HACK
 #include "shared_data_structures.slang"
 
-    namespace
+    namespace internal
     {
         using User = ChunkBrickStorage;
-    } // namespace
+    } // namespace internal
 } // namespace gfx::generators::voxel

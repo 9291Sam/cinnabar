@@ -1,5 +1,6 @@
 #pragma once
 
+#include "data_structures.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "util/util.hpp"
@@ -100,16 +101,6 @@ namespace gfx::generators::voxel
         // Limestone,
         // Dirt,
         // Grass,
-    };
-
-    struct PBRVoxelMaterial
-    {
-        // xyz - linear rgb color
-        // w - roughness
-        glm::vec4 albedo_roughness;
-        // xyz - emissive color (values over 1 indicate more than 1 unit of brightness)
-        // w - metallic
-        glm::vec4 emission_metallic;
     };
 
     // TODO: importance sampling, subsurface, clear coat, anisotropic, transparency

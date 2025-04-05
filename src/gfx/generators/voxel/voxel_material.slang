@@ -3,17 +3,6 @@
 #include "globals.slang"
 #include "shared_data_structures.slang"
 
-struct PBRVoxelMaterial
-{
-    // xyz - linear rgb color
-    // w - roughness
-    float4 albedo_roughness;
-    // xyz - emissive color (values over 1 indicate more than 1 unit of brightness)
-    // w - metallic
-    float4 emission_metallic;
-};
-
-
 [[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
 [[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
 
