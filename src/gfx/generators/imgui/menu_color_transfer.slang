@@ -12,6 +12,7 @@ float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position
     return positions[vertexIndex];
 }
 
+
 [shader("fragment")]
 float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 {

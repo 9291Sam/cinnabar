@@ -243,10 +243,5 @@ namespace gfx::generators::voxel
         u32 b;
         u32 number_of_samples;
     };
-    // struct Chunk
-    // {
 
-    // }
-    // struct Brick
-    // {};
 } // namespace gfx::generators::voxel

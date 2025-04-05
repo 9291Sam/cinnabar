@@ -45,28 +45,33 @@ float3 calculateColor(
 
     const float3 toFragmentDir = normalize(worldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
 
-     Ray giRay =
+    Ray giRay =
         Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-    const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 96.0f);
-
-    float3 giColor = float3(0);
-
-    if (giResult.intersect_occur)
+    const Cube chunk = Cube(float3(32.0f), 64.0f);
+    
+    if (chunk.contains(giRay.origin))
     {
-        giColor = calculatePixelColor(
-            giResult.chunk_local_fragment_position + float3(-16.0),
-            giResult.voxel_normal,
-            normalize(giRay.origin - giResult.chunk_local_fragment_position),
-            normalize(
-                light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position + float3(-16.0)),
-            light,
-            giResult.material,
-            false,
-            true);
-    }
+        const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 96.0f);
 
-    calculatedColor += giColor;
+        float3 giColor = float3(0);
+
+        if (giResult.intersect_occur)
+        {
+            giColor = calculatePixelColor(
+                giResult.chunk_local_fragment_position + float3(-16.0),
+                giResult.voxel_normal,
+                normalize(giRay.origin - giResult.chunk_local_fragment_position),
+                normalize(
+                    light.position_and_half_intensity_distance.xyz - giResult.chunk_local_fragment_position + float3(-16.0)),
+                light,
+                giResult.material,
+                false,
+                true);
+        }
+
+        calculatedColor += giColor;
+    }
 
     return calculatedColor;
 }
@@ -94,15 +99,12 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
 
             const PBRVoxelMaterial material = getMaterialFromPosition(
                 in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z], bP);
-
+ 
             const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 
             for (uint i = 0; i < 32; ++i)
             {
                 const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
-                
-                // const u32 prev = atomicCompSwap(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId);
-
                 
                 u32 prev;
                 InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId, prev);

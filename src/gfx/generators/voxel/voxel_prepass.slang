@@ -62,7 +62,7 @@ struct VertexOutput
 [shader("vertex")]
 VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 {
-    const float3  center_location = float3(16.0f); // TODO: fix this is hardcoded in color calculatin
+    const float3 center_location = float3(16.0f); // TODO: fix this is hardcoded in color calculatin
     const float voxel_size      = 64.0;
 
     const float3 box_corner_negative = center_location - float3(voxel_size) / 2;
@@ -73,8 +73,8 @@ VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 
     VertexOutput o;
 
-    o.position              = mul(global_gpu_data[0].view_projection_matrix, float4(world_location, 1.0));
-    o.world_position       = world_location;
+    o.position            = mul(global_gpu_data[0].view_projection_matrix, float4(world_location, 1.0));
+    o.world_position      = world_location;
     o.out_negative_corner = box_corner_negative;
     
     return o;
@@ -119,37 +119,25 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
     const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
 
     float3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_negative_corner;
-
+  
     if (!result.intersect_occur)
     {
-        worldStrikePosition = camera_ray.at(WorldBoundingCubeIntersection.t_far);
+        discard;
     }
-
-    const bool showTrace = false;
 
     FragmentOutput out;
 
-    if (showTrace)
-    {
-        // out_color = float4(plasma_quintic(float(result.steps) / 64.0), 1.0);
-    }
-    else
-    {
-        if (!result.intersect_occur)
-        {
-            discard;
-        }
 
-        const u32 uniqueFaceId = UnpackUniqueFaceIdResult(result.voxel_normal, result.chunk_local_voxel_position, chunkId).pack();
-        const u32 kHashTableCapacity = 1U << 20U;
-        const u32 kEmpty             = ~0u;
+    const u32 uniqueFaceId = UnpackUniqueFaceIdResult(result.voxel_normal, result.chunk_local_voxel_position, chunkId).pack();
+    const u32 kHashTableCapacity = 1U << 20U;
+    const u32 kEmpty             = ~0u;
 
-        out.out_position_and_id = float4(worldStrikePosition, reinterpret<f32>(uniqueFaceId));
-    }
+    out.out_position_and_id = float4(worldStrikePosition, reinterpret<f32>(uniqueFaceId));
+
 
     const float4  clipPos = mul(global_gpu_data[UBO_GLOBAL_DATA].view_projection_matrix, float4(worldStrikePosition, float(1.0)));
     const float depth   = (clipPos.z / clipPos.w);
-    out.depth        = showTrace ? max(depth, 0.000000000001) : depth;
+    out.depth        = max(depth, 0.000000000001);
 
     return out;
 }

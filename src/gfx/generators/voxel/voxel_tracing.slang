@@ -235,7 +235,7 @@ VoxelTraceResult traceDDARay(uint chunkId, float3 start, float3 end)
 
     const VoxelTraceResult result = traceChunkFallible(chunkId, start, normalize(end - start), length(end - start));
 
-    if (result.t > length(end - start))
+    if (result.intersect_occur && result.t > length(end - start))
     {
         return VoxelTraceResult_getMiss(result.steps);
     }

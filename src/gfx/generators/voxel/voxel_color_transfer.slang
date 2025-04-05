@@ -14,9 +14,6 @@ float4 vertexMain(uint vertexIndex : SV_VertexID) : SV_Position
 [shader("fragment")]
 float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 {
-    // discard;
-
-    // return float4(0);
     
     float4 rawPixelData = voxel_render_target[SIO_VOXEL_RENDER_TARGET].Load(int2(floor(pos.xy)));
 
