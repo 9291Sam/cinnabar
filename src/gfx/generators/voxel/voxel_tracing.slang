@@ -10,8 +10,19 @@ struct BooleanBrick
     uint data[16];
 };
 
+struct MaterialBrick
+{
+    uint16_t data[8][8][8];
+};
 
-[[vk::binding(4)]] RWStructuredBuffer<BooleanBrick> in_global_bricks[];
+struct MaterialBooleanBrick
+{
+    BooleanBrick  boolean_brick;
+    MaterialBrick material_brick;
+};
+
+
+[[vk::binding(4)]] RWStructuredBuffer<MaterialBooleanBrick> in_combined_bricks[];
 
 struct ChunkBrickStorage
 {
@@ -21,16 +32,9 @@ struct ChunkBrickStorage
 
 [[vk::binding(4)]] RWStructuredBuffer<ChunkBrickStorage> in_global_chunk_bricks[];
 
-struct MaterialBrick
-{
-    uint16_t data[8][8][8];
-};
-
-[[vk::binding(4)]] RWStructuredBuffer<MaterialBrick> in_material_bricks[];
-
 PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
 {
-    const uint16_t materialId = in_material_bricks[SBO_MATERIAL_BRICKS][brickPointer].data[bP.x][bP.y][bP.z];
+    const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer].material_brick.data[bP.x][bP.y][bP.z];
 
     return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
 }
@@ -60,9 +64,12 @@ bool loadVoxelFromBrick(uint brickPointer, int3 c)
     const uint idx         = linearIndex / 32;
     const uint bit         = linearIndex % 32;
 
-    const uint loadedIdx = in_global_bricks[SBO_VISIBILITY_BRICKS][brickPointer].data[idx];
+    const uint loadedIdx = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer].boolean_brick.data[idx];
 
     return (loadedIdx & (1u << bit)) != 0;
+
+    // It's just **barely** slower on mac
+    // return in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer].material_brick.data[bP.x][bP.y][bP.z] != 0;
 }
 
 float3 stepMask(float3 sideDist)

@@ -71,7 +71,7 @@ struct UnpackUniqueFaceIdResult
     }
 
     float3  normal;
-    uint3 position_in_chunk;
+    uint3 position_in_chunk; // Does this really need to be here? you can always derive the other stuff from the position inside the chunk
     uint  chunk_id;
 
     u32 pack()

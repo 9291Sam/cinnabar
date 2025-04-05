@@ -76,20 +76,13 @@ namespace gfx::generators::voxel
               1,
               "Voxel Lights",
               1)
-        , visible_bricks(
+        , combined_bricks(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               512,
-              "Visible Bricks",
+              "Combined Bricks",
               2)
-        , material_bricks(
-              this->renderer,
-              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-              vk::MemoryPropertyFlagBits::eDeviceLocal,
-              512,
-              "Material Bricks",
-              3)
         , materials {generateMaterialBuffer(this->renderer)}
         , face_hash_map(
               this->renderer,
@@ -172,10 +165,9 @@ namespace gfx::generators::voxel
         {
             auto sensibleData = thisDemo.model.getFrame(thisFrameTime);
 
-            std::vector<BooleanBrick> newVisbleBricks {};
+            std::vector<MaterialBooleanBrick> newCombinedBricks {};
 
-            std::vector<MaterialBrick> newMaterialBricks {};
-            ChunkBrickStorage          newChunk {};
+            ChunkBrickStorage newChunk {};
 
             u16 nextBrickIndex = 0;
 
@@ -202,34 +194,23 @@ namespace gfx::generators::voxel
                         {
                             maybeThisBrickOffset.data = nextBrickIndex;
 
-                            newVisbleBricks.push_back(BooleanBrick {});
-                            newMaterialBricks.push_back(MaterialBrick {});
+                            newCombinedBricks.push_back(MaterialBooleanBrick {});
 
                             nextBrickIndex += 1;
                         }
 
                         if (v != Voxel::NullAirEmpty)
                         {
-                            BooleanBrick&  thisVisiblityBrick = newVisbleBricks.at(maybeThisBrickOffset.data);
-                            MaterialBrick& thisMaterialBrick  = newMaterialBricks.at(maybeThisBrickOffset.data);
-
-                            // log::trace("{:#10x}", (*sensibleData)[x][z]);
-                            // const Voxel v = (*sensibleData)[63 - x][z] == 0xFF000000 ? Voxel::Basalt :
-                            // Voxel::Marble;
-
-                            thisVisiblityBrick.write(bP, true);
-                            thisMaterialBrick.write(bP, v);
+                            newCombinedBricks.at(maybeThisBrickOffset.data).write(bP, v);
                         }
                     }
                 }
             }
 
-            if (!newVisbleBricks.empty())
+            if (!newCombinedBricks.empty())
             {
                 this->renderer->getStager().enqueueTransfer(
-                    this->visible_bricks, 0, {newVisbleBricks.data(), newVisbleBricks.size()});
-                this->renderer->getStager().enqueueTransfer(
-                    this->material_bricks, 0, {newMaterialBricks.data(), newMaterialBricks.size()});
+                    this->combined_bricks, 0, {newCombinedBricks.data(), newCombinedBricks.size()});
                 this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
             }
         }

@@ -229,6 +229,23 @@ namespace gfx::generators::voxel
         }
     };
 
+    struct MaterialBooleanBrick
+    {
+        BooleanBrick  boolean_brick;
+        MaterialBrick material_brick;
+
+        void write(BrickLocalPosition p, Voxel v)
+        {
+            this->boolean_brick.write(p, v != Voxel::NullAirEmpty);
+            this->material_brick.write(p, v);
+        }
+
+        [[nodiscard]] std::pair<Voxel, bool> read(BrickLocalPosition p) const
+        {
+            return std::make_pair(this->material_brick.read(p), this->boolean_brick.read(p));
+        }
+    };
+
     struct GpuRaytracedLight
     {
         glm::vec4 position_and_half_intensity_distance;

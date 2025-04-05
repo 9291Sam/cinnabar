@@ -47,11 +47,17 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
-        gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>  chunk_bricks;
-        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>  lights;
-        gfx::core::vulkan::GpuOnlyBuffer<BooleanBrick>       visible_bricks;
-        gfx::core::vulkan::GpuOnlyBuffer<MaterialBrick>      material_bricks;
-        gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> materials;
+        // struct PerChunkStorage
+        // {
+        //     glm::vec4         world_offset;
+        //     u32               storage_offset;
+        //     ChunkBrickStorage bricks;
+        // };
+
+        gfx::core::vulkan::GpuOnlyBuffer<ChunkBrickStorage>    chunk_bricks;
+        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>    lights;
+        gfx::core::vulkan::GpuOnlyBuffer<MaterialBooleanBrick> combined_bricks;
+        gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial>   materials;
 
         gfx::core::vulkan::GpuOnlyBuffer<GpuColorHashMapNode> face_hash_map;
 
