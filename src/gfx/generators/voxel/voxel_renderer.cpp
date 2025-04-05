@@ -62,7 +62,7 @@ namespace gfx::generators::voxel
                   .blend_enable {vk::True},
                   .name {"Color Transfer Pipeline"},
               })}
-        , chunk_bricks(
+        , chunk_data(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
@@ -167,7 +167,7 @@ namespace gfx::generators::voxel
 
             std::vector<CombinedBrick> newCombinedBricks {};
 
-            ChunkBrickStorage newChunk {};
+            ChunkData newChunk {};
 
             u16 nextBrickIndex = 0;
 
@@ -184,7 +184,7 @@ namespace gfx::generators::voxel
                         const ChunkLocalPosition cP {x, y, z};
                         const auto [bC, bP] = cP.split();
 
-                        MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.data[bC.x][bC.y][bC.z];
+                        MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.brick_map[bC.x][bC.y][bC.z];
 
                         const glm::u32vec3 sample = thisDemo.sampler(glm::u32vec3 {x, y, z}, thisDemo.model);
 
@@ -211,7 +211,7 @@ namespace gfx::generators::voxel
             {
                 this->renderer->getStager().enqueueTransfer(
                     this->combined_bricks, 0, {newCombinedBricks.data(), newCombinedBricks.size()});
-                this->renderer->getStager().enqueueTransfer(this->chunk_bricks, 0, {&newChunk, 1});
+                this->renderer->getStager().enqueueTransfer(this->chunk_data, 0, {&newChunk, 1});
             }
         }
     }

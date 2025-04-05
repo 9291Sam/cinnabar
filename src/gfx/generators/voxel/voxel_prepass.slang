@@ -62,11 +62,11 @@ struct VertexOutput
 [shader("vertex")]
 VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 {
-    const float3 center_location = float3(16.0f); // TODO: fix this is hardcoded in color calculatin
     const float voxel_size      = 64.0;
 
-    const float3 box_corner_negative = center_location - float3(voxel_size) / 2;
-    const float3 box_corner_positive = center_location + float3(voxel_size) / 2;
+    const float3 box_corner_negative = in_const_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner;
+    const float3 center_location = box_corner_negative + voxel_size / 2.0;
+    const float3 box_corner_positive = box_corner_negative + float3(voxel_size);
 
     const float3 cube_vertex    = CUBE_TRIANGLE_LIST[vertexIndex % 36];
     const float3 world_location = center_location + voxel_size * cube_vertex;

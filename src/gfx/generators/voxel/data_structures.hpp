@@ -145,6 +145,6 @@ namespace gfx::generators::voxel
 
     namespace internal
     {
-        using User = ChunkBrickStorage;
+        using User = ChunkData;
     } // namespace internal
 } // namespace gfx::generators::voxel

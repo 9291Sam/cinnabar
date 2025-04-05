@@ -7,9 +7,12 @@
 const static bool removeCheckLate = false;
 
 
+
 [[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
 
-[[vk::binding(4)]] RWStructuredBuffer<ChunkBrickStorage> in_global_chunk_bricks[];
+[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
+[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_bricks[];
+
 
 PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
 {
@@ -22,7 +25,7 @@ uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uint3 bC)
 {
     if (removeCheckLate || (all(bC >= int3(0)) && all(bC <= int3(7))))
     {
-        const MaybeBrickOffsetOrMaterialId brickPointer = in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].data[bC.x][bC.y][bC.z];
+        const MaybeBrickOffsetOrMaterialId brickPointer = in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].brick_map[bC.x][bC.y][bC.z];
 
         if (brickPointer.isPointer())
         {

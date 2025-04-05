@@ -175,10 +175,13 @@ struct GpuColorHashMapNode
     u32 samples;
 };
 
-struct ChunkBrickStorage
+struct ChunkData
 {
-    MaybeBrickOffsetOrMaterialId data[8][8][8];
+    float3 world_chunk_corner;
+    u32 offset;
+    MaybeBrickOffsetOrMaterialId brick_map[8][8][8];
 };
+
 
 struct PBRVoxelMaterial
 {

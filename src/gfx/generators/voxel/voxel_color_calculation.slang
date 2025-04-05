@@ -20,7 +20,7 @@ float3 calculateColor(
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-    const float3 worldStrikePosition = chunkStrikePosition + float3(-16.0);
+    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner;
 
     float3 lightColor = calculatePixelColor(
         worldStrikePosition,
@@ -33,7 +33,7 @@ float3 calculateColor(
         true);
 
     const VoxelTraceResult shadowResult = traceDDARay(
-        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - float3(-16.0));
+        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner);
 
     float3 calculatedColor = float3(0.0);
 
@@ -81,19 +81,20 @@ float3 calculateColor(
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID)
 {
-    const float3  box_corner_negative = float3(-16.0f); // TODO: fix
     const int2 thisPixel           = int2(threadId.xy);
 
-    if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size))
+    if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size)
+        && sizeof(ChunkData) == 1040)
     {
         const float4 rawPixelData        = visible_voxel_image[SIO_VOXEL_RENDER_TARGET].Load(thisPixel);
         const float3 worldStrikePosition = rawPixelData.xyz;
-        const float3 chunkStrikePosition = worldStrikePosition - box_corner_negative;
         const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
+        const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
+
+        const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].world_chunk_corner;
 
         if (uniqueFaceId != ~0u)
         {
-            const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
           
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
@@ -101,7 +102,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
             const uint offset = 0;
 
             const PBRVoxelMaterial material = getMaterialFromPosition( // TODO: bad!
-                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].data[bC.x][bC.y][bC.z].data + offset, bP);
+                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + offset, bP);
  
             const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 
