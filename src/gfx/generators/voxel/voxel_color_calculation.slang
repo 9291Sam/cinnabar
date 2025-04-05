@@ -4,6 +4,7 @@
 #include "cube_ray.slang"
 #include "voxel_faces.slang"
 #include "voxel_tracing.slang"
+#include "shared_data_structures.slang"
 
 
 [format("rgba32f")]

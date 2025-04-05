@@ -1,5 +1,6 @@
 #include "globals.slang"
 #include "voxel_faces.slang"
+#include "shared_data_structures.slang"
 
 
 [shader("vertex")]

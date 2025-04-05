@@ -1,18 +1,10 @@
 #pragma once
 
 #include "globals.slang"
+#include "shared_data_structures.slang"
 
 const static u32 kHashTableCapacity = 1u << 20u;
 const static u32 kEmpty             = ~0u;
-
-struct GpuColorHashMapNode
-{
-    u32 key;
-    u32 r_1024;
-    u32 g_1024;
-    u32 b_1024;
-    u32 samples;
-};
 
 [[vk::binding(4)]] RWStructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
 

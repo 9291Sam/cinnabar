@@ -165,7 +165,7 @@ namespace gfx::generators::voxel
         {
             auto sensibleData = thisDemo.model.getFrame(thisFrameTime);
 
-            std::vector<MaterialBooleanBrick> newCombinedBricks {};
+            std::vector<CombinedBrick> newCombinedBricks {};
 
             ChunkBrickStorage newChunk {};
 
@@ -194,14 +194,14 @@ namespace gfx::generators::voxel
                         {
                             maybeThisBrickOffset.data = nextBrickIndex;
 
-                            newCombinedBricks.push_back(MaterialBooleanBrick {});
+                            newCombinedBricks.push_back(CombinedBrick {});
 
                             nextBrickIndex += 1;
                         }
 
                         if (v != Voxel::NullAirEmpty)
                         {
-                            newCombinedBricks.at(maybeThisBrickOffset.data).write(bP, v);
+                            newCombinedBricks.at(maybeThisBrickOffset.data).write(bP, static_cast<u16>(v));
                         }
                     }
                 }

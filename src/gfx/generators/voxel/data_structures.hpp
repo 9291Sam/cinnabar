@@ -140,28 +140,7 @@ namespace gfx::generators::voxel
         }
     };
 
-    /// 0 - 511 Offset in chunk
-    /// 512 - 65535 Voxel
-    /// To get VoxelMaterial id
-    struct MaybeBrickOffsetOrMaterialId
-    {
-        [[nodiscard]] Voxel getMaterial() const
-        {
-            return static_cast<Voxel>(~this->data);
-        }
-
-        [[nodiscard]] bool isMaterial() const
-        {
-            return this->data >= UINT16_C(512);
-        }
-
-        [[nodiscard]] bool isVoxel() const
-        {
-            return !this->isMaterial();
-        }
-
-        u16 data = static_cast<u16>(~0u);
-    };
+#include "shared_data_structures.slang" // HACK
 
     struct ChunkBrickStorage
     {
@@ -179,86 +158,6 @@ namespace gfx::generators::voxel
         {
             return this->data[bC.x][bC.y][bC.z];
         }
-    };
-
-    struct BooleanBrick
-    {
-        std::array<u32, 16> data;
-
-        void write(BrickLocalPosition p, bool b)
-        {
-            const auto [idx, bit] = BooleanBrick::getIdxAndBit(p);
-
-            if (b)
-            {
-                this->data[idx] |= (1u << bit); // NOLINT
-            }
-            else
-            {
-                this->data[idx] &= ~(1u << bit); // NOLINT
-            }
-        }
-
-        [[nodiscard]] bool read(BrickLocalPosition p) const
-        {
-            const auto [idx, bit] = BooleanBrick::getIdxAndBit(p);
-
-            return (this->data[idx] & (1u << bit)) != 0; // NOLINT
-        }
-
-        [[nodiscard]] static std::pair<usize, usize> getIdxAndBit(BrickLocalPosition p)
-        {
-            const usize linearIndex = p.asLinearIndex();
-
-            return {linearIndex / std::numeric_limits<u32>::digits, linearIndex % std::numeric_limits<u32>::digits};
-        }
-    };
-
-    struct MaterialBrick
-    {
-        std::array<std::array<std::array<Voxel, 8>, 8>, 8> data;
-
-        void write(BrickLocalPosition p, Voxel v)
-        {
-            this->data[p.x][p.y][p.z] = v;
-        }
-
-        [[nodiscard]] Voxel read(BrickLocalPosition p) const
-        {
-            return this->data[p.x][p.y][p.z];
-        }
-    };
-
-    struct MaterialBooleanBrick
-    {
-        BooleanBrick  boolean_brick;
-        MaterialBrick material_brick;
-
-        void write(BrickLocalPosition p, Voxel v)
-        {
-            this->boolean_brick.write(p, v != Voxel::NullAirEmpty);
-            this->material_brick.write(p, v);
-        }
-
-        [[nodiscard]] std::pair<Voxel, bool> read(BrickLocalPosition p) const
-        {
-            return std::make_pair(this->material_brick.read(p), this->boolean_brick.read(p));
-        }
-    };
-
-    struct GpuRaytracedLight
-    {
-        glm::vec4 position_and_half_intensity_distance;
-        glm::vec4 color_and_power;
-    };
-
-    struct GpuColorHashMapNode
-    {
-        u32 hash;
-        u32 r;
-        u32 g;
-        u32 b;
-        u32 number_of_samples;
     };
 
 } // namespace gfx::generators::voxel

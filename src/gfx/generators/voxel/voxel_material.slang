@@ -1,6 +1,7 @@
 #pragma once
 
 #include "globals.slang"
+#include "shared_data_structures.slang"
 
 struct PBRVoxelMaterial
 {
@@ -12,11 +13,6 @@ struct PBRVoxelMaterial
     float4 emission_metallic;
 };
 
-struct GpuRaytracedLight
-{
-    float4 position_and_half_intensity_distance;
-    float4 color_and_power;
-};
 
 [[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
 [[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];

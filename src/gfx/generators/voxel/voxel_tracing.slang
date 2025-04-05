@@ -2,27 +2,12 @@
 
 #include "globals.slang"
 #include "voxel_material.slang"
+#include "shared_data_structures.slang"
 
 const static bool removeCheckLate = false;
 
-struct BooleanBrick
-{
-    uint data[16];
-};
 
-struct MaterialBrick
-{
-    uint16_t data[8][8][8];
-};
-
-struct MaterialBooleanBrick
-{
-    BooleanBrick  boolean_brick;
-    MaterialBrick material_brick;
-};
-
-
-[[vk::binding(4)]] RWStructuredBuffer<MaterialBooleanBrick> in_combined_bricks[];
+[[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
 
 struct ChunkBrickStorage
 {
