@@ -1,8 +1,9 @@
 #pragma once 
 
 #include "globals.slang"
-#include "voxel_material.slang"
 #include "shared_data_structures.slang"
+#include "cube_ray.slang"
+#include "voxel_faces.slang"
 
 const static bool removeCheckLate = false;
 
@@ -12,6 +13,11 @@ const static bool removeCheckLate = false;
 
 [[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
 [[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_bricks[];
+
+[[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
+[[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
+
+
 
 
 PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
@@ -237,4 +243,160 @@ VoxelTraceResult traceDDARay(uint chunkId, float3 start, float3 end)
     // }
 
     return result;
+}
+
+
+
+float distributionGGX(float3 N, float3 H, float roughness)
+{
+    float a2    = roughness * roughness * roughness * roughness;
+    float NdotH = max(dot(N, H), 0.0);
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    return a2 / (PI * denom * denom);
+}
+
+float geometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(float3 N, float3 V, float3 L, float roughness)
+{
+    return geometrySchlickGGX(max(dot(N, L), 0.0), roughness) * geometrySchlickGGX(max(dot(N, V), 0.0), roughness);
+}
+
+float3 fresnelSchlick(float cosTheta, float3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+float3 calculatePixelColor(
+    float3              worldPos,
+    float3              N,
+    float3              V,
+    float3              L,
+    GpuRaytracedLight light,
+    PBRVoxelMaterial  material,
+    bool              includeSpecular,
+    bool              includeEmissive)
+{
+    // HACK!
+    material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
+
+    float3 H = normalize(V + L);
+
+    float3  F0  = lerp(float3(0.04), pow(material.albedo_roughness.xyz, float3(2.2)), material.emission_metallic.w);
+    float NDF = distributionGGX(N, H, material.albedo_roughness.w);
+    float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
+    float3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+    float3  kD  = float3(1.0) - F;
+
+    kD *= 1.0 - material.emission_metallic.w;
+
+    float3  numerator   = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
+    float3  specular    = numerator / max(denominator, 0.001);
+
+    if (!includeSpecular)
+    {
+        specular = float3(0.0);
+    }
+
+    float NdotL = max(dot(N, L), 0.0);
+
+    // Custom light intensity calculation with exponential falloff
+    float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
+    float lightIntensity =
+        pow(2.0, -distanceToLight / light.position_and_half_intensity_distance.w) * light.color_and_power.w;
+    lightIntensity = max(lightIntensity, 0.0);
+
+    // Calculate final color with custom light intensity
+    float3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, float3(2.2)) / PI + specular)
+               * (NdotL / distanceToLight) * lightIntensity;
+
+    if (includeEmissive)
+    {
+        color += material.emission_metallic.xyz / 8.0;
+    }
+
+    return color;
+}
+
+
+VoxelTraceResult traceSingleRayInChunk(Ray ray, float dist)
+{
+    return traceDDARay(0, ray.origin, ray.origin + ray.direction * dist);
+}
+
+float3 calculateColor(
+    float3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
+{
+    const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+
+    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner;
+
+    float3 lightColor = calculatePixelColor(
+        worldStrikePosition,
+        unpacked.normal,
+        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - worldStrikePosition),
+        normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+        light,
+        firstMaterial,
+        true,
+        true);
+
+    const VoxelTraceResult shadowResult = traceDDARay(
+        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner);
+
+    float3 calculatedColor = float3(0.0);
+
+    if (!shadowResult.intersect_occur)
+    {
+        calculatedColor += lightColor;
+        // calculatedColor *=
+        // calculatedColor = 1 - calculatedColor;
+    }
+
+    const float3 toFragmentDir = normalize(worldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
+
+    Ray giRay =
+        Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
+
+    const Cube chunk = Cube(float3(32.0f), 64.0f); // chunkspace
+    
+    if (chunk.contains(giRay.origin))
+    {
+        const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 96.0f);
+
+        if (giResult.intersect_occur)
+        {
+            // TODO: add shadow ray for secondary
+    // const VoxelTraceResult shadowResult = traceDDARay(
+    //     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner);
+
+
+            if (firstMaterial.albedo_roughness.w != 0.0)
+            {
+                const float3 reflectionColor = calculatePixelColor(
+                    giResult.chunk_local_fragment_position + in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner,
+                    giResult.voxel_normal,
+                    normalize(giRay.origin - giResult.chunk_local_fragment_position),
+                    normalize(
+                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner),
+                    light,
+                    giResult.material,
+                    false,
+                    true);
+
+                const float3 diffuseColor = firstMaterial.albedo_roughness.xyz;
+
+                calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
+            }
+
+        }
+    }
+
+    return calculatedColor;
 }
