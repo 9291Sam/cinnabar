@@ -82,6 +82,17 @@ struct BrickPointer
 /// To get VoxelMaterial id
 struct MaybeBrickOffsetOrMaterialId
 {
+    NODISCARD static MaybeBrickOffsetOrMaterialId fromMaterial(u16 material)
+    {
+        return MaybeBrickOffsetOrMaterialId(~material);
+    }
+
+
+    NODISCARD static MaybeBrickOffsetOrMaterialId fromOffset(u16 offset)
+    {
+        return MaybeBrickOffsetOrMaterialId(offset);
+    }
+    
     NODISCARD u16 getMaterial() CONST_MEMBER_FUNCTION
     {
         return ~_data;
@@ -112,6 +123,12 @@ struct IdxBrickResult
 {
     u32 idx;
     u32 bit;
+};
+
+struct BooleanBrickCompactResult
+{
+    bool is_compact;
+    bool solid_or_empty;
 };
 
 struct BooleanBrick
@@ -145,6 +162,30 @@ struct BooleanBrick
 
         return {linearIndex / 32, linearIndex % 32};
     }
+
+    NODISCARD BooleanBrickCompactResult isCompact() CONST_MEMBER_FUNCTION
+    {
+        const bool compare = ((data[0] & 1u) == 1u);
+
+        const u32 test = compare ? ~0u : 0u;
+
+        for (int i = 0; i < 16; ++i)
+        {
+            if (test != data[i])
+            {
+                return BooleanBrickCompactResult(false, false);
+            }
+        }
+
+        return BooleanBrickCompactResult(true, compare);
+    }
+
+};
+
+struct MaterialBrickCompactResult
+{
+    bool is_compact;
+    u16 voxel;
 };
 
 struct MaterialBrick
@@ -160,6 +201,27 @@ struct MaterialBrick
     NODISCARD u16 read(BrickLocalPosition p) CONST_MEMBER_FUNCTION
     {
         return data[p.x][p.y][p.z];
+    }
+
+    NODISCARD MaterialBrickCompactResult isCompact() CONST_MEMBER_FUNCTION
+    {
+        const u16 compare = data[0][0][0];
+
+        for (i32 x = 0; x < 8; ++x)
+        {
+            for (i32 y = 0; y < 8; ++y)
+            {
+                for (i32 z = 0; z < 8; ++z)
+                {
+                    if (compare != data[x][y][z])
+                    {
+                        return MaterialBrickCompactResult(false, 0);
+                    }
+                }
+            }
+        }
+        
+        return MaterialBrickCompactResult(true, compare);
     }
 };
 
@@ -189,6 +251,31 @@ struct CombinedBrick
         
         return res;
     }
+
+   NODISCARD CombinedBrickReadResult isCompact() CONST_MEMBER_FUNCTION
+    {
+        const BooleanBrickCompactResult boolCompact = boolean_brick.isCompact();
+
+        if (!boolCompact.is_compact)
+        {
+            return CombinedBrickReadResult(0, false);
+        }
+
+        if (!boolCompact.solid_or_empty)
+        {
+            return CombinedBrickReadResult(0, false);
+        }
+
+        const MaterialBrickCompactResult materialCompact = material_brick.isCompact();
+
+        if (materialCompact.is_compact)
+        {
+            return CombinedBrickReadResult(materialCompact.voxel, true);
+        }
+
+        return CombinedBrickReadResult(0, false);
+    }
+
 };
 
 struct GpuRaytracedLight

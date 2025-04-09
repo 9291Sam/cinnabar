@@ -166,6 +166,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-c++98-compat
         -Wno-c++98-compat-pedantic
         -Wno-c++20-compat
+        -Wno-c++20-extensions
         -Wno-pre-c++20-compat-pedantic
         -Wno-covered-switch-default
         -Wno-ctad-maybe-unsupported

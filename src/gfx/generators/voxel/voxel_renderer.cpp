@@ -249,13 +249,9 @@ namespace gfx::generators::voxel
     void
     VoxelRenderer::setVoxelChunkData(const VoxelChunk& c, std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
     {
-        const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
-
-        ChunkData& chunkData = this->chunk_data.modify(chunkId);
-        chunkData = {.world_chunk_corner {chunkData.world_chunk_corner}, .range_allocation {}, .brick_map {}};
-
-        u16                        nextBrickIndex = 0;
-        std::vector<CombinedBrick> newCombinedBricks {};
+        u16                            nextNonCompactedBrickIndex = 0;
+        std::vector<CombinedBrick>     nonCompactedBricks {};
+        decltype(ChunkData::brick_map) nonCompactedBrickMap {};
 
         for (const auto& [cP, v] : input)
         {
@@ -266,31 +262,83 @@ namespace gfx::generators::voxel
 
             const auto [bC, bP] = cP.split();
 
-            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = chunkData.brick_map[bC.x][bC.y][bC.z];
+            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = nonCompactedBrickMap[bC.x][bC.y][bC.z];
 
             if (maybeThisBrickOffset.isMaterial()
                 && maybeThisBrickOffset.getMaterial() == static_cast<u16>(Voxel::NullAirEmpty))
             {
-                maybeThisBrickOffset._data = nextBrickIndex;
+                maybeThisBrickOffset._data = nextNonCompactedBrickIndex;
 
-                newCombinedBricks.push_back(CombinedBrick {});
+                nonCompactedBricks.push_back(CombinedBrick {});
 
-                nextBrickIndex += 1;
+                nextNonCompactedBrickIndex += 1;
             }
 
-            newCombinedBricks.at(maybeThisBrickOffset._data).write(bP, static_cast<u16>(v));
+            nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
         }
 
-        chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(newCombinedBricks.size()));
+        std::vector<CombinedBrick>     compactedBricks {};
+        u16                            nextCompactedBrickIndex = 0;
+        decltype(ChunkData::brick_map) compactedBrickMap {};
+        for (u8 bCX = 0; bCX < 8; ++bCX)
+        {
+            for (u8 bCY = 0; bCY < 8; ++bCY)
+            {
+                for (u8 bCZ = 0; bCZ < 8; ++bCZ)
+                {
+                    MaybeBrickOffsetOrMaterialId nonCompactedMaybeOffset = nonCompactedBrickMap[bCX][bCY][bCZ];
 
-        log::trace("Bricks: {} | Offset: {}", newCombinedBricks.size(), chunkData.range_allocation.offset);
+                    if (nonCompactedMaybeOffset.isPointer())
+                    {
+                        const CombinedBrick& maybeCompactBrick = nonCompactedBricks[nonCompactedMaybeOffset._data];
 
-        if (!newCombinedBricks.empty())
+                        const CombinedBrickReadResult compactionResult = maybeCompactBrick.isCompact();
+
+                        if (compactionResult.solid)
+                        {
+                            compactedBrickMap[bCX][bCY][bCZ] =
+                                MaybeBrickOffsetOrMaterialId::fromMaterial(compactionResult.voxel);
+                        }
+                        else
+                        {
+                            compactedBrickMap[bCX][bCY][bCZ] =
+                                MaybeBrickOffsetOrMaterialId::fromOffset(nextCompactedBrickIndex);
+
+                            compactedBricks.push_back(maybeCompactBrick);
+
+                            nextCompactedBrickIndex += 1;
+                        }
+                    }
+                    else if (nonCompactedMaybeOffset.getMaterial() != static_cast<u16>(Voxel::NullAirEmpty))
+                    {
+                        log::warn("erm what");
+
+                        compactedBrickMap[bCX][bCY][bCZ] = nonCompactedMaybeOffset;
+                    }
+                }
+            }
+        }
+
+        const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
+
+        ChunkData& chunkData = this->chunk_data.modify(chunkId);
+        chunkData = {.world_chunk_corner {chunkData.world_chunk_corner}, .range_allocation {}, .brick_map {}};
+        std::memcpy(&chunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(ChunkData::brick_map));
+
+        chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
+
+        log::trace(
+            "Bricks: {}/{} | Offset: {}",
+            compactedBricks.size(),
+            nonCompactedBricks.size(),
+            chunkData.range_allocation.offset);
+
+        if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(
                 this->combined_bricks,
                 chunkData.range_allocation.offset,
-                {newCombinedBricks.data(), newCombinedBricks.size()});
+                {compactedBricks.data(), compactedBricks.size()});
         }
     }
 

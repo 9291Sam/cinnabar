@@ -50,9 +50,11 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        for (i32 cX = -2; cX <= 2; ++cX)
+        const i32 dim = 0;
+
+        for (i32 cX = -dim; cX <= dim; ++cX)
         {
-            for (i32 cZ = -2; cZ <= 2; ++cZ)
+            for (i32 cZ = -dim; cZ <= dim; ++cZ)
             {
                 std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
                                                                newVoxels {};

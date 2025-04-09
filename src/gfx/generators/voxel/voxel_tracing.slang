@@ -78,6 +78,45 @@ VoxelTraceResult VoxelTraceResult_getMiss(uint steps)
         false, float3(0.0), int3(0), float3(0.0), float3(0.0), 0.0, steps, PBRVoxelMaterial(float4(0.0), float4(0.0)));
 }
 
+VoxelTraceResult strikeBlockImmediate(u16 material, float3 rayPos, float3 rayDir, float3 iMask)
+{
+    rayPos         = clamp(rayPos, float3(0.0001), float3(7.9999));
+    float3 mapPos    = floor(rayPos);
+    float3 raySign   = sign(rayDir);
+    float3 deltaDist = 1.0 / rayDir;
+    float3 sideDist  = ((mapPos - rayPos) + 0.5 + raySign * 0.5) * deltaDist;
+    float3 mask      = iMask;
+
+   
+    float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
+    float d         = max(mini.x, max(mini.y, mini.z));
+    float3  intersect = rayPos + rayDir * d;
+    float3  uv3d      = intersect - mapPos;
+
+    if (all(mapPos == floor(rayPos))) // Handle edge case where camera origin is inside ofblock block
+    {
+        uv3d = rayPos - mapPos;
+    }
+
+    float3 normal = float3(0.0);
+    if (mini.x > mini.y && mini.x > mini.z)
+    {
+        normal.x = -raySign.x;
+    }
+    else if (mini.y > mini.z)
+    {
+        normal.y = -raySign.y;
+    }
+    else
+    {
+        normal.z = -raySign.z;
+    }
+
+    return VoxelTraceResult(
+        true, intersect, int3(mapPos), normal, uv3d, d, 0, in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(material)]);
+
+}
+
 VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, float3 iMask)
 {
     rayPos         = clamp(rayPos, float3(0.0001), float3(7.9999));
@@ -146,7 +185,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
     for (i = 0; i < 32; i++)
     {
         MaybeBrickOffsetOrMaterialId brick = tryLoadBrickFromChunkAndCoordinate(chunk, int3(mapPos));
-        if (brick.isPointer())
+        if (brick.getMaterial() != 0)
         {
             float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
             float d         = max(mini.x, max(mini.y, mini.z));
@@ -158,7 +197,15 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
                 uv3d = rayPos - mapPos;
             }
 
-            VoxelTraceResult result = traceBlock(brick.getPointer(chunk), uv3d * 8.0, rayDir, mask);
+            VoxelTraceResult result;
+            if (brick.isMaterial())
+            {
+                result = strikeBlockImmediate(brick.getMaterial(), uv3d * 8.0, rayDir, mask);
+            }
+            else
+            {
+                result = traceBlock(brick.getPointer(chunk), uv3d * 8.0, rayDir, mask);
+            }
 
             extra_steps += result.steps;
 
@@ -184,10 +231,6 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
                     extra_steps + i + 1,
                     result.material);
             }
-        }
-        else {
-            // Brick is material!
-            #warning implement
         }
 
         if (any(mapPos < float3(-1.1)) || any(mapPos > float3(8.1)))
