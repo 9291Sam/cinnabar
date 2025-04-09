@@ -55,7 +55,7 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 
 
         //     const PBRVoxelMaterial material = getMaterialFromPosition( // TODO: bad!
-        //         in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].offset, bP);
+        //         in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].range_allocation.offset, bP);
 
         //             const float3 calculatedColor = calculateColor(chunkStrikePosition, material, unpacked);
 

@@ -92,7 +92,7 @@ struct FragmentOutput
 [shader("fragment")]
 FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negative_corner : COLOR1, u32 chunkId)
 {
-    if (in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].offset == ~0u)
+    if (in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].range_allocation.offset == ~0u)
     {
         discard;
     }

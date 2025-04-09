@@ -17,7 +17,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     const int2 thisPixel           = int2(threadId.xy);
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size)
-        && sizeof(ChunkData) == 1040)
+        && sizeof(ChunkData) == 1056)
     {
         const float4 rawPixelData        = visible_voxel_image[SIO_VOXEL_RENDER_TARGET].Load(thisPixel);
         const float3 worldStrikePosition = rawPixelData.xyz;
@@ -33,7 +33,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
             const uint3 bP = unpacked.position_in_chunk % 8;
 
             const PBRVoxelMaterial material = getMaterialFromPosition( 
-                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].offset, bP);
+                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].range_allocation.offset, bP);
  
             const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
 

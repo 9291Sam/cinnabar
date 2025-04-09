@@ -31,8 +31,8 @@ namespace util
 
     struct RangeAllocation
     {
-        u32 offset;
-        u32 metadata;
+        u32 offset   = ~0u;
+        u32 metadata = ~0u;
     };
 
     // sane wrapper around sebbbi's offset allocator to make it actually rule of
@@ -55,8 +55,7 @@ namespace util
         RangeAllocator& operator= (const RangeAllocator&) = delete;
         RangeAllocator& operator= (RangeAllocator&&) noexcept;
 
-        [[nodiscard]] RangeAllocation
-        allocate(u32 size, std::source_location = std::source_location::current());
+        [[nodiscard]] RangeAllocation allocate(u32 size, std::source_location = std::source_location::current());
         [[nodiscard]] std::expected<RangeAllocation, OutOfBlocks> tryAllocate(u32 size);
 
         [[nodiscard]] u32                 getSizeOfAllocation(RangeAllocation) const;

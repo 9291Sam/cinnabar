@@ -4,6 +4,7 @@
     #include "util/util.hpp"
     #include <glm/vec3.hpp>
     #include <glm/vec4.hpp>
+    // #include "util/allocators/range_allocator.hpp"
     
     #define float3 glm::vec3
     #define float4 glm::vec4
@@ -20,6 +21,15 @@
     #define INLINE
 
     typedef uint3 BrickLocalPosition;
+
+    namespace util
+    {
+        struct RangeAllocation
+        {
+            u32 offset   = ~0u;
+            u32 metadata = ~0u;
+        };
+    }
 
 #endif // __cplusplus
 
@@ -178,7 +188,10 @@ struct GpuColorHashMapNode
 struct ChunkData
 {
     float3 world_chunk_corner = {0.0f, 0.0f, 0.0f};
-    u32 offset = ~0u;
+    u32 align_0;
+    util::RangeAllocation range_allocation;
+    u32 align_1;
+    u32 align_2;
     MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
 };
 

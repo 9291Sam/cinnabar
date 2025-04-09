@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <array>
