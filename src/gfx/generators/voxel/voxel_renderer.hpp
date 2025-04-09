@@ -7,6 +7,7 @@
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
+#include "util/allocators/range_allocator.hpp"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -31,19 +32,22 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        // void createVo()
+        VoxelChunk createVoxelChunk(glm::vec3);
+        void       destroyVoxelChunk(VoxelChunk);
 
-        void onFrameUpdate();
+        void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+
+        void preFrameUpdate();
 
         void recordCopyCommands(vk::CommandBuffer);
         void recordPrepass(vk::CommandBuffer, const Camera&);
         void recordColorCalculation(vk::CommandBuffer);
         void recordColorTransfer(vk::CommandBuffer);
 
-        void                         setLightInformation(GpuRaytracedLight);
-        void                         setAnimationTime(f32) const;
-        void                         setAnimationNumber(u32) const;
-        std::span<const std::string> getAnimationNames() const;
+        void setLightInformation(GpuRaytracedLight);
+        // void                         setAnimationTime(f32) const;
+        // void                         setAnimationNumber(u32) const;
+        // std::span<const std::string> getAnimationNames() const;
 
 
     private:
@@ -52,23 +56,26 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
-        gfx::core::vulkan::GpuOnlyBuffer<ChunkData>          chunk_data;
-        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>  lights;
-        gfx::core::vulkan::GpuOnlyBuffer<CombinedBrick>      combined_bricks;
-        gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> materials;
+        util::OpaqueHandleAllocator<VoxelChunk>       chunk_allocator;
+        gfx::core::vulkan::CpuCachedBuffer<ChunkData> chunk_data;
+
+        util::RangeAllocator                            brick_allocator;
+        gfx::core::vulkan::GpuOnlyBuffer<CombinedBrick> combined_bricks;
 
         gfx::core::vulkan::GpuOnlyBuffer<GpuColorHashMapNode> face_hash_map;
+        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>   lights;
+        gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial>  materials;
 
-        mutable std::atomic<f32> last_frame_time;
-        mutable std::atomic<u32> demo_index;
+        // mutable std::atomic<f32> last_frame_time;
+        // mutable std::atomic<u32> demo_index;
 
-        struct Demo
-        {
-            AnimatedVoxelModel                                              model;
-            util::Fn<glm::u32vec3(glm::u32vec3, const AnimatedVoxelModel&)> sampler;
-        };
+        // struct Demo
+        // {
+        //     AnimatedVoxelModel                                              model;
+        //     util::Fn<glm::u32vec3(glm::u32vec3, const AnimatedVoxelModel&)> sampler;
+        // };
 
-        std::vector<Demo>        demos;
-        std::vector<std::string> names;
+        // std::vector<Demo>        demos;
+        // std::vector<std::string> names;
     };
 } // namespace gfx::generators::voxel

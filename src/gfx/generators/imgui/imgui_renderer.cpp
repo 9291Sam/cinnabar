@@ -326,43 +326,43 @@ namespace gfx::generators::imgui
                 renderer->getWindow()->attachCursor();
             }
 
-            if (this->raw_animation_name_strings.empty())
-            {
-                // TODO: have a version that warns on error
-                std::optional v = util::receive<std::vector<std::string>>("AllAnimationNames");
+            // if (this->raw_animation_name_strings.empty())
+            // {
+            //     // TODO: have a version that warns on error
+            //     std::optional v = util::receive<std::vector<std::string>>("AllAnimationNames");
 
-                assert::critical(v.has_value(), "oop");
+            //     assert::critical(v.has_value(), "oop");
 
-                this->owned_animation_name_strings = std::move(*v);
+            //     this->owned_animation_name_strings = std::move(*v);
 
-                int iters = 0;
-                for (const std::string& s : this->owned_animation_name_strings)
-                {
-                    if (s == "Cornel Box")
-                    {
-                        this->animation_combo_box_value = iters;
-                        util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
-                    }
-                    this->raw_animation_name_strings.push_back(s.c_str());
+            //     int iters = 0;
+            //     for (const std::string& s : this->owned_animation_name_strings)
+            //     {
+            //         if (s == "Cornel Box")
+            //         {
+            //             this->animation_combo_box_value = iters;
+            //             util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
+            //         }
+            //         this->raw_animation_name_strings.push_back(s.c_str());
 
-                    iters++;
-                }
-            }
+            //         iters++;
+            //     }
+            // }
 
-            if (ImGui::Combo(
-                    "Animation",
-                    &this->animation_combo_box_value,
-                    raw_animation_name_strings.data(),
-                    static_cast<int>(raw_animation_name_strings.size())))
-            {
-                util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
-                util::send<f32>("SetAnimationTime", 0.0f);
-            }
+            // if (ImGui::Combo(
+            //         "Animation",
+            //         &this->animation_combo_box_value,
+            //         raw_animation_name_strings.data(),
+            //         static_cast<int>(raw_animation_name_strings.size())))
+            // {
+            //     util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
+            //     util::send<f32>("SetAnimationTime", 0.0f);
+            // }
 
-            if (ImGui::Button("Restart Animation"))
-            {
-                util::send<f32>("SetAnimationTime", 0.0f);
-            }
+            // if (ImGui::Button("Restart Animation"))
+            // {
+            //     util::send<f32>("SetAnimationTime", 0.0f);
+            // }
 
             if (this->owned_present_mode_strings.empty())
             {

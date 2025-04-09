@@ -130,32 +130,59 @@ namespace util
         Fn fn;
     };
 
-    template<class I>
-    I divideEuclidean(I lhs, I rhs) // NOLINT
-    {
-        const I quotient = lhs / rhs;
+    // template<class I>
+    // I divideEuclidean(I lhs, I rhs) // NOLINT
+    // {
+    //     const I quotient = lhs / rhs;
 
-        if (lhs % rhs < 0)
+    //     if (lhs % rhs < 0)
+    //     {
+    //         return rhs > 0 ? quotient - 1 : quotient + 1;
+    //     }
+
+    //     return quotient;
+    // }
+
+    // template<class I>
+    // I moduloEuclidean(I lhs, I rhs)
+    // {
+    //     const I remainder = lhs % rhs;
+
+    //     if (remainder < 0)
+    //     {
+    //         return rhs > 0 ? remainder + rhs : remainder - rhs;
+    //     }
+
+    //     return remainder;
+    // }
+
+    inline i32 moduloEuclideani32(i32 lhs, i32 rhs)
+    {
+        if (lhs < 0)
         {
-            return rhs > 0 ? quotient - 1 : quotient + 1;
+            lhs += (-lhs / rhs + 1) * rhs;
         }
 
-        return quotient;
-    }
-
-    template<class I>
-    I moduloEuclidean(I lhs, I rhs)
-    {
-        const I remainder = lhs % rhs;
-
+        const i32 remainder = lhs % rhs;
         if (remainder < 0)
         {
             return rhs > 0 ? remainder + rhs : remainder - rhs;
         }
-
         return remainder;
     }
 
+    inline i32 divideEuclideani32(i32 lhs, i32 rhs)
+    {
+        int quotient  = lhs / rhs;
+        int remainder = lhs % rhs;
+
+        if (remainder != 0 && ((rhs < 0) != (lhs < 0)))
+        {
+            quotient -= 1;
+        }
+
+        return quotient;
+    }
     template<class T>
     [[nodiscard]] T map(T x, T inMin, T inMax, T outMin, T outMax)
     {

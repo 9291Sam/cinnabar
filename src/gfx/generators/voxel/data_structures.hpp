@@ -156,7 +156,18 @@ namespace gfx::generators::voxel
                 aC.asVector() * static_cast<i32>(ChunkSizeVoxels) + static_cast<glm::i32vec3>(cP.asVector())};
         }
 
-        [[nodiscard]] std::pair<AlignedChunkCoordinate, ChunkLocalPosition> splitIntoAlignedChunk() const {}
+        [[nodiscard]] std::pair<AlignedChunkCoordinate, ChunkLocalPosition> splitIntoAlignedChunk() const
+        {
+            return {
+                AlignedChunkCoordinate {
+                    {util::divideEuclideani32(this->x, static_cast<i32>(ChunkSizeVoxels)),
+                     util::divideEuclideani32(this->y, static_cast<i32>(ChunkSizeVoxels)),
+                     util::divideEuclideani32(this->z, static_cast<i32>(ChunkSizeVoxels))}},
+                ChunkLocalPosition {
+                    {util::moduloEuclideani32(this->x, static_cast<i32>(ChunkSizeVoxels)),
+                     util::moduloEuclideani32(this->y, static_cast<i32>(ChunkSizeVoxels)),
+                     util::moduloEuclideani32(this->z, static_cast<i32>(ChunkSizeVoxels))}}};
+        }
     };
 
 // NOLINTNEXTLINE(unused-includes) HACK

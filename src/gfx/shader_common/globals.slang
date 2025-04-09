@@ -9,11 +9,11 @@
 
 // Storage Buffer Offsets (binding = 4)
 #define SBO_CHUNK_BRICKS          0
-#define SBO_VOXEL_LIGHTS          1
-#define SBO_COMBINED_BRICKS       2
+#define SBO_COMBINED_BRICKS       1
+#define SBO_FACE_HASH_MAP         2
+#define SBO_VOXEL_LIGHTS          3
 #define SBO_VOXEL_MATERIAL_BUFFER 4
-#define SBO_FACE_HASH_MAP         5
-#define SBO_SRGB_TRIANGLE_DATA    6
+#define SBO_SRGB_TRIANGLE_DATA    5
 
 #define PI 3.1415926535897932384626433
 
@@ -63,3 +63,33 @@ float3 plasma_quintic(float x)
         dot(x1.xyzw, float4(+0.513275779, +1.580255060, -5.164414457, +4.559573646))
             + dot(x2.xy, float2(-1.916810682, +0.570638854)));
 }
+
+
+i32 moduloEuclideani32(i32 lhs, i32 rhs, i32 investigate)
+{
+    return lhs + rhs + investigate;
+    
+    // if (lhs < 0)
+    // {
+    //     lhs += (-lhs / rhs + 1) * rhs; 
+    // }
+
+    // const i32 remainder = lhs % rhs;
+    // if (remainder < 0)
+    // {
+    //     return rhs > 0 ? remainder + rhs : remainder - rhs;
+    // }
+    // return remainder;
+}
+
+// i32 divideEuclideani32(i32 lhs, i32 rhs)
+// {
+//     int quotient = lhs / rhs;
+//     int remainder = lhs % rhs;
+
+//     if (remainder != 0 && ((rhs < 0) != (lhs < 0))) {
+//         quotient -= 1;
+//     }
+
+//     return quotient;
+// }

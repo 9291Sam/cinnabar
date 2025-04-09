@@ -48,7 +48,7 @@ namespace gfx
 
         if (generators.maybe_voxel_renderer != nullptr)
         {
-            generators.maybe_voxel_renderer->onFrameUpdate();
+            generators.maybe_voxel_renderer->preFrameUpdate();
         }
 
         this->has_resize_ocurred = this->renderer->recordOnThread(

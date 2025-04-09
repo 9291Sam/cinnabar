@@ -92,6 +92,10 @@ struct FragmentOutput
 [shader("fragment")]
 FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negative_corner : COLOR1, u32 chunkId)
 {
+    if (in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].offset == ~0u)
+    {
+        discard;
+    }
 
     const Cube chunkBoundingCube = Cube(in_cube_negative_corner + 32, 64);
     const float3 camera_position = global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz;

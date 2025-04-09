@@ -417,7 +417,7 @@ namespace gfx::core::vulkan
     public:
 
         CpuCachedBuffer(
-            const Renderer*         renderer,
+            const Renderer*         renderer_,
             vk::BufferUsageFlags    usage_,
             vk::MemoryPropertyFlags memoryPropertyFlags,
             std::size_t             elements_,
@@ -425,7 +425,7 @@ namespace gfx::core::vulkan
             std::optional<u8>       maybeDescriptorBindingLocation,
             std::source_location    loc = std::source_location::current())
             : gfx::core::vulkan::WriteOnlyBuffer<T> {
-                  renderer,
+                  renderer_,
                   usage_,
                   memoryPropertyFlags,
                   elements_,
@@ -436,7 +436,7 @@ namespace gfx::core::vulkan
             assert::warn(
                 static_cast<bool>(vk::BufferUsageFlagBits::eTransferDst | usage_),
                 "Creating CpuCachedBuffer<{}> without vk::BufferUsageFlagBits::eTransferDst",
-                util::getNameOfType<T>({}));
+                util::getNameOfType<T>());
 
             this->cpu_buffer.resize(this->elements);
         }

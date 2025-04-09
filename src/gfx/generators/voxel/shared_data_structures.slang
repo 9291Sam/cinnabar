@@ -177,9 +177,9 @@ struct GpuColorHashMapNode
 
 struct ChunkData
 {
-    float3 world_chunk_corner;
-    u32 offset;
-    MaybeBrickOffsetOrMaterialId brick_map[8][8][8];
+    float3 world_chunk_corner = {0.0f, 0.0f, 0.0f};
+    u32 offset = ~0u;
+    MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
 };
 
 
