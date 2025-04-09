@@ -36,6 +36,7 @@ CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
 CPMAddPackage("gh:ocornut/imgui#v1.91.8")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
+CPMAddPackage("gh:Auburn/FastNoise2#v0.10.0-alpha")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS)
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
@@ -156,6 +157,7 @@ target_link_libraries(cinnabar PUBLIC
     Boost::sort
     Boost::pool
     imgui_build_target
+    FastNoise2
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
