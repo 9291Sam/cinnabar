@@ -6,6 +6,7 @@
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
+#include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -19,6 +20,8 @@ namespace gfx::generators::voxel
     class VoxelRenderer
     {
     public:
+        using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u32>;
+    public:
 
         explicit VoxelRenderer(const core::Renderer*);
         ~VoxelRenderer();
@@ -27,6 +30,8 @@ namespace gfx::generators::voxel
         VoxelRenderer(VoxelRenderer&&)                  = delete;
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
+
+        // void createVo()
 
         void onFrameUpdate();
 

@@ -30,7 +30,7 @@ VertexOutput vertexMain(uint VertexIndex : SV_VertexID)
     const float scale                    = 10.0;
 
     const float4 world_vertex_coordinate = mul(
-        global_gpu_data[0].view_projection_matrix,
+        global_gpu_data[UBO_GLOBAL_DATA].view_projection_matrix,
         float4(in_position_buffers[6][triangle_id] + trianglePositions[position_within_triangle] * scale, 1.0)
     );
 

@@ -56,15 +56,17 @@ struct VertexOutput
 {
     float3 world_position : COLOR0;
     float3 out_negative_corner : COLOR1;
+    u32 chunk_id : COLOR2;
     float4 position : SV_Position;
 }
 
 [shader("vertex")]
 VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 {
+    const uint chunkId = vertexIndex / 36;
     const float voxel_size      = 64.0;
 
-    const float3 box_corner_negative = in_const_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner;
+    const float3 box_corner_negative = in_const_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner;
     const float3 center_location = box_corner_negative + voxel_size / 2.0;
     const float3 box_corner_positive = box_corner_negative + float3(voxel_size);
 
@@ -73,8 +75,9 @@ VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 
     VertexOutput o;
 
-    o.position            = mul(global_gpu_data[0].view_projection_matrix, float4(world_location, 1.0));
+    o.position            = mul(global_gpu_data[UBO_GLOBAL_DATA].view_projection_matrix, float4(world_location, 1.0));
     o.world_position      = world_location;
+    o.chunk_id = chunkId;
     o.out_negative_corner = box_corner_negative;
     
     return o;
@@ -87,10 +90,8 @@ struct FragmentOutput
 };
 
 [shader("fragment")]
-FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negative_corner : COLOR1)
+FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negative_corner : COLOR1, u32 chunkId)
 {
-
-    const u32 chunkId = 0;
 
     const Cube chunkBoundingCube = Cube(in_cube_negative_corner + 32, 64);
     const float3 camera_position = global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz;
@@ -116,7 +117,7 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
     // TODO: hone this further and see if you can get rid of some bounds checks in the traversal shader
     const float3 traversalRayEnd = traversalRayStart + dir * WorldBoundingCubeIntersection.t_far;
 
-    const VoxelTraceResult result = traceDDARay(0, traversalRayStart, traversalRayEnd);
+    const VoxelTraceResult result = traceDDARay(chunkId, traversalRayStart, traversalRayEnd);
 
     float3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_negative_corner;
   

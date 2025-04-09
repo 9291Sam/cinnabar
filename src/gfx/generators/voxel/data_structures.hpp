@@ -4,6 +4,7 @@
 #include "util/util.hpp"
 #include <array>
 #include <glm/ext/vector_uint3_sized.hpp>
+#include <glm/fwd.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <limits>
@@ -100,12 +101,12 @@ namespace gfx::generators::voxel
         }
     };
 
-    /// Represents the position of a single voxel in world space
-    struct WorldPosition : public VoxelCoordinateBase<
-                               WorldPosition,
-                               glm::i32vec3,
-                               std::numeric_limits<i32>::min(),
-                               std::numeric_limits<i32>::max()>
+    /// Represents the position of a single chun in world
+    struct AlignedChunkCoordinate : public VoxelCoordinateBase<
+                                        AlignedChunkCoordinate,
+                                        glm::i32vec3,
+                                        std::numeric_limits<i32>::min(),
+                                        std::numeric_limits<i32>::max()>
     {
         using VoxelCoordinateBase::VoxelCoordinateBase;
     };
@@ -135,9 +136,27 @@ namespace gfx::generators::voxel
         [[nodiscard]] std::pair<BrickCoordinate, BrickLocalPosition> split() const
         {
             return {
-                BrickCoordinate {this->asVector() / ChunkSizeBricks},
-                BrickLocalPosition {this->asVector() % ChunkSizeBricks}};
+                BrickCoordinate {this->asVector() / BrickSizeVoxels},
+                BrickLocalPosition {this->asVector() % BrickSizeVoxels}};
         }
+    };
+
+    /// Represents the position of a single voxel in world space
+    struct WorldPosition : public VoxelCoordinateBase<
+                               WorldPosition,
+                               glm::i32vec3,
+                               std::numeric_limits<i32>::min(),
+                               std::numeric_limits<i32>::max()>
+    {
+        using VoxelCoordinateBase::VoxelCoordinateBase;
+
+        static WorldPosition assemble(AlignedChunkCoordinate aC, ChunkLocalPosition cP)
+        {
+            return WorldPosition {
+                aC.asVector() * static_cast<i32>(ChunkSizeVoxels) + static_cast<glm::i32vec3>(cP.asVector())};
+        }
+
+        [[nodiscard]] std::pair<AlignedChunkCoordinate, ChunkLocalPosition> splitIntoAlignedChunk() const {}
     };
 
 // NOLINTNEXTLINE(unused-includes) HACK

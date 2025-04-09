@@ -167,7 +167,7 @@ namespace gfx::generators::voxel
 
             std::vector<CombinedBrick> newCombinedBricks {};
 
-            ChunkData newChunk {.world_chunk_corner {-16.0f, -16.0f, -16.0f}};
+            ChunkData newChunk {.world_chunk_corner {-16.0f, -16.0f, -16.0f}, .offset {0}, .brick_map {}};
 
             u16 nextBrickIndex = 0;
 

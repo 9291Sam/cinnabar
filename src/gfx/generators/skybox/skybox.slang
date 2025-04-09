@@ -296,16 +296,16 @@ float3 atmosphere(float3 ro, float3 rd, float3 sd)
     : COLOR0
 {
     const float3 rayDir = normalize(
-        float3(global_gpu_data[0].camera_forward_vector.xyz)
-        + ndc.x * float3(global_gpu_data[0].camera_right_vector.xyz) * global_gpu_data[0].aspect_ratio
-              * global_gpu_data[0].tan_half_fov_y
-        + ndc.y * float3(global_gpu_data[0].camera_up_vector.xyz) * global_gpu_data[0].tan_half_fov_y);
+        float3(global_gpu_data[UBO_GLOBAL_DATA].camera_forward_vector.xyz)
+        + ndc.x * float3(global_gpu_data[UBO_GLOBAL_DATA].camera_right_vector.xyz) * global_gpu_data[UBO_GLOBAL_DATA].aspect_ratio
+              * global_gpu_data[UBO_GLOBAL_DATA].tan_half_fov_y
+        + ndc.y * float3(global_gpu_data[UBO_GLOBAL_DATA].camera_up_vector.xyz) * global_gpu_data[UBO_GLOBAL_DATA].tan_half_fov_y);
 
     float3 sunDir = normalize(float3(-1.0, 0.0, 0.0));
-    float  time   = global_gpu_data[0].time_alive / 10;
+    float  time   = global_gpu_data[UBO_GLOBAL_DATA].time_alive / 10;
     sunDir        = normalize(float3(0.0, sin(time), -cos(time)));
 
-    const float3 cloudColor      = Sky(float3(0.0), rayDir, global_gpu_data[0].time_alive, sunDir);
+    const float3 cloudColor      = Sky(float3(0.0), rayDir, global_gpu_data[UBO_GLOBAL_DATA].time_alive, sunDir);
     const float3 atmosphereColor = atmosphere(float3(0.0), rayDir, sunDir);
 
     // discard;

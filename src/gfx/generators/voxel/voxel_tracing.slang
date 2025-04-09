@@ -325,17 +325,18 @@ float3 calculatePixelColor(
 }
 
 
-VoxelTraceResult traceSingleRayInChunk(Ray ray, float dist)
+VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
 {
-    return traceDDARay(0, ray.origin, ray.origin + ray.direction * dist);
+    return traceDDARay(chunkId, ray.origin, ray.origin + ray.direction * dist);
 }
 
 float3 calculateColor(
+    uint chunkId, 
     float3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner;
+    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner;
 
     float3 lightColor = calculatePixelColor(
         worldStrikePosition,
@@ -348,7 +349,7 @@ float3 calculateColor(
         true);
 
     const VoxelTraceResult shadowResult = traceDDARay(
-        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner);
+        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
 
     float3 calculatedColor = float3(0.0);
 
@@ -368,23 +369,23 @@ float3 calculateColor(
     
     if (chunk.contains(giRay.origin))
     {
-        const VoxelTraceResult giResult = traceSingleRayInChunk(giRay, 96.0f);
+        const VoxelTraceResult giResult = traceSingleRayInChunk(chunkId, giRay, 96.0f);
 
         if (giResult.intersect_occur)
         {
             // TODO: add shadow ray for secondary
     // const VoxelTraceResult shadowResult = traceDDARay(
-    //     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner);
+    //     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
 
 
             if (firstMaterial.albedo_roughness.w != 0.0)
             {
                 const float3 reflectionColor = calculatePixelColor(
-                    giResult.chunk_local_fragment_position + in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner,
+                    giResult.chunk_local_fragment_position + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner,
                     giResult.voxel_normal,
                     normalize(giRay.origin - giResult.chunk_local_fragment_position),
                     normalize(
-                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_bricks[SBO_CHUNK_BRICKS][0].world_chunk_corner),
+                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner),
                     light,
                     giResult.material,
                     false,
