@@ -13,8 +13,7 @@ namespace gfx::core::vulkan
 
     struct GraphicsPipelineDescriptor
     {
-        std::string           vertex_shader_path;
-        std::string           fragment_shader_path;
+        std::string           shader_path;
         vk::PrimitiveTopology topology;
         vk::PolygonMode       polygon_mode;
         vk::CullModeFlags     cull_mode;

@@ -33,8 +33,7 @@ namespace gfx::generators::voxel
         : renderer {renderer_}
         , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_prepass.slang"},
-                  .fragment_shader_path {"src/gfx/generators/voxel/voxel_prepass.frag"},
+                  .shader_path {"src/gfx/generators/voxel/voxel_prepass.slang"},
                   .topology {vk::PrimitiveTopology::eTriangleList},
                   .polygon_mode {vk::PolygonMode::eFill},
                   .cull_mode {vk::CullModeFlagBits::eBack},
@@ -53,8 +52,7 @@ namespace gfx::generators::voxel
                   .name {"Voxel Color Calculation"}})}
         , color_transfer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::GraphicsPipelineDescriptor {
-                  .vertex_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.slang"},
-                  .fragment_shader_path {"src/gfx/generators/voxel/voxel_color_transfer.frag"},
+                  .shader_path {"src/gfx/generators/voxel/voxel_color_transfer.slang"},
                   .topology {vk::PrimitiveTopology::eTriangleList},
                   .polygon_mode {vk::PolygonMode::eFill},
                   .cull_mode {vk::CullModeFlagBits::eNone},

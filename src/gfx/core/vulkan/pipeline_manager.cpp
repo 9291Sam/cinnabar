@@ -228,13 +228,13 @@ namespace gfx::core::vulkan
         vk::UniqueShaderModule                                                         fragmentShader;
         std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
 
-        assert::critical(descriptor.vertex_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+        assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
         std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
             this->sane_slang_compiler.lock(
                 [&](cfi::SaneSlangCompiler& c)
                 {
-                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.vertex_shader_path));
+                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
                 });
 
         if (!maybeCompiledCode.has_value())
