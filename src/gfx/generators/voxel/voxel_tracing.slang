@@ -5,10 +5,6 @@
 #include "cube_ray.slang"
 #include "voxel_faces.slang"
 
-const static bool removeCheckLate = false;
-
-
-
 [[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
 
 [[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
@@ -27,19 +23,14 @@ PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
     return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
 }
 
-uint tryLoadBrickFromChunkAndCoordinate(uint chunk, uint3 bC)
+MaybeBrickOffsetOrMaterialId tryLoadBrickFromChunkAndCoordinate(uint chunk, uint3 bC)
 {
-    if (removeCheckLate || (all(bC >= int3(0)) && all(bC <= int3(7))))
+    if (all(bC >= int3(0)) && all(bC <= int3(7)))
     {
-        const MaybeBrickOffsetOrMaterialId brickPointer = in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].brick_map[bC.x][bC.y][bC.z];
-
-        if (brickPointer.isPointer())
-        {
-            return brickPointer.data;
-        }
+        return in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].brick_map[bC.x][bC.y][bC.z];       
     }
 
-    return ~0u;
+    return MaybeBrickOffsetOrMaterialId();
 }
 
 bool loadVoxelFromBrick(uint brickPointer, int3 c)
@@ -161,8 +152,8 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
     int i;
     for (i = 0; i < 32; i++)
     {
-        u32 brick = tryLoadBrickFromChunkAndCoordinate(chunk, int3(mapPos));
-        if (brick != ~0u)
+        MaybeBrickOffsetOrMaterialId brick = tryLoadBrickFromChunkAndCoordinate(chunk, int3(mapPos));
+        if (brick.isPointer())
         {
             float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
             float d         = max(mini.x, max(mini.y, mini.z));
@@ -174,7 +165,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
                 uv3d = rayPos - mapPos;
             }
 
-            VoxelTraceResult result = traceBlock(brick, uv3d * 8.0, rayDir, mask);
+            VoxelTraceResult result = traceBlock(brick.data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].range_allocation.offset, uv3d * 8.0, rayDir, mask);
 
             extra_steps += result.steps;
 
@@ -200,6 +191,10 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
                     extra_steps + i + 1,
                     result.material);
             }
+        }
+        else {
+            // Brick is material!
+            #warning implement
         }
 
         if (any(mapPos < float3(-1.1)) || any(mapPos > float3(8.1)))

@@ -72,15 +72,18 @@ struct TemporaryGameState : game::Game::GameState
                     }
                 }
 
-                for (u8 x = 24; x < 40; ++x)
+                if (cX != -2)
                 {
-                    for (u8 y = 0; y < 22; ++y)
+                    for (u8 x = 24; x < 40; ++x)
                     {
-                        for (u8 z = 24; z < 40; ++z)
+                        for (u8 y = 0; y < 22; ++y)
                         {
-                            newVoxels.push_back(
-                                {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, y, z}},
-                                 gfx::generators::voxel::Voxel::Cobalt});
+                            for (u8 z = 24; z < 40; ++z)
+                            {
+                                newVoxels.push_back(
+                                    {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, y, z}},
+                                     gfx::generators::voxel::Voxel::Cobalt});
+                            }
                         }
                     }
                 }
