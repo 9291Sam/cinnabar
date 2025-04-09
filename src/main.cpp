@@ -14,6 +14,7 @@
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "slang_compiler.hpp"
 #include "util/events.hpp"
@@ -49,36 +50,46 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        this->chunk  = this->voxel_renderer.createVoxelChunk({-16.0f, -16.0f, -16.0f});
-        this->chunk2 = this->voxel_renderer.createVoxelChunk({-80.0f, -16.0f, -16.0f});
-
-        std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>> newVoxels {};
-
-        for (u8 x = 0; x < 64; ++x)
+        for (i32 cX = -2; cX <= 2; ++cX)
         {
-            for (u8 z = 0; z < 64; ++z)
+            for (i32 cZ = -2; cZ <= 2; ++cZ)
             {
-                newVoxels.push_back(
-                    {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, 0, z}},
-                     gfx::generators::voxel::Voxel::Ruby});
-            }
-        }
+                std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
+                                                               newVoxels {};
+                gfx::generators::voxel::AlignedChunkCoordinate aC {cX, -1, cZ};
 
-        for (u8 x = 24; x < 40; ++x)
-        {
-            for (u8 y = 0; y < 8; ++y)
-            {
-                for (u8 z = 24; z < 40; ++z)
+                gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(
+                    gfx::generators::voxel::WorldPosition::assemble(aC, {}).asVector());
+
+                for (u8 x = 0; x < 64; ++x)
                 {
-                    newVoxels.push_back(
-                        {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, y, z}},
-                         gfx::generators::voxel::Voxel::Cobalt});
+                    for (u8 z = 0; z < 64; ++z)
+                    {
+                        newVoxels.push_back(
+                            {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, 0, z}},
+                             gfx::generators::voxel::getRandomVoxel(
+                                 gfx::generators::voxel::gpu_hashU32(static_cast<u32>((cX * 3933) + (102023 * cZ))))});
+                    }
                 }
+
+                for (u8 x = 24; x < 40; ++x)
+                {
+                    for (u8 y = 0; y < 22; ++y)
+                    {
+                        for (u8 z = 24; z < 40; ++z)
+                        {
+                            newVoxels.push_back(
+                                {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, y, z}},
+                                 gfx::generators::voxel::Voxel::Cobalt});
+                        }
+                    }
+                }
+
+                this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
+
+                this->chunks.push_back(std::move(chunk));
             }
         }
-
-        this->voxel_renderer.setVoxelChunkData(this->chunk, newVoxels);
-        this->voxel_renderer.setVoxelChunkData(this->chunk2, newVoxels);
     }
     ~TemporaryGameState() override
     {
@@ -87,8 +98,10 @@ struct TemporaryGameState : game::Game::GameState
             this->triangle_renderer.destroyTriangle(std::move(t));
         }
 
-        this->voxel_renderer.destroyVoxelChunk(std::move(this->chunk));
-        this->voxel_renderer.destroyVoxelChunk(std::move(this->chunk2));
+        for (gfx::generators::voxel::VoxelRenderer::VoxelChunk& c : this->chunks)
+        {
+            this->voxel_renderer.destroyVoxelChunk(std::move(c));
+        }
     }
 
     TemporaryGameState(const TemporaryGameState&)             = delete;
@@ -209,9 +222,9 @@ struct TemporaryGameState : game::Game::GameState
     gfx::generators::skybox::SkyboxRenderer                            skybox_renderer;
     gfx::generators::imgui::ImguiRenderer                              imgui_renderer;
     gfx::generators::voxel::VoxelRenderer                              voxel_renderer;
-    gfx::generators::voxel::VoxelRenderer::VoxelChunk                  chunk;
-    gfx::generators::voxel::VoxelRenderer::VoxelChunk                  chunk2;
     std::vector<gfx::generators::triangle::TriangleRenderer::Triangle> triangles;
+
+    std::vector<gfx::generators::voxel::VoxelRenderer::VoxelChunk> chunks;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
 };

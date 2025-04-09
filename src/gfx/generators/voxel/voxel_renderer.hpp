@@ -5,7 +5,6 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/voxel/material.hpp"
-#include "gfx/generators/voxel/model.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include <vulkan/vulkan_enums.hpp>

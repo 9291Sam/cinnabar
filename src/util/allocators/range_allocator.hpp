@@ -33,6 +33,8 @@ namespace util
     {
         u32 offset   = ~0u;
         u32 metadata = ~0u;
+
+        constexpr bool operator== (const RangeAllocation&) const = default;
     };
 
     // sane wrapper around sebbbi's offset allocator to make it actually rule of

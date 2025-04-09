@@ -44,7 +44,7 @@ namespace gfx::generators::imgui
                   .name {"Menu Color Transfer"},
               })}
         , light {
-              .position_and_half_intensity_distance {29.394, 19.2, 32.4, 32.0}, .color_and_power {1.0, 1.0, 1.0, 64.0}}
+              .position_and_half_intensity_distance {17.5, -39.2, 32.4, 128.0}, .color_and_power {1.0, 1.0, 1.0, 156.0}}
     {
         util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
 
@@ -410,17 +410,17 @@ namespace gfx::generators::imgui
 
             bool needsUpdate = false;
             needsUpdate |=
-                ImGui::DragFloat("Light x", &light.position_and_half_intensity_distance.x, 0.05f, -32.0f, 32.0f);
+                ImGui::DragFloat("Light x", &light.position_and_half_intensity_distance.x, 0.05f, -64.0f, 64.0f);
             needsUpdate |=
-                ImGui::DragFloat("Light y", &light.position_and_half_intensity_distance.y, 0.05f, -32.0f, 32.0f);
+                ImGui::DragFloat("Light y", &light.position_and_half_intensity_distance.y, 0.05f, -64.0f, 64.0f);
             needsUpdate |=
-                ImGui::DragFloat("Light z", &light.position_and_half_intensity_distance.z, 0.05f, -32.0f, 32.0f);
+                ImGui::DragFloat("Light z", &light.position_and_half_intensity_distance.z, 0.05f, -64.0f, 64.0f);
             needsUpdate |= ImGui::DragFloat("Color r", &light.color_and_power.x, 0.001f, 0.0f, 1.0f);
             needsUpdate |= ImGui::DragFloat("Color g", &light.color_and_power.y, 0.001f, 0.0f, 1.0f);
             needsUpdate |= ImGui::DragFloat("Color b", &light.color_and_power.z, 0.001f, 0.0f, 1.0f);
-            needsUpdate |= ImGui::DragFloat("Light Power b", &light.color_and_power.w, 0.05f, 0.0f, 64.0f);
+            needsUpdate |= ImGui::DragFloat("Light Power b", &light.color_and_power.w, 0.05f, 0.0f, 512.0f);
             needsUpdate |=
-                ImGui::DragFloat("Light Radius b", &light.position_and_half_intensity_distance.w, 0.05f, 0.0f, 64.0f);
+                ImGui::DragFloat("Light Radius b", &light.position_and_half_intensity_distance.w, 0.05f, 0.0f, 256.0f);
 
             if (needsUpdate)
             {

@@ -607,6 +607,11 @@ namespace gfx::generators::voxel
 
     */
 
+    Voxel getRandomVoxel(u32 v)
+    {
+        return static_cast<Voxel>((v % (static_cast<u32>(Voxel::MaxVoxel) - 1)) + 1);
+    }
+
     core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> generateMaterialBuffer(const core::Renderer* renderer)
     {
         std::vector<PBRVoxelMaterial> materials {};

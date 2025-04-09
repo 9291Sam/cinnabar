@@ -155,7 +155,10 @@ namespace gfx::generators::voxel
         const u32  chunkId      = this->chunk_allocator.getValueOfHandle(c);
         ChunkData& oldChunkData = this->chunk_data.modify(chunkId);
 
-        this->brick_allocator.free(oldChunkData.range_allocation);
+        if (oldChunkData.range_allocation != util::RangeAllocation {})
+        {
+            this->brick_allocator.free(oldChunkData.range_allocation);
+        }
         this->chunk_allocator.free(std::move(c));
 
         oldChunkData = {};
@@ -281,8 +284,6 @@ namespace gfx::generators::voxel
         }
 
         chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(newCombinedBricks.size()));
-
-        log::trace("{} bricks | {} offset", newCombinedBricks.size(), chunkData.range_allocation.offset);
 
         if (!newCombinedBricks.empty())
         {

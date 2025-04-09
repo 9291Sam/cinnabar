@@ -82,6 +82,7 @@ namespace gfx::generators::voxel
         Ruby,
         Jade,
         EmissiveWhite,
+        MaxVoxel,
         // Emerald,
         // Ruby,
         // Pearl,
@@ -106,6 +107,7 @@ namespace gfx::generators::voxel
     // TODO: importance sampling, subsurface, clear coat, anisotropic, transparency
 
     PBRVoxelMaterial getMaterialFromVoxel(Voxel v);
+    Voxel            getRandomVoxel(u32);
 
     core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> generateMaterialBuffer(const core::Renderer*);
 } // namespace gfx::generators::voxel
