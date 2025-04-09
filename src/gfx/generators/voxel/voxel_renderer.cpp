@@ -271,17 +271,19 @@ namespace gfx::generators::voxel
             if (maybeThisBrickOffset.isMaterial()
                 && maybeThisBrickOffset.getMaterial() == static_cast<u16>(Voxel::NullAirEmpty))
             {
-                maybeThisBrickOffset.data = nextBrickIndex;
+                maybeThisBrickOffset._data = nextBrickIndex;
 
                 newCombinedBricks.push_back(CombinedBrick {});
 
                 nextBrickIndex += 1;
             }
 
-            newCombinedBricks.at(maybeThisBrickOffset.data).write(bP, static_cast<u16>(v));
+            newCombinedBricks.at(maybeThisBrickOffset._data).write(bP, static_cast<u16>(v));
         }
 
         chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(newCombinedBricks.size()));
+
+        log::trace("Bricks: {} | Offset: {}", newCombinedBricks.size(), chunkData.range_allocation.offset);
 
         if (!newCombinedBricks.empty())
         {

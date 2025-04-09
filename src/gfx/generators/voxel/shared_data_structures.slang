@@ -31,6 +31,15 @@
         };
     }
 
+
+[[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
+
+[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
+[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_bricks[];
+
+[[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
+[[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
+
 #endif // __cplusplus
 
 
@@ -63,6 +72,11 @@ INLINE u32 gpu_hashCombineU32(u32 a, u32 h)
     return h * 5u + 0xe6546b64u;
 }
 
+struct BrickPointer
+{
+    u32 brick_pointer;
+};
+
 /// 0 - 511 Offset in chunk
 /// 512 - 65535 Voxel
 /// To get VoxelMaterial id
@@ -70,12 +84,12 @@ struct MaybeBrickOffsetOrMaterialId
 {
     NODISCARD u16 getMaterial() CONST_MEMBER_FUNCTION
     {
-        return ~data;
+        return ~_data;
     }
 
     NODISCARD bool isMaterial() CONST_MEMBER_FUNCTION
     {
-        return data >= u16(512);
+        return _data >= u16(512);
     }
 
     NODISCARD bool isPointer() CONST_MEMBER_FUNCTION
@@ -83,8 +97,15 @@ struct MaybeBrickOffsetOrMaterialId
         return !isMaterial();
     }
 
+#ifndef __cplusplus
+    NODISCARD BrickPointer getPointer(u32 chunkId) CONST_MEMBER_FUNCTION
+    {
+        return BrickPointer(in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].range_allocation.offset + uint(_data));
+    }
+#endif
 
-    u16 data = 65535;
+
+    u16 _data = 65535;
 };
 
 struct IdxBrickResult

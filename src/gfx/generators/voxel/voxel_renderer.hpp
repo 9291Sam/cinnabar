@@ -5,6 +5,7 @@
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/shared_data_structures.slang"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include <vulkan/vulkan_enums.hpp>
@@ -57,6 +58,7 @@ namespace gfx::generators::voxel
 
         util::OpaqueHandleAllocator<VoxelChunk>       chunk_allocator;
         gfx::core::vulkan::CpuCachedBuffer<ChunkData> chunk_data;
+        static_assert(sizeof(ChunkData) == 1056);
 
         util::RangeAllocator                            brick_allocator;
         gfx::core::vulkan::GpuOnlyBuffer<CombinedBrick> combined_bricks;

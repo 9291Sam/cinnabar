@@ -5,20 +5,13 @@
 #include "cube_ray.slang"
 #include "voxel_faces.slang"
 
-[[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
-
-[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
-[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_bricks[];
-
-[[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
-[[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
 
 
 
 
-PBRVoxelMaterial getMaterialFromPosition(uint brickPointer, uint3 bP)
+PBRVoxelMaterial getMaterialFromPosition(BrickPointer brickPointer, uint3 bP)
 {
-    const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer].material_brick.data[bP.x][bP.y][bP.z];
+    const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer.brick_pointer].material_brick.data[bP.x][bP.y][bP.z];
 
     return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
 }
@@ -33,7 +26,7 @@ MaybeBrickOffsetOrMaterialId tryLoadBrickFromChunkAndCoordinate(uint chunk, uint
     return MaybeBrickOffsetOrMaterialId();
 }
 
-bool loadVoxelFromBrick(uint brickPointer, int3 c)
+bool loadVoxelFromBrick(BrickPointer brickPointer, int3 c)
 {
     // if (all(greaterThanEqual(c, int3(0))) && all(lessThanEqual(c, int3(7))))
     // {
@@ -43,7 +36,7 @@ bool loadVoxelFromBrick(uint brickPointer, int3 c)
     const uint idx         = linearIndex / 32;
     const uint bit         = linearIndex % 32;
 
-    const uint loadedIdx = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer].boolean_brick.data[idx];
+    const uint loadedIdx = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer.brick_pointer].boolean_brick.data[idx];
 
     return (loadedIdx & (1u << bit)) != 0;
 
@@ -85,7 +78,7 @@ VoxelTraceResult VoxelTraceResult_getMiss(uint steps)
         false, float3(0.0), int3(0), float3(0.0), float3(0.0), 0.0, steps, PBRVoxelMaterial(float4(0.0), float4(0.0)));
 }
 
-VoxelTraceResult traceBlock(u32 brick, float3 rayPos, float3 rayDir, float3 iMask)
+VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, float3 iMask)
 {
     rayPos         = clamp(rayPos, float3(0.0001), float3(7.9999));
     float3 mapPos    = floor(rayPos);
@@ -165,7 +158,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
                 uv3d = rayPos - mapPos;
             }
 
-            VoxelTraceResult result = traceBlock(brick.data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].range_allocation.offset, uv3d * 8.0, rayDir, mask);
+            VoxelTraceResult result = traceBlock(brick.getPointer(chunk), uv3d * 8.0, rayDir, mask);
 
             extra_steps += result.steps;
 
@@ -344,7 +337,7 @@ float3 calculateColor(
         true);
 
     const VoxelTraceResult shadowResult = traceDDARay(
-        0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
+        chunkId, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
 
     float3 calculatedColor = float3(0.0);
 
@@ -370,7 +363,7 @@ float3 calculateColor(
         {
             // TODO: add shadow ray for secondary
     // const VoxelTraceResult shadowResult = traceDDARay(
-    //     0, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
+    //     traceDDARay, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
 
 
             if (firstMaterial.albedo_roughness.w != 0.0)
