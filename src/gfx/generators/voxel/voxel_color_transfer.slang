@@ -21,13 +21,13 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 
     const float3 worldStrikePosition = rawPixelData.xyz;
     const u32  uniqueFaceId        = reinterpret<u32>(rawPixelData.w);
-    const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
+    const u32 startSlot = gpu_hashU32(uniqueFaceId) % faceHashTableCapacity;
 
     float3 loaded;
     u32  i;
     for (i = 0; i < 32; ++i)
     {
-        const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
+        const u32 thisSlot = (startSlot + i) % faceHashTableCapacity;
 
         const u32 thisSlotKey = in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key;
 
@@ -47,7 +47,7 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
         // const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
         // const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
 
-        // const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].world_chunk_corner;
+        // const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
 
     
         //     const uint3 bC = unpacked.position_in_chunk / 8;
@@ -55,7 +55,7 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
 
 
         //     const PBRVoxelMaterial material = getMaterialFromPosition( // TODO: bad!
-        //         in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].range_allocation.offset, bP);
+        //         in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z].data + in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].range_allocation.offset, bP);
 
         //             const float3 calculatedColor = calculateColor(chunkStrikePosition, material, unpacked);
 

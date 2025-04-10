@@ -8,6 +8,7 @@
     
     #define float3 glm::vec3
     #define float4 glm::vec4
+    #define int3 glm::ivec3
 
     #define INLINE inline
     #define CONST_MEMBER_FUNCTION const
@@ -20,6 +21,7 @@
     #define NODISCARD
     #define INLINE
 
+    typedef int3 AlignedChunkCoordinate;
     typedef uint3 BrickLocalPosition;
 
     namespace util
@@ -34,11 +36,13 @@
 
 [[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
 
-[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_bricks[];
-[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_bricks[];
+[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_data[];
+[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_data[];
 
 [[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
 [[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
+
+[[vk::binding(4)]] RWStructuredBuffer<ChunkHashMapNode> in_chunk_hash_map[];
 
 #endif // __cplusplus
 
@@ -111,7 +115,7 @@ struct MaybeBrickOffsetOrMaterialId
 #ifndef __cplusplus
     NODISCARD BrickPointer getPointer(u32 chunkId) CONST_MEMBER_FUNCTION
     {
-        return BrickPointer(in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].range_allocation.offset + uint(_data));
+        return BrickPointer(in_global_chunk_data[SBO_CHUNK_DATA][chunkId].range_allocation.offset + uint(_data));
     }
 #endif
 
@@ -293,14 +297,22 @@ struct GpuColorHashMapNode
     u32 samples;
 };
 
+const static u32 faceHashTableCapacity = 1u << 20u;
+const static u32 faceHashTableNullHash = ~0u;
+
 struct ChunkData
 {
-    float3 world_chunk_corner = {0.0f, 0.0f, 0.0f};
+    AlignedChunkCoordinate aligned_chunk_coordinate;
     u32 align_0;
     util::RangeAllocation range_allocation;
     u32 align_1;
     u32 align_2;
     MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
+
+    float3 getWorldChunkCorner()
+    {
+        return float3(aligned_chunk_coordinate * 64);
+    }
 };
 
 
@@ -313,3 +325,113 @@ struct PBRVoxelMaterial
     // w - metallic
     float4 emission_metallic;
 };
+
+INLINE u32 hashAlignedChunkCoordinate(int3 c)
+{
+    return gpu_hashCombineU32(
+        gpu_hashU32(uint(c.x)),
+        gpu_hashCombineU32(
+            gpu_hashU32(uint(c.y)),
+            gpu_hashU32(uint(c.z))
+        )
+    );
+}
+
+struct ChunkHashMapNode
+{
+    u32 key = ~0u;
+    u32 id = ~0u;
+};
+
+const static u32 chunkHashTableCapacity = 1u << 13u;
+const static u32 chunkHashTableNullHash = ~0u;
+
+#ifndef __cplusplus
+/// returns the chunk's id or ~0u
+INLINE u32 tryReadChunkHashTable(int3 c)
+{
+    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 startSlot = hash % chunkHashTableCapacity;
+
+    for (u32 i = 0; i < 32; ++i)
+    {
+        const u32 thisSlot = (startSlot + i) % chunkHashTableCapacity;
+    
+        const ChunkHashMapNode thisNode = in_chunk_hash_map[SBO_CHUNK_HASH_MAP][thisSlot];
+
+        if (thisNode.key == hash)
+        {
+            return thisNode.id;
+        }
+    }
+
+    return ~0u;
+}
+#endif // __cplusplus
+
+#ifdef __cplusplus
+
+INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, int3 c, u32 chunkId)
+{
+    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 startSlot = hash % chunkHashTableCapacity;
+
+    for (u32 i = 0; i < 32; ++i)
+    {
+        const u32 thisSlot = (startSlot + i) % chunkHashTableCapacity;
+
+        const ChunkHashMapNode thisNode = table.read(thisSlot);
+
+        if (thisNode.key == chunkHashTableNullHash)
+        {
+            table.write(thisSlot, {
+                .key {hash},
+                .id {chunkId}
+            });
+            return;
+        }
+        else if (thisNode.key == hash)
+        {
+            log::warn("Unexpected duplicate insertion of chunkID {}", chunkId);
+            return;
+        }
+
+    }
+
+    log::warn("Unable to insert chunkId {}, is the table large enough? Current size is {}", chunkId, chunkHashTableCapacity);
+}
+
+// TODO: this is tombstoning, maybe not...
+
+INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, int3 c, u32 chunkId)
+{
+    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 startSlot = hash % chunkHashTableCapacity;
+
+    for (u32 i = 0; i < 32; ++i)
+    {
+        const u32 thisSlot = (startSlot + i) % chunkHashTableCapacity;
+
+        const ChunkHashMapNode thisNode = table.read(thisSlot);
+
+        if (thisNode.key == hash)
+        {
+            table.write(thisSlot, {
+                .key {hash},
+                .id {~0u}
+            });
+            return;
+        }
+        else if (thisNode.key == chunkHashTableNullHash)
+        {
+            log::warn("Unexpected lack of chunkId {}", chunkId);
+            return;
+        }
+
+    }
+
+    log::warn("Unable to remove chunkId {}, is the table large enough? Current size is {}", chunkId, chunkHashTableCapacity);
+}
+
+
+#endif // __cplusplus

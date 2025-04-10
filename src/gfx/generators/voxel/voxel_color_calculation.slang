@@ -24,7 +24,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
         const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
         const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
 
-        const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].world_chunk_corner;
+        const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
 
         if (uniqueFaceId != ~0u)
         {
@@ -33,18 +33,18 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
             const uint3 bP = unpacked.position_in_chunk % 8;
 
             const PBRVoxelMaterial material = getMaterialFromPosition( 
-                in_global_chunk_bricks[SBO_CHUNK_BRICKS][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z], unpacked.chunk_id, bP);
+                in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z], unpacked.chunk_id, bP);
  
-            const u32 startSlot = gpu_hashU32(uniqueFaceId) % kHashTableCapacity;
+            const u32 startSlot = gpu_hashU32(uniqueFaceId) % faceHashTableCapacity;
 
             for (uint i = 0; i < 32; ++i)
             {
-                const u32 thisSlot = (startSlot + i) % kHashTableCapacity;
+                const u32 thisSlot = (startSlot + i) % faceHashTableCapacity;
                 
                 u32 prev;
-                InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, kEmpty, uniqueFaceId, prev);
+                InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, faceHashTableNullHash, uniqueFaceId, prev);
 
-                if (prev == kEmpty || prev == uniqueFaceId)
+                if (prev == faceHashTableNullHash || prev == uniqueFaceId)
                 {
                     const float3 calculatedColor = calculateColor(unpacked.chunk_id, chunkStrikePosition, material, unpacked);
 
@@ -53,7 +53,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
                     InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, uint(calculatedColor.z * 1024));
                     InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples, 1);
 
-                    if (prev == kEmpty)
+                    if (prev == faceHashTableNullHash)
                     {
                         InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, 1);
                         InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, 1);

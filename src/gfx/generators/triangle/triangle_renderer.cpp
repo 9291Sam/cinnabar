@@ -1,6 +1,7 @@
 #include "triangle_renderer.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/shader_common/bindings.slang"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 
@@ -31,7 +32,7 @@ namespace gfx::generators::triangle
               vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
               Triangle::MaxValidElement,
               "SRGB Triangle Data",
-              5}
+              SBO_SRGB_TRIANGLE_DATA}
     {}
 
     TriangleRenderer::~TriangleRenderer()

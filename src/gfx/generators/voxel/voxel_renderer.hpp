@@ -32,7 +32,7 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        VoxelChunk createVoxelChunk(glm::vec3);
+        VoxelChunk createVoxelChunk(AlignedChunkCoordinate);
         void       destroyVoxelChunk(VoxelChunk);
 
         void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
@@ -56,8 +56,9 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
-        util::OpaqueHandleAllocator<VoxelChunk>       chunk_allocator;
-        gfx::core::vulkan::CpuCachedBuffer<ChunkData> chunk_data;
+        util::OpaqueHandleAllocator<VoxelChunk>              chunk_allocator;
+        gfx::core::vulkan::CpuCachedBuffer<ChunkData>        chunk_data;
+        gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode> chunk_hash_map;
         static_assert(sizeof(ChunkData) == 1056);
 
         util::RangeAllocator                            brick_allocator;

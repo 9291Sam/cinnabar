@@ -60,8 +60,7 @@ struct TemporaryGameState : game::Game::GameState
                                                                newVoxels {};
                 gfx::generators::voxel::AlignedChunkCoordinate aC {cX, -1, cZ};
 
-                gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(
-                    gfx::generators::voxel::WorldPosition::assemble(aC, {}).asVector());
+                gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(aC);
 
                 for (u8 x = 0; x < 64; ++x)
                 {

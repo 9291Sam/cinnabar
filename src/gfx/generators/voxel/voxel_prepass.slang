@@ -66,7 +66,7 @@ VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
     const uint chunkId = vertexIndex / 36;
     const float voxel_size      = 64.0;
 
-    const float3 box_corner_negative = in_const_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner;
+    const float3 box_corner_negative = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner();
     const float3 center_location = box_corner_negative + voxel_size / 2.0;
     const float3 box_corner_positive = box_corner_negative + float3(voxel_size);
 
@@ -92,7 +92,7 @@ struct FragmentOutput
 [shader("fragment")]
 FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negative_corner : COLOR1, u32 chunkId)
 {
-    if (in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].range_allocation.offset == ~0u)
+    if (in_global_chunk_data[SBO_CHUNK_DATA][chunkId].range_allocation.offset == ~0u)
     {
         discard;
     }
@@ -134,8 +134,6 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
 
 
     const u32 uniqueFaceId = UnpackUniqueFaceIdResult(result.voxel_normal, result.chunk_local_voxel_position, chunkId).pack();
-    const u32 kHashTableCapacity = 1U << 20U;
-    const u32 kEmpty             = ~0u;
 
     out.out_position_and_id = float4(worldStrikePosition, reinterpret<f32>(uniqueFaceId));
 

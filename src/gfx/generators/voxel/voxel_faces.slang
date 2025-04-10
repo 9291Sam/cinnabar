@@ -3,8 +3,6 @@
 #include "globals.slang"
 #include "shared_data_structures.slang"
 
-const static u32 kHashTableCapacity = 1u << 20u;
-const static u32 kEmpty             = ~0u;
 
 [[vk::binding(4)]] RWStructuredBuffer<GpuColorHashMapNode> in_voxel_hash_map[];
 

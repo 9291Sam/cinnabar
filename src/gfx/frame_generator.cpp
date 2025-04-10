@@ -8,6 +8,7 @@
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "gfx/shader_common/bindings.slang"
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -23,7 +24,7 @@ namespace gfx
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Global Data",
-              0}
+              UBO_GLOBAL_DATA}
     {}
 
     bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
@@ -676,7 +677,7 @@ namespace gfx
                 vk::ImageTiling::eOptimal,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
                 "Imgui Render Target",
-                1},
+                SIO_IMGUI_RENDER_TARGET},
             .voxel_render_target {
                 renderer,
                 renderer->getWindow()->getFramebufferSize(),
@@ -688,6 +689,6 @@ namespace gfx
                 vk::ImageTiling::eOptimal,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
                 "Voxel Render Target",
-                0}};
+                SIO_VOXEL_RENDER_TARGET}};
     }
 } // namespace gfx

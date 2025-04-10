@@ -7,6 +7,7 @@
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
+#include "gfx/shader_common/bindings.slang"
 #include "util/allocators/range_allocator.hpp"
 #include "util/events.hpp"
 #include "util/gif.hpp"
@@ -71,8 +72,15 @@ namespace gfx::generators::voxel
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxChunks,
-              "Chunk Bricks",
-              0)
+              "Chunk Data",
+              SBO_CHUNK_DATA)
+        , chunk_hash_map(
+              this->renderer,
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              chunkHashTableCapacity,
+              "Chunk Hash Map",
+              SBO_CHUNK_HASH_MAP)
         , brick_allocator(BricksToAllocate, MaxChunks)
         , combined_bricks(
               this->renderer,
@@ -80,28 +88,28 @@ namespace gfx::generators::voxel
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               BricksToAllocate,
               "Combined Bricks",
-              1)
+              SBO_COMBINED_BRICKS)
         , face_hash_map(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxFaceHashMapNodes,
               "Face Hash Map",
-              2)
+              SBO_FACE_HASH_MAP)
         , lights(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               1,
               "Voxel Lights",
-              3)
+              SBO_VOXEL_LIGHTS)
         , materials {generateMaterialBuffer(this->renderer)}
     {
-        std::vector<std::byte> badAppleData =
-            util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
+        // std::vector<std::byte> badAppleData =
+        //     util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
-        std::vector<std::byte> goodDragonData =
-            util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/dragon.vox"));
+        // std::vector<std::byte> goodDragonData =
+        //     util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/dragon.vox"));
 
         // this->demos.push_back(Demo {
         //     .model {AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}})},
@@ -138,12 +146,13 @@ namespace gfx::generators::voxel
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_transfer_pipeline));
     }
 
-    VoxelRenderer::VoxelChunk VoxelRenderer::createVoxelChunk(glm::vec3 pos)
+    VoxelRenderer::VoxelChunk VoxelRenderer::createVoxelChunk(AlignedChunkCoordinate coordinate)
     {
         VoxelChunk newChunk = this->chunk_allocator.allocateOrPanic();
         const u32  chunkId  = this->chunk_allocator.getValueOfHandle(newChunk);
 
-        this->chunk_data.modify(chunkId) = {.world_chunk_corner {pos}, .range_allocation {}};
+        this->chunk_data.modify(chunkId) = {.aligned_chunk_coordinate {coordinate}, .range_allocation {}};
+        insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);
 
         return newChunk;
     }
@@ -157,6 +166,7 @@ namespace gfx::generators::voxel
         {
             this->brick_allocator.free(oldChunkData.range_allocation);
         }
+        removeUniqueChunkHashTable(this->chunk_hash_map, oldChunkData.aligned_chunk_coordinate.asVector(), chunkId);
         this->chunk_allocator.free(std::move(c));
 
         oldChunkData = {};
@@ -165,6 +175,7 @@ namespace gfx::generators::voxel
     void VoxelRenderer::preFrameUpdate()
     {
         this->chunk_data.flushViaStager(this->renderer->getStager());
+        this->chunk_hash_map.flushViaStager(this->renderer->getStager());
         // if (std::optional t = util::receive<f32>("SetAnimationTime"))
         // {
         //     this->setAnimationTime(*t);
@@ -197,7 +208,7 @@ namespace gfx::generators::voxel
 
         //     std::vector<CombinedBrick> newCombinedBricks {};
 
-        //     ChunkData newChunk {.world_chunk_corner {-16.0f, -16.0f, -16.0f}, .offset {0}, .brick_map {}};
+        //     ChunkData newChunk {.getWorldChunkCorner() {-16.0f, -16.0f, -16.0f}, .offset {0}, .brick_map {}};
 
         //     u16 nextBrickIndex = 0;
 
@@ -322,7 +333,12 @@ namespace gfx::generators::voxel
         const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
 
         ChunkData& chunkData = this->chunk_data.modify(chunkId);
-        chunkData = {.world_chunk_corner {chunkData.world_chunk_corner}, .range_allocation {}, .brick_map {}};
+        if (chunkData.range_allocation != util::RangeAllocation {})
+        {
+            this->brick_allocator.free(chunkData.range_allocation);
+        }
+        chunkData = {
+            .aligned_chunk_coordinate {chunkData.aligned_chunk_coordinate}, .range_allocation {}, .brick_map {}};
         std::memcpy(&chunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(ChunkData::brick_map));
 
         chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));

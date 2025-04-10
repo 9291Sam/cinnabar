@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO: these are here for include order things with shared_data_structures.slang
+#include "gfx/core/vulkan/buffer.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"

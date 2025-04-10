@@ -27,7 +27,7 @@ MaybeBrickOffsetOrMaterialId tryLoadBrickFromChunkAndCoordinate(uint chunk, uint
 {
     if (all(bC >= int3(0)) && all(bC <= int3(7)))
     {
-        return in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunk].brick_map[bC.x][bC.y][bC.z];       
+        return in_global_chunk_data[SBO_CHUNK_DATA][chunk].brick_map[bC.x][bC.y][bC.z];       
     }
 
     return MaybeBrickOffsetOrMaterialId();
@@ -266,11 +266,6 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
 
 VoxelTraceResult traceDDARay(uint chunkId, float3 start, float3 end)
 {
-    if (distance(end, start) > 512)
-    {
-        return VoxelTraceResult_getMiss(0);
-    }
-
     const VoxelTraceResult result = traceChunkFallible(chunkId, start, normalize(end - start), length(end - start));
 
     if (result.intersect_occur && result.t > length(end - start))
@@ -379,7 +374,7 @@ float3 calculateColor(
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner;
+    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner();
 
     float3 lightColor = calculatePixelColor(
         worldStrikePosition,
@@ -392,7 +387,7 @@ float3 calculateColor(
         true);
 
     const VoxelTraceResult shadowResult = traceDDARay(
-        chunkId, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
+        chunkId, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner());
 
     float3 calculatedColor = float3(0.0);
 
@@ -418,17 +413,17 @@ float3 calculateColor(
         {
             // TODO: add shadow ray for secondary
     // const VoxelTraceResult shadowResult = traceDDARay(
-    //     traceDDARay, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner);
+    //     traceDDARay, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner());
 
 
             if (firstMaterial.albedo_roughness.w != 0.0)
             {
                 const float3 reflectionColor = calculatePixelColor(
-                    giResult.chunk_local_fragment_position + in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner,
+                    giResult.chunk_local_fragment_position + in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner(),
                     giResult.voxel_normal,
                     normalize(giRay.origin - giResult.chunk_local_fragment_position),
                     normalize(
-                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_bricks[SBO_CHUNK_BRICKS][chunkId].world_chunk_corner),
+                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner()),
                     light,
                     giResult.material,
                     false,
