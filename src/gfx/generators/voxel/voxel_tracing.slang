@@ -368,7 +368,7 @@ VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
     return traceDDARay(chunkId, ray.origin, ray.origin + ray.direction * dist);
 }
 
-float3 calculateColor(
+float3 calculateChunkLocalColor(
     uint chunkId, 
     float3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
 {
@@ -438,4 +438,107 @@ float3 calculateColor(
     }
 
     return calculatedColor;
+}
+
+float3 calculateWorldColor(float3 worldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
+{
+    const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+
+    float3 lightColor = calculatePixelColor(
+        worldStrikePosition,
+        unpacked.normal,
+        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - worldStrikePosition),
+        normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+        light,
+        firstMaterial,
+        true,
+        true);
+
+    const float3 start = worldStrikePosition + 0.05 * unpacked.normal;
+    const float3 end = light.position_and_half_intensity_distance.xyz;
+    const float3 dir = normalize(end - start);
+    const f32 len = distance(end, start);
+
+
+    const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
+    
+    float3 calculatedColor = float3(0.0);
+
+    if (!shadowResult.intersect_occur)
+    {
+        calculatedColor += firstMaterial.albedo_roughness.xyz;
+        // calculatedColor *=
+        // calculatedColor = 1 - calculatedColor;
+    }
+
+    return calculatedColor;
+
+}
+
+
+VoxelTraceResult traceWorld(Ray ray, float max_t)
+{
+    ray.origin /= 64.0f;
+    max_t /= 64.0f;
+
+    float3 mapPos    = floor(ray.origin);
+    float3 raySign   = sign(ray.direction);
+    float3 deltaDist = 1.0 / ray.direction;
+    float3 sideDist  = ((mapPos - ray.origin) + 0.5 + raySign * 0.5) * deltaDist;
+    float3 mask      = stepMask(sideDist);
+
+    uint extra_steps = 0;
+
+    int i;
+    for (i = 0; i < 32; i++)
+    {
+        const u32 maybeChunkId = tryReadChunkHashTable(int3(mapPos));
+
+        if (maybeChunkId != ~0)
+        {
+            float3  mini      = ((mapPos - ray.origin) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
+            float d         = max(mini.x, max(mini.y, mini.z));
+            float3  intersect = ray.origin + ray.direction * d;
+            float3  uv3d      = intersect - mapPos;
+
+            if (all(mapPos == floor(ray.origin))) // Handle edge case where camera origin is inside ofblock block
+            {
+                uv3d = ray.origin - mapPos;
+            }
+
+            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), (max_t - length(mapPos - ray.origin)) * 64.0);
+
+            extra_steps += result.steps;
+
+            if (result.intersect_occur)
+            {
+                // const float strikeT =
+                //     distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
+
+                const float strikeT = distance(ray.origin * 64.0f, mapPos * 64.0f + result.chunk_local_fragment_position);
+
+
+                // if (strikeT > max_dist * 64.0f)
+                // {
+                //     break;
+                // }
+
+                return VoxelTraceResult(
+                    true,
+                    result.chunk_local_fragment_position,
+                    result.chunk_local_voxel_position,
+                    result.voxel_normal,
+                    result.local_voxel_uvw,
+                    strikeT,
+                    extra_steps + i + 1,
+                    result.material);
+            }
+        }
+
+        mask = stepMask(sideDist);
+        mapPos += mask * raySign;
+        sideDist += mask * raySign * deltaDist;
+    }
+
+    return VoxelTraceResult_getMiss(i + extra_steps);
 }
