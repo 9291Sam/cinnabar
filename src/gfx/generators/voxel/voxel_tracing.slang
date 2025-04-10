@@ -506,7 +506,19 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
                 uv3d = ray.origin - mapPos;
             }
 
-           const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), 931.0f);
+            const float3 worldPositionStartStrike = uv3d * 64.0f + floor(mapPos) * 64.0f;
+            if (distance(ray.origin * 64.0f, worldPositionStartStrike) > max_t * 64.0f)
+            {
+                break;
+            }
+
+            // TODO;
+            // max_t
+            // comp between start and worldPosition start strike along the dir
+            // subtract that to get the t
+
+            // TODO: make less shit
+            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), 931.0f);
 
             extra_steps += result.steps;
 
