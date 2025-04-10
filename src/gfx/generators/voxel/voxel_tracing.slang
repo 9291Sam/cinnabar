@@ -9,11 +9,18 @@
 
 
 
-PBRVoxelMaterial getMaterialFromPosition(BrickPointer brickPointer, uint3 bP)
+PBRVoxelMaterial getMaterialFromPosition(MaybeBrickOffsetOrMaterialId maybeBrickPointer, uint chunkId, uint3 bP)
 {
-    const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][brickPointer.brick_pointer].material_brick.data[bP.x][bP.y][bP.z];
+    if (maybeBrickPointer.isPointer())
+    {
+        const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][maybeBrickPointer.getPointer(chunkId).brick_pointer].material_brick.data[bP.x][bP.y][bP.z];
 
-    return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
+        return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
+    }
+    else 
+    {
+        return in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(maybeBrickPointer.getMaterial())];
+    }
 }
 
 MaybeBrickOffsetOrMaterialId tryLoadBrickFromChunkAndCoordinate(uint chunk, uint3 bC)
@@ -156,8 +163,13 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
                 normal.z = -raySign.z;
             }
 
+            
+            const uint16_t materialId = in_combined_bricks[SBO_COMBINED_BRICKS][brick.brick_pointer].material_brick.data[uint(mapPos.x)][uint(mapPos.y)][uint(mapPos.z)];
+
+            PBRVoxelMaterial thisMaterial = in_voxel_materials[SBO_VOXEL_MATERIAL_BUFFER][uint(materialId)];
+
             return VoxelTraceResult(
-                true, intersect, int3(mapPos), normal, uv3d, d, i + 1, getMaterialFromPosition(brick, uint3(mapPos)));
+                true, intersect, int3(mapPos), normal, uv3d, d, i + 1, thisMaterial);
         }
 
         mask = stepMask(sideDist);
