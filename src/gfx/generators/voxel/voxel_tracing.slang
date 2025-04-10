@@ -466,7 +466,7 @@ float3 calculateWorldColor(float3 worldStrikePosition, PBRVoxelMaterial firstMat
 
     if (!shadowResult.intersect_occur)
     {
-        calculatedColor += firstMaterial.albedo_roughness.xyz;
+        calculatedColor += lightColor;
         // calculatedColor *=
         // calculatedColor = 1 - calculatedColor;
     }
@@ -506,7 +506,7 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
                 uv3d = ray.origin - mapPos;
             }
 
-            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), (max_t - length(mapPos - ray.origin)) * 64.0);
+           const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), 931.0f);
 
             extra_steps += result.steps;
 
@@ -515,13 +515,13 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
                 // const float strikeT =
                 //     distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
 
-                const float strikeT = distance(ray.origin * 64.0f, mapPos * 64.0f + result.chunk_local_fragment_position);
+                const float strikeT = distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
 
 
-                // if (strikeT > max_dist * 64.0f)
-                // {
-                //     break;
-                // }
+                if (strikeT > max_t * 64.0f)
+                {
+                    break;
+                }
 
                 return VoxelTraceResult(
                     true,
