@@ -50,7 +50,7 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        const i32 dim = 0;
+        const i32 dim = 2;
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {

@@ -327,12 +327,6 @@ namespace gfx::generators::voxel
 
         chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
 
-        log::trace(
-            "Bricks: {}/{} | Offset: {}",
-            compactedBricks.size(),
-            nonCompactedBricks.size(),
-            chunkData.range_allocation.offset);
-
         if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(
