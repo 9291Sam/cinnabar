@@ -43,7 +43,7 @@ namespace gfx::generators::imgui
                   .name {"Menu Color Transfer"},
               })}
         , light {
-              .position_and_half_intensity_distance {17.5, -39.2, 32.4, 128.0}, .color_and_power {1.0, 1.0, 1.0, 156.0}}
+              .position_and_half_intensity_distance {-6.5, 17.5, 32.4, 190.0}, .color_and_power {1.0, 1.0, 1.0, 171.0}}
     {
         util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
 

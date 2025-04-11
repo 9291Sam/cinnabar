@@ -344,6 +344,17 @@ namespace gfx::generators::voxel
         case Voxel::EmissiveWhite:
             return PBRVoxelMaterial {
                 .albedo_roughness {0.0f, 0.0f, 0.0f, 0.0f}, .emission_metallic {32.0f, 32.0f, 32.0f, 0.0f}};
+        case Voxel::Dirt:
+            return PBRVoxelMaterial {
+                .albedo_roughness {0.3828125f, 0.28515625, 0.1953125f, 1.0},
+                .emission_metallic {0.0f, 0.0f, 0.0f, 0.0f},
+            };
+
+        case Voxel::Grass:
+            return PBRVoxelMaterial {
+                .albedo_roughness {0.140625f, 0.28515625f, 0.12445385f, 1.0},
+                .emission_metallic {0.0f, 0.0f, 0.0f, 0.0f},
+            };
         case Voxel::NullAirEmpty:
             [[fallthrough]];
         default:
@@ -562,31 +573,7 @@ namespace gfx::generators::voxel
                 .roughness {0.128f},
                 .metallic {0.0},
             };
-        case Voxel::Dirt:
-            return PBRVoxelMaterial {
-                .ambient_color {0.3828125f, 0.28515625, 0.1953125f, 1.0},
-                .diffuse_color {0.3828125f, 0.28515625, 0.1953125f, 1.0},
-                .specular_color {0.296648f, 0.296648f, 0.296648f, 1.0},
-                .emissive_color_power {},
-                .coat_color_power {},
-                .diffuse_subsurface_weight {0.00f},
-                .specular {0.01f},
-                .roughness {1.0f},
-                .metallic {0.0},
-            };
 
-        case Voxel::Grass:
-            return PBRVoxelMaterial {
-                .ambient_color {0.140625f, 0.28515625f, 0.12445385f, 1.0},
-                .diffuse_color {0.140625f, 0.28515625f, 0.12445385f, 1.0},
-                .specular_color {0.034848f, 0.05945f, 0.1642348f, 1.0},
-                .emissive_color_power {},
-                .coat_color_power {},
-                .diffuse_subsurface_weight {0.00f},
-                .specular {0.01f},
-                .roughness {1.0f},
-                .metallic {0.0},
-            };
         case Voxel::NullAirEmpty:
             [[fallthrough]];
         default:

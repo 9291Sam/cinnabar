@@ -13,6 +13,7 @@
 #include "gfx/generators/skybox/skybox_renderer.hpp"
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
+#include "gfx/generators/voxel/generator.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
@@ -42,8 +43,9 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_renderer {this->game->getRenderer()}
     {
-        std::mt19937                          gen {std::random_device {}()};
-        std::uniform_real_distribution<float> dist {-16.0f, 16.0f};
+        std::mt19937                           gen {std::random_device {}()};
+        std::uniform_real_distribution<float>  dist {-16.0f, 16.0f};
+        gfx::generators::voxel::WorldGenerator wg {12812389021980};
 
         for (int i = 0; i < 38; ++i)
         {
@@ -56,40 +58,17 @@ struct TemporaryGameState : game::Game::GameState
         {
             for (i32 cZ = -dim; cZ <= dim; ++cZ)
             {
-                std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
-                                                               newVoxels {};
                 gfx::generators::voxel::AlignedChunkCoordinate aC {cX, -1, cZ};
 
                 gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(aC);
 
-                for (u8 x = 0; x < 64; ++x)
-                {
-                    for (u8 z = 0; z < 64; ++z)
-                    {
-                        newVoxels.push_back(
-                            {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, 0, z}},
-                             gfx::generators::voxel::getRandomVoxel(
-                                 gfx::generators::voxel::gpu_hashU32(static_cast<u32>((cX * 3933) + (102023 * cZ))))});
-                    }
-                }
+                std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
+                    newVoxels = wg.generateChunk(aC);
 
-                if (cX != -2)
+                if (!newVoxels.empty())
                 {
-                    for (u8 x = 24; x < 40; ++x)
-                    {
-                        for (u8 y = 0; y < 22; ++y)
-                        {
-                            for (u8 z = 24; z < 40; ++z)
-                            {
-                                newVoxels.push_back(
-                                    {gfx::generators::voxel::ChunkLocalPosition {glm::u8vec3 {x, y, z}},
-                                     gfx::generators::voxel::Voxel::Cobalt});
-                            }
-                        }
-                    }
+                    this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
                 }
-
-                this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
 
                 this->chunks.push_back(std::move(chunk));
             }

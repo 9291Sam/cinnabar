@@ -67,6 +67,7 @@ add_executable(cinnabar
 
     src/gfx/generators/triangle/triangle_renderer.cpp
 
+    src/gfx/generators/voxel/generator.cpp
     src/gfx/generators/voxel/material.cpp
     src/gfx/generators/voxel/model.cpp
     src/gfx/generators/voxel/voxel_renderer.cpp

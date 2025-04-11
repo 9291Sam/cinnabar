@@ -82,7 +82,6 @@ namespace gfx::generators::voxel
         Ruby,
         Jade,
         EmissiveWhite,
-        MaxVoxel,
         // Emerald,
         // Ruby,
         // Pearl,
@@ -100,8 +99,9 @@ namespace gfx::generators::voxel
         // Granite,
         // Basalt,
         // Limestone,
-        // Dirt,
-        // Grass,
+        Dirt,
+        Grass,
+        MaxVoxel,
     };
 
     // TODO: importance sampling, subsurface, clear coat, anisotropic, transparency

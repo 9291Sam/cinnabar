@@ -260,6 +260,11 @@ namespace gfx::generators::voxel
     void
     VoxelRenderer::setVoxelChunkData(const VoxelChunk& c, std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
     {
+        if (input.empty())
+        {
+            log::warn("empty setVoxelChunkData");
+            return;
+        }
         u16                            nextNonCompactedBrickIndex = 0;
         std::vector<CombinedBrick>     nonCompactedBricks {};
         decltype(ChunkData::brick_map) nonCompactedBrickMap {};
@@ -343,6 +348,7 @@ namespace gfx::generators::voxel
 
         chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
 
+        // log::trace("Compaction {} -> {}", nonCompactedBricks.size(), compactedBricks.size());
         if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(
