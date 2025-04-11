@@ -329,10 +329,10 @@ struct PBRVoxelMaterial
 INLINE u32 hashAlignedChunkCoordinate(int3 c)
 {
     return gpu_hashCombineU32(
-        gpu_hashU32(uint(c.x)),
+        gpu_hashU32(u32(c.x)),
         gpu_hashCombineU32(
-            gpu_hashU32(uint(c.y)),
-            gpu_hashU32(uint(c.z))
+            gpu_hashU32(u32(c.y)),
+            gpu_hashU32(u32(c.z))
         )
     );
 }

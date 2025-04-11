@@ -29,7 +29,7 @@ namespace util
             if (shouldPrint)
             {
                 log::trace<const char*, std::chrono::microseconds::rep>(
-                    "{} | {}µs", this->name.data(), durationUs.count(), this->location);
+                    "{} | {}us", this->name.data(), durationUs.count(), this->location);
             }
 
             return static_cast<std::size_t>(durationUs.count());

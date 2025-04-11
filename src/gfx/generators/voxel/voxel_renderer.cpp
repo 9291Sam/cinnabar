@@ -11,6 +11,7 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/events.hpp"
 #include "util/gif.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <atomic>
 #include <cstddef>
