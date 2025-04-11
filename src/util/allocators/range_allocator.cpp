@@ -659,7 +659,7 @@ namespace util
             throw OutOfBlocks {};
         }
 
-        return *result;
+        return std::move(*result);
     }
 
     std::expected<RangeAllocation, RangeAllocator::OutOfBlocks> RangeAllocator::tryAllocate(u32 size)
@@ -672,14 +672,20 @@ namespace util
         }
         else
         {
-            return RangeAllocation {.offset {workingAllocation.offset}, .metadata {workingAllocation.metadata}};
+            const u64 toTarget = std::bit_cast<u64>(workingAllocation);
+            return RangeAllocation {toTarget};
         }
     }
 
-    [[nodiscard]] u32 RangeAllocator::getSizeOfAllocation(RangeAllocation allocation) const
+    [[nodiscard]] u32 RangeAllocator::getOffsetofAllocation(const RangeAllocation& allocation)
+    {
+        return std::bit_cast<OffsetAllocator::Allocation>(allocation.getValue()).offset;
+    }
+
+    [[nodiscard]] u32 RangeAllocator::getSizeOfAllocation(const RangeAllocation& allocation) const
     {
         return this->internal_allocator->allocationSize(
-            OffsetAllocator::Allocation {.offset {allocation.offset}, .metadata {allocation.metadata}});
+            std::bit_cast<OffsetAllocator::Allocation>(allocation.getValue()));
     }
 
     std::pair<u32, u32> RangeAllocator::getStorageInfo() const
@@ -689,8 +695,7 @@ namespace util
 
     void RangeAllocator::free(RangeAllocation allocation)
     {
-        this->internal_allocator->free(
-            OffsetAllocator::Allocation {.offset {allocation.offset}, .metadata {allocation.metadata}});
+        this->internal_allocator->free(std::bit_cast<OffsetAllocator::Allocation>(allocation.release()));
     }
 
 } // namespace util

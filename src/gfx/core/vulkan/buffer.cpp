@@ -7,6 +7,7 @@
 #include <optional>
 #include <source_location>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hash.hpp>
 
 namespace gfx::core::vulkan
@@ -27,6 +28,34 @@ namespace gfx::core::vulkan
         , transfer_allocator {util::RangeAllocator {StagingBufferSize, 1024 * 128}}
         , transfers {std::vector<BufferTransfer> {}}
     {}
+
+    BufferStager::~BufferStager()
+    {
+        this->transfer_allocator.lock(
+            [this](util::RangeAllocator& allocator)
+            {
+                this->transfers.lock(
+                    [&](std::vector<BufferTransfer>& ts)
+                    {
+                        for (BufferTransfer& t : ts)
+                        {
+                            allocator.free(std::move(t.staging_allocation));
+                        }
+                    });
+
+                this->transfers_to_free.lock(
+                    [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>& tsMap)
+                    {
+                        for (auto& [_, ts] : tsMap)
+                        {
+                            for (BufferTransfer& t : ts)
+                            {
+                                allocator.free(std::move(t.staging_allocation));
+                            }
+                        }
+                    });
+            });
+    }
 
     void BufferStager::enqueueByteTransfer(
         vk::Buffer buffer, u32 offset, std::span<const std::byte> dataToWrite, std::source_location location) const
@@ -58,13 +87,15 @@ namespace gfx::core::vulkan
 
             // static_assert(std::is_trivially_copyable_v<std::byte>);
             std::memcpy(
-                stagingBufferData.data() + maybeAllocation->offset, dataToWrite.data(), dataToWrite.size_bytes());
+                stagingBufferData.data() + util::RangeAllocator::getOffsetofAllocation(*maybeAllocation),
+                dataToWrite.data(),
+                dataToWrite.size_bytes());
 
             this->transfers.lock(
                 [&](std::vector<BufferTransfer>& t)
                 {
                     t.push_back(BufferTransfer {
-                        .staging_allocation {*maybeAllocation},
+                        .staging_allocation {std::move(*maybeAllocation)},
                         .output_buffer {buffer},
                         .output_offset {offset},
                         .size {static_cast<u32>(dataToWrite.size_bytes())},
@@ -96,7 +127,7 @@ namespace gfx::core::vulkan
             {
                 std::vector<std::shared_ptr<vk::UniqueFence>> toRemove {};
 
-                for (const auto& [fence, allocations] : toFreeMap)
+                for (auto& [fence, allocations] : toFreeMap)
                 {
                     if (this->renderer->getDevice()->getDevice().getFenceStatus(**fence) == vk::Result::eSuccess)
                     {
@@ -105,10 +136,10 @@ namespace gfx::core::vulkan
                         this->transfer_allocator.lock(
                             [&](util::RangeAllocator& stagingAllocator)
                             {
-                                for (BufferTransfer transfer : allocations)
+                                for (BufferTransfer& transfer : allocations)
                                 {
                                     this->allocated -= transfer.size;
-                                    stagingAllocator.free(transfer.staging_allocation);
+                                    stagingAllocator.free(std::move(transfer.staging_allocation));
                                 }
                             });
                     }
@@ -133,14 +164,15 @@ namespace gfx::core::vulkan
 
                 continue;
             }
+            const u32 offset = util::RangeAllocator::getOffsetofAllocation(transfer.staging_allocation);
+
             copies[transfer.output_buffer].push_back(vk::BufferCopy {
-                .srcOffset {transfer.staging_allocation.offset},
+                .srcOffset {offset},
                 .dstOffset {transfer.output_offset},
                 .size {transfer.size},
             });
 
-            stagingFlushes.push_back(
-                FlushData {.offset_elements {transfer.staging_allocation.offset}, .size_elements {transfer.size}});
+            stagingFlushes.push_back(FlushData {.offset_elements {offset}, .size_elements {transfer.size}});
         }
 
         for (const auto& [outputBuffer, bufferCopies] : copies)

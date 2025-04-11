@@ -30,15 +30,10 @@ namespace util
         }
     };
 
-    // using RangeAllocation = OpaqueHandle<"RangeAllocation", u64>;
+    class RangeAllocator;
 
-    struct RangeAllocation
-    {
-        u32 offset   = ~0u;
-        u32 metadata = ~0u;
-
-        constexpr bool operator== (const RangeAllocation&) const = default;
-    };
+    // HACK: it works... and the null states align...
+    using RangeAllocation = OpaqueHandle<"RangeAllocation", u64, RangeAllocator>;
 
     // sane wrapper around sebbbi's offset allocator to make it actually rule of
     // 5 compliant as well as fixing a bunch of idiotic design decisions (such
@@ -62,11 +57,12 @@ namespace util
 
         [[nodiscard]] RangeAllocation allocate(u32 size, std::source_location = std::source_location::current());
         [[nodiscard]] std::expected<RangeAllocation, OutOfBlocks> tryAllocate(u32 size);
+        void                                                      free(RangeAllocation);
 
-        [[nodiscard]] u32                 getSizeOfAllocation(RangeAllocation) const;
+        [[nodiscard]] static u32          getOffsetofAllocation(const RangeAllocation&);
+        [[nodiscard]] u32                 getSizeOfAllocation(const RangeAllocation&) const;
         [[nodiscard]] std::pair<u32, u32> getStorageInfo() const;
 
-        void free(RangeAllocation);
 
     private:
         std::unique_ptr<OffsetAllocator::Allocator> internal_allocator;

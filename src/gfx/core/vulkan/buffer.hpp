@@ -542,7 +542,7 @@ namespace gfx::core::vulkan
     public:
 
         explicit BufferStager(const Renderer*);
-        ~BufferStager() = default;
+        ~BufferStager();
 
         BufferStager(const BufferStager&)             = delete;
         BufferStager(BufferStager&&)                  = delete;

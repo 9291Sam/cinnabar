@@ -76,7 +76,7 @@ namespace gfx::generators::voxel
               MaxChunks,
               "Chunk Data",
               SBO_CHUNK_DATA)
-        , cpu_chunk_data {MaxChunks, CpuChunkData {}}
+        , cpu_chunk_data {MaxChunks}
         , chunk_hash_map(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -155,7 +155,7 @@ namespace gfx::generators::voxel
         const u32  chunkId  = this->chunk_allocator.getValueOfHandle(newChunk);
 
         this->gpu_chunk_data.modify(chunkId) = {.aligned_chunk_coordinate {coordinate}, .offset {~0u}};
-        assert::critical(this->cpu_chunk_data[chunkId].brick_allocation == util::RangeAllocation {}, "should be empty");
+        assert::critical(this->cpu_chunk_data[chunkId].brick_allocation.isNull(), "should be empty");
 
         insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);
 
@@ -168,9 +168,9 @@ namespace gfx::generators::voxel
         GpuChunkData& oldGpuChunkData = this->gpu_chunk_data.modify(chunkId);
         CpuChunkData& oldCpuChunkData = this->cpu_chunk_data[chunkId];
 
-        if (oldCpuChunkData.brick_allocation != util::RangeAllocation {})
+        if (!oldCpuChunkData.brick_allocation.isNull())
         {
-            this->brick_allocator.free(oldCpuChunkData.brick_allocation);
+            this->brick_allocator.free(std::move(oldCpuChunkData.brick_allocation));
         }
         removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate.asVector(), chunkId);
         this->chunk_allocator.free(std::move(c));
@@ -346,16 +346,16 @@ namespace gfx::generators::voxel
         GpuChunkData& gpuChunkData = this->gpu_chunk_data.modify(chunkId);
         CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
 
-        if (cpuChunkData.brick_allocation != util::RangeAllocation {})
+        if (!cpuChunkData.brick_allocation.isNull())
         {
-            this->brick_allocator.free(cpuChunkData.brick_allocation);
+            this->brick_allocator.free(std::move(cpuChunkData.brick_allocation));
         }
 
         cpuChunkData.brick_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
 
         gpuChunkData = {
             .aligned_chunk_coordinate {gpuChunkData.aligned_chunk_coordinate},
-            .offset {cpuChunkData.brick_allocation.offset}};
+            .offset {util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation)}};
         std::memcpy(&gpuChunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(GpuChunkData::brick_map));
 
         // log::trace("Compaction {} -> {}", nonCompactedBricks.size(), compactedBricks.size());

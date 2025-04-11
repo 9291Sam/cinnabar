@@ -26,10 +26,13 @@ namespace util
         std::array<char, N> data;
     };
 
+    struct NoFriendDeclaration
+    {};
+
     template<class Handle>
     class OpaqueHandleAllocator;
 
-    template<StringSneaker Name, class I>
+    template<StringSneaker Name, class I, class FriendedClass = NoFriendDeclaration>
         requires (std::is_integral_v<I> && !std::is_floating_point_v<I>)
     struct [[nodiscard]] OpaqueHandle final
     {
@@ -92,7 +95,13 @@ namespace util
             return std::exchange(this->value, NullValue);
         }
 
+        [[nodiscard]] I getValue() const noexcept
+        {
+            return this->value;
+        }
+
         friend OpaqueHandleAllocator<OpaqueHandle>;
+        friend FriendedClass;
 
     private:
         I value;
