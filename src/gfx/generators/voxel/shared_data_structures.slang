@@ -36,8 +36,8 @@
 
 [[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
 
-[[vk::binding(4)]] RWStructuredBuffer<ChunkData> in_global_chunk_data[];
-[[vk::binding(4)]] StructuredBuffer<ChunkData> in_const_global_chunk_data[];
+[[vk::binding(4)]] RWStructuredBuffer<GpuChunkData> in_global_chunk_data[];
+[[vk::binding(4)]] StructuredBuffer<GpuChunkData> in_const_global_chunk_data[];
 
 [[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
 [[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
@@ -115,7 +115,7 @@ struct MaybeBrickOffsetOrMaterialId
 #ifndef __cplusplus
     NODISCARD BrickPointer getPointer(u32 chunkId) CONST_MEMBER_FUNCTION
     {
-        return BrickPointer(in_global_chunk_data[SBO_CHUNK_DATA][chunkId].range_allocation.offset + uint(_data));
+        return BrickPointer(in_global_chunk_data[SBO_CHUNK_DATA][chunkId].offset + uint(_data));
     }
 #endif
 
@@ -300,13 +300,10 @@ struct GpuColorHashMapNode
 const static u32 faceHashTableCapacity = 1u << 20u;
 const static u32 faceHashTableNullHash = ~0u;
 
-struct ChunkData
+struct GpuChunkData
 {
     AlignedChunkCoordinate aligned_chunk_coordinate;
-    u32 align_0;
-    util::RangeAllocation range_allocation;
-    u32 align_1;
-    u32 align_2;
+    u32 offset = ~0u;
     MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
 
     float3 getWorldChunkCorner()

@@ -178,6 +178,11 @@ namespace gfx::generators::voxel
 
     namespace internal
     {
-        using User = ChunkData;
+        using User = GpuChunkData;
     } // namespace internal
+
+    struct CpuChunkData
+    {
+        util::RangeAllocation brick_allocation; // change name
+    };
 } // namespace gfx::generators::voxel

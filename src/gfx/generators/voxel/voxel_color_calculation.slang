@@ -17,7 +17,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     const int2 thisPixel           = int2(threadId.xy);
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size)
-        && sizeof(ChunkData) == 1056)
+        && sizeof(GpuChunkData) == 1040)
     {
         const float4 rawPixelData        = visible_voxel_image[SIO_VOXEL_RENDER_TARGET].Load(thisPixel);
         const float3 worldStrikePosition = rawPixelData.xyz;

@@ -11,6 +11,7 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/events.hpp"
 #include "util/gif.hpp"
+#include "util/logger.hpp"
 #include "util/timer.hpp"
 #include "util/util.hpp"
 #include <atomic>
@@ -68,13 +69,14 @@ namespace gfx::generators::voxel
                   .name {"Color Transfer Pipeline"},
               })}
         , chunk_allocator {MaxChunks}
-        , chunk_data(
+        , gpu_chunk_data(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxChunks,
               "Chunk Data",
               SBO_CHUNK_DATA)
+        , cpu_chunk_data {MaxChunks, CpuChunkData {}}
         , chunk_hash_map(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -152,7 +154,9 @@ namespace gfx::generators::voxel
         VoxelChunk newChunk = this->chunk_allocator.allocateOrPanic();
         const u32  chunkId  = this->chunk_allocator.getValueOfHandle(newChunk);
 
-        this->chunk_data.modify(chunkId) = {.aligned_chunk_coordinate {coordinate}, .range_allocation {}};
+        this->gpu_chunk_data.modify(chunkId) = {.aligned_chunk_coordinate {coordinate}, .offset {~0u}};
+        assert::critical(this->cpu_chunk_data[chunkId].brick_allocation == util::RangeAllocation {}, "should be empty");
+
         insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);
 
         return newChunk;
@@ -160,22 +164,23 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::destroyVoxelChunk(VoxelChunk c)
     {
-        const u32  chunkId      = this->chunk_allocator.getValueOfHandle(c);
-        ChunkData& oldChunkData = this->chunk_data.modify(chunkId);
+        const u32     chunkId         = this->chunk_allocator.getValueOfHandle(c);
+        GpuChunkData& oldGpuChunkData = this->gpu_chunk_data.modify(chunkId);
+        CpuChunkData& oldCpuChunkData = this->cpu_chunk_data[chunkId];
 
-        if (oldChunkData.range_allocation != util::RangeAllocation {})
+        if (oldCpuChunkData.brick_allocation != util::RangeAllocation {})
         {
-            this->brick_allocator.free(oldChunkData.range_allocation);
+            this->brick_allocator.free(oldCpuChunkData.brick_allocation);
         }
-        removeUniqueChunkHashTable(this->chunk_hash_map, oldChunkData.aligned_chunk_coordinate.asVector(), chunkId);
+        removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate.asVector(), chunkId);
         this->chunk_allocator.free(std::move(c));
 
-        oldChunkData = {};
+        oldGpuChunkData = {};
     }
 
     void VoxelRenderer::preFrameUpdate()
     {
-        this->chunk_data.flushViaStager(this->renderer->getStager());
+        this->gpu_chunk_data.flushViaStager(this->renderer->getStager());
         this->chunk_hash_map.flushViaStager(this->renderer->getStager());
         // if (std::optional t = util::receive<f32>("SetAnimationTime"))
         // {
@@ -266,9 +271,9 @@ namespace gfx::generators::voxel
             log::warn("empty setVoxelChunkData");
             return;
         }
-        u16                            nextNonCompactedBrickIndex = 0;
-        std::vector<CombinedBrick>     nonCompactedBricks {};
-        decltype(ChunkData::brick_map) nonCompactedBrickMap {};
+        u16                               nextNonCompactedBrickIndex = 0;
+        std::vector<CombinedBrick>        nonCompactedBricks {};
+        decltype(GpuChunkData::brick_map) nonCompactedBrickMap {};
 
         for (const auto& [cP, v] : input)
         {
@@ -294,9 +299,9 @@ namespace gfx::generators::voxel
             nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
         }
 
-        std::vector<CombinedBrick>     compactedBricks {};
-        u16                            nextCompactedBrickIndex = 0;
-        decltype(ChunkData::brick_map) compactedBrickMap {};
+        std::vector<CombinedBrick>        compactedBricks {};
+        u16                               nextCompactedBrickIndex = 0;
+        decltype(GpuChunkData::brick_map) compactedBrickMap {};
         for (u8 bCX = 0; bCX < 8; ++bCX)
         {
             for (u8 bCY = 0; bCY < 8; ++bCY)
@@ -338,24 +343,26 @@ namespace gfx::generators::voxel
 
         const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
 
-        ChunkData& chunkData = this->chunk_data.modify(chunkId);
-        if (chunkData.range_allocation != util::RangeAllocation {})
-        {
-            this->brick_allocator.free(chunkData.range_allocation);
-        }
-        chunkData = {
-            .aligned_chunk_coordinate {chunkData.aligned_chunk_coordinate}, .range_allocation {}, .brick_map {}};
-        std::memcpy(&chunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(ChunkData::brick_map));
+        GpuChunkData& gpuChunkData = this->gpu_chunk_data.modify(chunkId);
+        CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
 
-        chunkData.range_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
+        if (cpuChunkData.brick_allocation != util::RangeAllocation {})
+        {
+            this->brick_allocator.free(cpuChunkData.brick_allocation);
+        }
+
+        cpuChunkData.brick_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
+
+        gpuChunkData = {
+            .aligned_chunk_coordinate {gpuChunkData.aligned_chunk_coordinate},
+            .offset {cpuChunkData.brick_allocation.offset}};
+        std::memcpy(&gpuChunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(GpuChunkData::brick_map));
 
         // log::trace("Compaction {} -> {}", nonCompactedBricks.size(), compactedBricks.size());
         if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(
-                this->combined_bricks,
-                chunkData.range_allocation.offset,
-                {compactedBricks.data(), compactedBricks.size()});
+                this->combined_bricks, gpuChunkData.offset, {compactedBricks.data(), compactedBricks.size()});
         }
     }
 
@@ -399,7 +406,6 @@ namespace gfx::generators::voxel
     void VoxelRenderer::setLightInformation(GpuRaytracedLight light)
     {
         this->renderer->getStager().enqueueTransfer(this->lights, 0, {&light, 1});
-        this->chunk_data.flushViaStager(this->renderer->getStager());
     }
 
     // void VoxelRenderer::setAnimationTime(f32 time) const

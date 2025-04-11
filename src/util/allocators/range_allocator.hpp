@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/util.hpp"
 #include <expected>
 #include <memory>
@@ -28,6 +29,8 @@ namespace util
             return end - start + 1;
         }
     };
+
+    // using RangeAllocation = OpaqueHandle<"RangeAllocation", u64>;
 
     struct RangeAllocation
     {
