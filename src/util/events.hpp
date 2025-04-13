@@ -118,9 +118,9 @@ namespace util
     const EventHandler* getGlobalEventHandler();
 
     template<ChannelEventCapable T>
-    void send(std::string_view string, T&& t)
+    void send(std::string_view string, T t)
     {
-        getGlobalEventHandler()->send<T>(string, std::forward<T>(t));
+        getGlobalEventHandler()->send<T>(string, std::move(t));
     }
 
     template<ChannelEventCapable T>

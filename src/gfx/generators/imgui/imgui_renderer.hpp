@@ -44,6 +44,8 @@ namespace gfx::generators::imgui
 
         voxel::GpuRaytracedLight light;
 
-        int present_mode_combo_box_value = 0;
+        int  present_mode_combo_box_value   = 0;
+        bool are_reflections_enabled        = true;
+        bool is_global_illumination_enabled = false;
     };
 } // namespace gfx::generators::imgui

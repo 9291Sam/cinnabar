@@ -411,7 +411,7 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
     return dir * sign(dot(normal, dir));
 }
 
-float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
+float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState, bool shouldDoReflect, bool shouldDoGi)
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
@@ -442,69 +442,76 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     }
 
 
-    if (firstMaterial.albedo_roughness.w != 1.0)
+    if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
     {
         const float3 toFragmentDir = normalize(firstWorldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
 
-        Ray giRay =
+        Ray bounceRay =
             Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-        const VoxelTraceResult giResult = traceWorld(giRay, 117.0f);
+        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 117.0f);
 
-        if (giResult.intersect_occur)
+        if (bounceResult.intersect_occur)
         {
-            const float3 secondWorldStrikePosition = giRay.origin + giResult.t * giRay.direction;
+            const float3 secondWorldStrikePosition = bounceRay.origin + bounceResult.t * bounceRay.direction;
             const float3 L = normalize(light.position_and_half_intensity_distance.xyz - secondWorldStrikePosition);
 
 
-            const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * giResult.voxel_normal, L);
-            const VoxelTraceResult giShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
+            const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
+            const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
             
-            if (!giShadow.intersect_occur)
+            if (!bounceShadow.intersect_occur)
             {
                 float3 reflectionColor = calculateSampleColor(
                     secondWorldStrikePosition,
-                    giResult.voxel_normal,
-                    -giRay.direction,
+                    bounceResult.voxel_normal,
+                    -bounceRay.direction,
                     L,
                     light,
-                    giResult.material,
-                    false,
+                    bounceResult.material,
+                    true,
                     true) * firstMaterial.albedo_roughness.xyz;
 
                 calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) ;
             }
         }
 
+    }   
+
+
+    
+    float3 giColor = 1.0;
+
+    if (shouldDoGi)
+    {   
+        Ray ray = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, RandomHemisphereDirection(unpacked.normal, rngState));
+        float3 incomingLight = float3(0.0);
+
+        for (int i = 0; i < 2; ++i)
+        {
+            const VoxelTraceResult traceResult = traceWorld(ray, 128.0f);
+
+            if (traceResult.intersect_occur)
+            {
+                ray.origin = ray.at(traceResult.t);
+                ray.direction = RandomHemisphereDirection(traceResult.voxel_normal, rngState);
+
+                const PBRVoxelMaterial material = traceResult.material;
+
+                const float3 emittedLight = material.emission_metallic.xyz;
+                incomingLight += emittedLight * giColor;
+                giColor *= material.albedo_roughness.xyz;
+            }
+            else
+            {
+                break;
+            }
+        }
+
     }
     
-    float3 rayColor = 1.0;
-    Ray ray = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, RandomHemisphereDirection(unpacked.normal, rngState));
-    float3 incomingLight = float3(0.0);
 
-    for (int i = 0; i < 2; ++i)
-    {
-        const VoxelTraceResult traceResult = traceWorld(ray, 128.0f);
-
-        if (traceResult.intersect_occur)
-        {
-            ray.origin = ray.at(traceResult.t);
-            ray.direction = RandomHemisphereDirection(traceResult.voxel_normal, rngState);
-
-            const PBRVoxelMaterial material = traceResult.material;
-
-            const float3 emittedLight = material.emission_metallic.xyz;
-            incomingLight += emittedLight * rayColor;
-            rayColor *= material.albedo_roughness.xyz;
-        }
-        else
-        {
-            break;
-        }
-    }
-    
-
-    return rayColor;
+    return saturate(giColor * calculatedColor);
 
 }
 
