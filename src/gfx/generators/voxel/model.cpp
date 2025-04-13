@@ -126,10 +126,10 @@ namespace gfx::generators::voxel
                     {
                         voxels[x, y, z] = yellow; // Right wall
                     }
-                    if (z == 0)
-                    {
-                        voxels[x, y, z] = white; // Back wall
-                    }
+                    // if (z == 0)
+                    // {
+                    //     voxels[x, y, z] = white; // Back wall
+                    // }
                     if (y == 0)
                     {
                         voxels[x, y, z] = white; // Floor

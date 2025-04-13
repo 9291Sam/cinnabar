@@ -204,7 +204,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
             float d         = max(mini.x, max(mini.y, mini.z));
             float3  intersect = rayPos + rayDir * d;
             float3  uv3d      = intersect - mapPos;
-
+            
             if (all(mapPos == floor(rayPos))) // Handle edge case where camera origin is inside ofblock block
             {
                 uv3d = rayPos - mapPos;
@@ -321,6 +321,9 @@ float3 calculatePixelColor(
     bool              includeSpecular,
     bool              includeEmissive)
 {
+    if (dot(N, V) <= 0.0) {
+        return float3(0, 0, 0);
+    }
     // HACK!
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
 
@@ -468,8 +471,6 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     if (!shadowResult.intersect_occur)
     {
         calculatedColor += lightColor;
-        // calculatedColor *=
-        // calculatedColor = 1 - calculatedColor;
     }
 
 
@@ -480,31 +481,30 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         Ray giRay =
             Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-        const VoxelTraceResult giResult = traceWorld(giRay, 96.0f);
+        const VoxelTraceResult giResult = traceWorld(giRay, 117.0f);
 
         if (giResult.intersect_occur)
         {
             const float3 secondWorldStrikePosition = giRay.origin + giResult.t * giRay.direction;
-
             const float3 L = normalize(light.position_and_half_intensity_distance.xyz - secondWorldStrikePosition);
 
-            const VoxelTraceResult giShadow = traceWorld(Ray(secondWorldStrikePosition + 0.05 * giResult.voxel_normal, L), distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
+
+            const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * giResult.voxel_normal, L);
+            const VoxelTraceResult giShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
             
             if (!giShadow.intersect_occur)
             {
-                const float3 reflectionColor = calculatePixelColor(
+                float3 reflectionColor = calculatePixelColor(
                     secondWorldStrikePosition,
                     giResult.voxel_normal,
-                    normalize(giRay.origin - secondWorldStrikePosition),
+                    -giRay.direction,
                     L,
                     light,
                     giResult.material,
-                    false,
+                    true,
                     true) * firstMaterial.albedo_roughness.xyz;
 
-                const float3 diffuseColor = firstMaterial.albedo_roughness.xyz;
-
-                calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
+                calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) ;
             }
         }
 

@@ -409,11 +409,11 @@ namespace gfx::generators::imgui
 
             bool needsUpdate = false;
             needsUpdate |=
-                ImGui::DragFloat("Light x", &light.position_and_half_intensity_distance.x, 0.05f, -64.0f, 64.0f);
+                ImGui::DragFloat("Light x", &light.position_and_half_intensity_distance.x, 0.05f, -128.0f, 128.0f);
             needsUpdate |=
-                ImGui::DragFloat("Light y", &light.position_and_half_intensity_distance.y, 0.05f, -64.0f, 64.0f);
+                ImGui::DragFloat("Light y", &light.position_and_half_intensity_distance.y, 0.05f, -128.0f, 128.0f);
             needsUpdate |=
-                ImGui::DragFloat("Light z", &light.position_and_half_intensity_distance.z, 0.05f, -64.0f, 64.0f);
+                ImGui::DragFloat("Light z", &light.position_and_half_intensity_distance.z, 0.05f, -128.0f, 128.0f);
             needsUpdate |= ImGui::DragFloat("Color r", &light.color_and_power.x, 0.001f, 0.0f, 1.0f);
             needsUpdate |= ImGui::DragFloat("Color g", &light.color_and_power.y, 0.001f, 0.0f, 1.0f);
             needsUpdate |= ImGui::DragFloat("Color b", &light.color_and_power.z, 0.001f, 0.0f, 1.0f);

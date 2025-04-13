@@ -55,7 +55,7 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        const i32 dim = 2;
+        const i32 dim = 3;
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {
@@ -70,7 +70,7 @@ struct TemporaryGameState : game::Game::GameState
                     std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
                         newVoxels {};
 
-                    if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 0})
+                    if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 1})
                     {
                         gfx::generators::voxel::StaticVoxelModel cornelBox =
                             gfx::generators::voxel::StaticVoxelModel::createCornelBox();
@@ -90,7 +90,8 @@ struct TemporaryGameState : game::Game::GameState
 
                                     if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
                                     {
-                                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {x, y, z}, v});
+                                        newVoxels.push_back(
+                                            {gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
                                     }
                                 }
                             }
