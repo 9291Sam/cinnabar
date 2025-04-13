@@ -149,6 +149,7 @@ namespace gfx::generators::voxel
     VoxelRenderer::~VoxelRenderer()
     {
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->prepass_pipeline));
+        this->renderer->getPipelineManager()->destroyPipeline(std::move(this->face_normalizer_pipeline));
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_calculation_pipeline));
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_transfer_pipeline));
     }

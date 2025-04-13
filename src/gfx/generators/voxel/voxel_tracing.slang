@@ -480,12 +480,13 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
 
     
+    float3 incomingLight = float3(0.0);
     float3 giColor = 1.0;
 
     if (shouldDoGi)
     {   
         Ray ray = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, RandomHemisphereDirection(unpacked.normal, rngState));
-        float3 incomingLight = float3(0.0);
+
 
         for (int i = 0; i < 2; ++i)
         {
@@ -511,7 +512,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     }
     
 
-    return saturate(giColor * calculatedColor);
+    return saturate(incomingLight + calculatedColor);
+    // return incomingLight;
 
 }
 
