@@ -168,7 +168,7 @@ namespace gfx::generators::voxel
             };
         case Voxel::Marble:
             return PBRVoxelMaterial {
-                .albedo_roughness {0.83f, 0.791f, 0.753f, 0.0f},
+                .albedo_roughness {0.83f, 0.791f, 0.753f, 1.0f},
                 .emission_metallic {0.0f, 0.0f, 0.0f, 0.0f},
             };
         case Voxel::Mercury:

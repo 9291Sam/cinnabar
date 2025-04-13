@@ -304,6 +304,7 @@ float3 atmosphere(float3 ro, float3 rd, float3 sd)
     float3 sunDir = normalize(float3(-1.0, 0.0, 0.0));
     float  time   = global_gpu_data[UBO_GLOBAL_DATA].time_alive / 10;
     sunDir        = normalize(float3(0.0, sin(time), -cos(time)));
+    sunDir.y = abs(sunDir.y);
 
     const float3 cloudColor      = Sky(float3(0.0), rayDir, global_gpu_data[UBO_GLOBAL_DATA].time_alive, sunDir);
     const float3 atmosphereColor = atmosphere(float3(0.0), rayDir, sunDir);

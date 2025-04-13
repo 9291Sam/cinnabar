@@ -106,10 +106,10 @@ namespace gfx::generators::voxel
         glm::u32vec3 size = model.getExtent();
 
         // Define materials
-        Voxel white = Voxel::Marble;
-        Voxel red   = Voxel::Ruby;
-        Voxel green = Voxel::Banana;
-        Voxel light = Voxel::EmissiveWhite;
+        Voxel white  = Voxel::Marble;
+        Voxel red    = Voxel::Ruby;
+        Voxel yellow = Voxel::Gold;
+        Voxel light  = Voxel::EmissiveWhite;
 
         // Fill walls, floor, and ceiling
         for (uint32_t x = 0; x < size.x; ++x)
@@ -124,7 +124,7 @@ namespace gfx::generators::voxel
                     }
                     if (x == size.x - 1)
                     {
-                        voxels[x, y, z] = green; // Right wall
+                        voxels[x, y, z] = yellow; // Right wall
                     }
                     if (z == 0)
                     {

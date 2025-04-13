@@ -15,6 +15,7 @@
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/generator.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "slang_compiler.hpp"
@@ -26,9 +27,11 @@
 #include <cstddef>
 #include <exception>
 #include <glm/ext/scalar_common.hpp>
+#include <glm/fwd.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
 #include <slang.h>
+#include <tuple>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
@@ -56,21 +59,55 @@ struct TemporaryGameState : game::Game::GameState
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {
-            for (i32 cZ = -dim; cZ <= dim; ++cZ)
+            for (i32 cY = -dim; cY <= dim; ++cY)
             {
-                gfx::generators::voxel::AlignedChunkCoordinate aC {cX, -1, cZ};
-
-                gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(aC);
-
-                std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
-                    newVoxels = wg.generateChunk(aC);
-
-                if (!newVoxels.empty())
+                for (i32 cZ = -dim; cZ <= dim; ++cZ)
                 {
-                    this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
-                }
+                    gfx::generators::voxel::AlignedChunkCoordinate aC {cX, cY, cZ};
 
-                this->chunks.push_back(std::move(chunk));
+                    gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(aC);
+
+                    std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
+                        newVoxels {};
+
+                    if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 0})
+                    {
+                        gfx::generators::voxel::StaticVoxelModel cornelBox =
+                            gfx::generators::voxel::StaticVoxelModel::createCornelBox();
+
+                        const glm::u32vec3 extents = cornelBox.getExtent();
+                        const auto         voxels  = cornelBox.getModel();
+
+                        assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
+
+                        for (u32 x = 0; x < extents.x; ++x)
+                        {
+                            for (u32 y = 0; y < extents.y; ++y)
+                            {
+                                for (u32 z = 0; z < extents.z; ++z)
+                                {
+                                    const gfx::generators::voxel::Voxel v = voxels[x, y, z];
+
+                                    if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
+                                    {
+                                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {x, y, z}, v});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        newVoxels = wg.generateChunk(aC);
+                    }
+
+                    if (!newVoxels.empty())
+                    {
+                        this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
+                    }
+
+                    this->chunks.push_back(std::move(chunk));
+                }
             }
         }
     }

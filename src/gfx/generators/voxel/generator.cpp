@@ -41,18 +41,18 @@ namespace gfx::generators::voxel
             return res;
         };
 
-        auto gen3D =
-            [&](float       scale,
-                std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>>
-        {
-            std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>> res {
-                new std::array<std::array<std::array<float, 64>, 64>, 64>};
+        // auto gen3D =
+        //     [&](float       scale,
+        //         std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>>
+        // {
+        //     std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>> res {
+        //         new std::array<std::array<std::array<float, 64>, 64>, 64>};
 
-            this->fractal->GenUniformGrid3D(
-                res->data()->data()->data(), root.x, root.z, root.y, 64, 64, 64, scale, static_cast<int>(localSeed));
+        //     this->fractal->GenUniformGrid3D(
+        //         res->data()->data()->data(), root.x, root.z, root.y, 64, 64, 64, scale, static_cast<int>(localSeed));
 
-            return res;
-        };
+        //     return res;
+        // };
 
         auto height         = gen2D(static_cast<float>(integerScale) * 0.001f, this->seed + 487484);
         auto bumpHeight     = gen2D(static_cast<float>(integerScale) * 0.01f, this->seed + 7373834);
@@ -73,7 +73,7 @@ namespace gfx::generators::voxel
                 //     static_cast<i32>(std::exp2((*height)[j][i] * 12.0f));
 
                 const i32 unscaledWorldHeight = static_cast<i32>(
-                    (*height)[j][i] * 32.0f + (*bumpHeight)[j][i] * 2.0f + (*mountainHeight)[j][i] * 1024.0f);
+                    (*height)[j][i] * 32.0f + (*bumpHeight)[j][i] * 2.0f); //+ (*mountainHeight)[j][i] * 256.0f)
 
                 for (u8 h = 0; h < 64; ++h)
                 {

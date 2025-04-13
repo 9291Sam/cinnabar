@@ -67,6 +67,7 @@ float3 stepMask(float3 sideDist)
     return float3(mask);
 }
 
+// TODO: put in chunkId
 struct VoxelTraceResult
 {
     bool             intersect_occur;
@@ -368,7 +369,7 @@ VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
     return traceDDARay(chunkId, ray.origin, ray.origin + ray.direction * dist);
 }
 
-float3 calculateChunkLocalColor(
+float3 DEPREcalculateChunkLocalColor(
     uint chunkId, 
     float3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
 {
@@ -440,21 +441,21 @@ float3 calculateChunkLocalColor(
     return calculatedColor;
 }
 
-float3 calculateWorldColor(float3 worldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
+float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
     float3 lightColor = calculatePixelColor(
-        worldStrikePosition,
+        firstWorldStrikePosition,
         unpacked.normal,
-        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - worldStrikePosition),
-        normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
+        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition),
+        normalize(light.position_and_half_intensity_distance.xyz - firstWorldStrikePosition),
         light,
         firstMaterial,
         true,
         true);
 
-    const float3 start = worldStrikePosition + 0.05 * unpacked.normal;
+    const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;
     const float3 dir = normalize(end - start);
     const f32 len = distance(end, start);
@@ -470,6 +471,45 @@ float3 calculateWorldColor(float3 worldStrikePosition, PBRVoxelMaterial firstMat
         // calculatedColor *=
         // calculatedColor = 1 - calculatedColor;
     }
+
+
+    if (firstMaterial.albedo_roughness.w != 1.0)
+    {
+        const float3 toFragmentDir = normalize(firstWorldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
+
+        Ray giRay =
+            Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
+
+        const VoxelTraceResult giResult = traceWorld(giRay, 96.0f);
+
+        if (giResult.intersect_occur)
+        {
+            const float3 secondWorldStrikePosition = giRay.origin + giResult.t * giRay.direction;
+
+            const float3 L = normalize(light.position_and_half_intensity_distance.xyz - secondWorldStrikePosition);
+
+            const VoxelTraceResult giShadow = traceWorld(Ray(secondWorldStrikePosition + 0.05 * giResult.voxel_normal, L), distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
+            
+            if (!giShadow.intersect_occur)
+            {
+                const float3 reflectionColor = calculatePixelColor(
+                    secondWorldStrikePosition,
+                    giResult.voxel_normal,
+                    normalize(giRay.origin - secondWorldStrikePosition),
+                    L,
+                    light,
+                    giResult.material,
+                    false,
+                    true) * firstMaterial.albedo_roughness.xyz;
+
+                const float3 diffuseColor = firstMaterial.albedo_roughness.xyz;
+
+                calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
+            }
+        }
+
+    }
+    
 
     return calculatedColor;
 
