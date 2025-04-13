@@ -46,7 +46,11 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
 
                 if (prev == faceHashTableNullHash || prev == uniqueFaceId)
                 {
-                    const float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked);
+                    const float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked,
+                            gpu_hashCombineU32(
+                                gpu_hashU32(threadId.x),
+                                gpu_hashU32(threadId.y + reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive)),
+                            ));
                     // const float3 calculatedColor = calculateChunkLocalColor(unpacked.chunk_id, chunkStrikePosition, material, unpacked);
 
                     InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, uint(calculatedColor.x * 1024));

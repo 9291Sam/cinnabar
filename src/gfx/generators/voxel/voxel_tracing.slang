@@ -311,7 +311,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float3 calculatePixelColor(
+float3 calculateSampleColor(
     float3              worldPos,
     float3              N,
     float3              V,
@@ -372,86 +372,54 @@ VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
     return traceDDARay(chunkId, ray.origin, ray.origin + ray.direction * dist);
 }
 
-float3 DEPREcalculateChunkLocalColor(
-    uint chunkId, 
-    float3 chunkStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
+
+uint NextRandom(inout uint state)
 {
-    const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
-
-    const float3 worldStrikePosition = chunkStrikePosition + in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner();
-
-    float3 lightColor = calculatePixelColor(
-        worldStrikePosition,
-        unpacked.normal,
-        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - worldStrikePosition),
-        normalize(light.position_and_half_intensity_distance.xyz - worldStrikePosition),
-        light,
-        firstMaterial,
-        true,
-        true);
-
-    const VoxelTraceResult shadowResult = traceDDARay(
-        chunkId, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner());
-
-    float3 calculatedColor = float3(0.0);
-
-    if (!shadowResult.intersect_occur)
-    {
-        calculatedColor += lightColor;
-        // calculatedColor *=
-        // calculatedColor = 1 - calculatedColor;
-    }
-
-    const float3 toFragmentDir = normalize(worldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
-
-    Ray giRay =
-        Ray(chunkStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
-
-    const Cube chunk = Cube(float3(32.0f), 64.0f); // chunkspace
-    
-    if (chunk.contains(giRay.origin))
-    {
-        const VoxelTraceResult giResult = traceSingleRayInChunk(chunkId, giRay, 96.0f);
-
-        if (giResult.intersect_occur)
-        {
-            // TODO: add shadow ray for secondary
-    // const VoxelTraceResult shadowResult = traceDDARay(
-    //     traceDDARay, chunkStrikePosition + 0.05 * unpacked.normal, light.position_and_half_intensity_distance.xyz - in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner());
-
-
-            if (firstMaterial.albedo_roughness.w != 0.0)
-            {
-                const float3 reflectionColor = calculatePixelColor(
-                    giResult.chunk_local_fragment_position + in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner(),
-                    giResult.voxel_normal,
-                    normalize(giRay.origin - giResult.chunk_local_fragment_position),
-                    normalize(
-                        light.position_and_half_intensity_distance.xyz -  in_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner()),
-                    light,
-                    giResult.material,
-                    false,
-                    true);
-
-                const float3 diffuseColor = firstMaterial.albedo_roughness.xyz;
-
-                calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
-            }
-
-        }
-    }
-
-    return calculatedColor;
+    state = state * 747796405 + 2891336453;
+    uint result = ((state >> ((state >> 28) + 4)) ^ state) * 277803737;
+    result = (result >> 22) ^ result;
+    return result;
 }
 
-float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked)
+float RandomValue(inout uint state)
+{
+    return NextRandom(state) / 4294967295.0; // 2^32 - 1
+}
+
+// Random value in normal distribution (with mean=0 and sd=1)
+float RandomValueNormalDistribution(inout uint state)
+{
+    // Thanks to https://stackoverflow.com/a/6178290
+    float theta = 2 * 3.1415926 * RandomValue(state);
+    float rho = sqrt(-2 * log(RandomValue(state)));
+    return rho * cos(theta);
+}
+
+// Calculate a random direction
+float3 RandomDirection(inout uint state)
+{
+    // Thanks to https://math.stackexchange.com/a/1585996
+    float x = RandomValueNormalDistribution(state);
+    float y = RandomValueNormalDistribution(state);
+    float z = RandomValueNormalDistribution(state);
+    return normalize(float3(x, y, z));
+}
+
+float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
+{
+    const float3 dir = RandomDirection(rngState);
+    return dir * sign(dot(normal, dir));
+}
+
+float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState)
 {
     const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+    const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
 
-    float3 lightColor = calculatePixelColor(
+    float3 lightColor = calculateSampleColor(
         firstWorldStrikePosition,
         unpacked.normal,
-        normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition),
+        toCameraVector,
         normalize(light.position_and_half_intensity_distance.xyz - firstWorldStrikePosition),
         light,
         firstMaterial,
@@ -494,14 +462,14 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             
             if (!giShadow.intersect_occur)
             {
-                float3 reflectionColor = calculatePixelColor(
+                float3 reflectionColor = calculateSampleColor(
                     secondWorldStrikePosition,
                     giResult.voxel_normal,
                     -giRay.direction,
                     L,
                     light,
                     giResult.material,
-                    true,
+                    false,
                     true) * firstMaterial.albedo_roughness.xyz;
 
                 calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) ;
@@ -510,8 +478,33 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
     }
     
+    float3 rayColor = 1.0;
+    Ray ray = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, RandomHemisphereDirection(unpacked.normal, rngState));
+    float3 incomingLight = float3(0.0);
 
-    return calculatedColor;
+    for (int i = 0; i < 2; ++i)
+    {
+        const VoxelTraceResult traceResult = traceWorld(ray, 128.0f);
+
+        if (traceResult.intersect_occur)
+        {
+            ray.origin = ray.at(traceResult.t);
+            ray.direction = RandomHemisphereDirection(traceResult.voxel_normal, rngState);
+
+            const PBRVoxelMaterial material = traceResult.material;
+
+            const float3 emittedLight = material.emission_metallic.xyz;
+            incomingLight += emittedLight * rayColor;
+            rayColor *= material.albedo_roughness.xyz;
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+
+    return rayColor;
 
 }
 

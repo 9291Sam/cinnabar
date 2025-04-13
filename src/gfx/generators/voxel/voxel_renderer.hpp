@@ -49,6 +49,7 @@ namespace gfx::generators::voxel
     private:
         const core::Renderer*                        renderer;
         gfx::core::vulkan::PipelineManager::Pipeline prepass_pipeline;
+        gfx::core::vulkan::PipelineManager::Pipeline face_normalizer_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 

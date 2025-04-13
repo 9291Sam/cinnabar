@@ -358,10 +358,10 @@ namespace gfx::generators::imgui
             //     util::send<f32>("SetAnimationTime", 0.0f);
             // }
 
-            // if (ImGui::Button("Restart Animation"))
-            // {
-            //     util::send<f32>("SetAnimationTime", 0.0f);
-            // }
+            if (ImGui::Button("Restart Hash Map"))
+            {
+                util::send<bool>("CLEAR_FACE_HASH_MAP", true);
+            }
 
             if (this->owned_present_mode_strings.empty())
             {

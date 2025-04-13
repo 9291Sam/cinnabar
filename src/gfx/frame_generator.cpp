@@ -84,6 +84,13 @@ namespace gfx
 
                 if (generators.maybe_voxel_renderer != nullptr)
                 {
+                    commandBuffer.bindDescriptorSets(
+                        vk::PipelineBindPoint::eCompute,
+                        this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+                        0,
+                        {this->renderer->getDescriptorManager()->getGlobalDescriptorSet()},
+                        {});
+
                     generators.maybe_voxel_renderer->recordCopyCommands(commandBuffer);
                 }
 
@@ -95,6 +102,19 @@ namespace gfx
                         .sType {vk::StructureType::eMemoryBarrier},
                         .pNext {nullptr},
                         .srcAccessMask {vk::AccessFlagBits::eTransferWrite},
+                        .dstAccessMask {vk::AccessFlagBits::eMemoryRead},
+                    }},
+                    {},
+                    {});
+
+                commandBuffer.pipelineBarrier(
+                    vk::PipelineStageFlagBits::eComputeShader,
+                    vk::PipelineStageFlagBits::eAllCommands,
+                    vk::DependencyFlags {},
+                    {vk::MemoryBarrier {
+                        .sType {vk::StructureType::eMemoryBarrier},
+                        .pNext {nullptr},
+                        .srcAccessMask {vk::AccessFlagBits::eShaderWrite},
                         .dstAccessMask {vk::AccessFlagBits::eMemoryRead},
                     }},
                     {},

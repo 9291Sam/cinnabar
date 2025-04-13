@@ -49,6 +49,10 @@ namespace gfx::generators::voxel
                   .blend_enable {vk::False},
                   .name {"Voxel prepass pipeline"},
               })}
+        , face_normalizer_pipeline {this->renderer->getPipelineManager()->createPipeline(
+              core::vulkan::ComputePipelineDescriptor {
+                  .compute_shader_path {"src/gfx/generators/voxel/voxel_hash_map_normalizer.slang"},
+                  .name {"Voxel Face Normalizer"}})}
         , color_calculation_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::ComputePipelineDescriptor {
                   .compute_shader_path {"src/gfx/generators/voxel/voxel_color_calculation.slang"},
@@ -368,7 +372,19 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
     {
-        commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
+        if (this->renderer->getFrameNumber() == 0 || util::receive<bool>("CLEAR_FACE_HASH_MAP").value_or(false))
+        {
+            commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
+        }
+        else
+        {
+            commandBuffer.bindPipeline(
+                vk::PipelineBindPoint::eCompute,
+                this->renderer->getPipelineManager()->getPipeline(this->face_normalizer_pipeline));
+
+            static_assert(MaxFaceHashMapNodes % 1024 == 0);
+            commandBuffer.dispatch(MaxFaceHashMapNodes / 1024, 1, 1);
+        }
     }
 
     void VoxelRenderer::recordPrepass(vk::CommandBuffer commandBuffer, const Camera&)
