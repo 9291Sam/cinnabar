@@ -13,7 +13,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     GpuColorHashMapNode node = in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot];
     // node = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
 
-    const float fadeFactor = bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_global_illumination) ? 0.95 : 0.0;
+    const float fadeFactor = bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_global_illumination) ? 0.75 : 0.0;
 
     // TODO: increase fade on camera move
 
