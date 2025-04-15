@@ -4,6 +4,7 @@
 #include "shared_data_structures.slang"
 #include "cube_ray.slang"
 #include "voxel_faces.slang"
+#include "skybox_common.slang" 
 
 
 
@@ -449,7 +450,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         Ray bounceRay =
             Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 117.0f);
+        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 1024.0f);
 
         if (bounceResult.intersect_occur)
         {
@@ -475,9 +476,12 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                 calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) ;
             }
         }
+        else
+        {
+            calculatedColor += totalSkybox(bounceRay.direction, false) * firstMaterial.albedo_roughness.xyz;
+        }
 
-    }   
-
+    }
 
     
     float3 incomingLight = float3(0.0);
@@ -495,7 +499,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             if (traceResult.intersect_occur)
             {
                 ray.origin = ray.at(traceResult.t);
-                ray.direction = RandomHemisphereDirection(traceResult.voxel_normal, rngState);
+                const float3 diffuseDirection = normalize(traceResult.voxel_normal + RandomDirection(rngState));
+                ray.direction = diffuseDirection;
 
                 const PBRVoxelMaterial material = traceResult.material;
 
@@ -511,8 +516,11 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
     }
     
-
-    return calculatedColor * giColor;
+    return incomingLight + calculatedColor;
+    // return giColor;
+    // return calculatedColor + incomingLight;
+    // return incomingLight;     
+    // return calculatedColor * giColor;
     // return saturate(incomingLight + calculatedColor + incomingLight * calculatedColor);
     // return giColor * 100000000 *  incomingLight;
 

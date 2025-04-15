@@ -343,7 +343,7 @@ namespace gfx::generators::voxel
             };
         case Voxel::EmissiveWhite:
             return PBRVoxelMaterial {
-                .albedo_roughness {0.0f, 0.0f, 0.0f, 0.0f}, .emission_metallic {32.0f, 32.0f, 32.0f, 0.0f}};
+                .albedo_roughness {0.0f, 0.0f, 0.0f, 0.0f}, .emission_metallic {8.0f, 8.0f, 8.0f, 0.0f}};
         case Voxel::Dirt:
             return PBRVoxelMaterial {
                 .albedo_roughness {0.3828125f, 0.28515625, 0.1953125f, 1.0},
