@@ -189,4 +189,26 @@ namespace util
         return ((x - inMin) * (outMax - outMin) / (inMax - inMin)) + outMin;
     }
 
+    template<typename T, class M>
+    std::size_t getOffsetOfPointerToMember(M T::* member)
+    {
+        return std::bit_cast<std::size_t>(member);
+    }
+
+    template<class T>
+    struct member_type_helper;
+
+    template<class C, class T>
+    struct member_type_helper<T C::*>
+    {
+        using Type = T;
+    };
+
+    template<class T>
+    struct MemberType : member_type_helper<std::remove_cvref_t<T>>
+    {};
+
+    // Helper type
+    template<class T>
+    using MemberTypeT = MemberType<T>::Type;
 } // namespace util

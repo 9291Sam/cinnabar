@@ -159,7 +159,8 @@ namespace gfx::generators::voxel
         VoxelChunk newChunk = this->chunk_allocator.allocateOrPanic();
         const u32  chunkId  = this->chunk_allocator.getValueOfHandle(newChunk);
 
-        this->gpu_chunk_data.modify(chunkId) = {.aligned_chunk_coordinate {coordinate}, .offset {~0u}};
+        this->gpu_chunk_data.write<&GpuChunkData::aligned_chunk_coordinate>(chunkId, coordinate);
+        this->gpu_chunk_data.write<&GpuChunkData::offset>(chunkId, ~0u);
         assert::critical(this->cpu_chunk_data[chunkId].brick_allocation.isNull(), "should be empty");
 
         insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);

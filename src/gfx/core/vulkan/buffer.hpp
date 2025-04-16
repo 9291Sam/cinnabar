@@ -8,6 +8,7 @@
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
+#include <bit>
 #include <limits>
 #include <source_location>
 #include <type_traits>
@@ -479,9 +480,17 @@ namespace gfx::core::vulkan
             this->write(offset, std::span<const T> {&t, 1});
         }
 
-        // template<class PointedToField T::* Ptr>
-        // void write(std::size_t, const PointedToField& write)
-        // {}
+        template<auto Ptr>
+        void write(std::size_t offsetElements, const util::MemberTypeT<decltype(Ptr)>& write)
+            requires std::is_member_pointer_v<decltype(Ptr)>
+        {
+            const std::size_t byteOffset = util::getOffsetOfPointerToMember(Ptr);
+
+            this->flushes.push_back(
+                FlushData {.offset_bytes {(offsetElements * sizeof(T)) + byteOffset}, .size_bytes {sizeof(write)}});
+
+            std::memcpy(reinterpret_cast<char*>(&this->cpu_buffer[offsetElements]) + byteOffset, &write, sizeof(write));
+        }
 
         std::span<T> modify(std::size_t offset, std::size_t size)
         {
@@ -496,6 +505,18 @@ namespace gfx::core::vulkan
             assert::critical(!this->cpu_buffer.empty(), "hmmm");
 
             return this->modify(offset, 1)[0];
+        }
+        template<auto Ptr>
+        util::MemberTypeT<decltype(Ptr)>& modify(std::size_t offsetElements)
+            requires std::is_member_pointer_v<decltype(Ptr)>
+        {
+            const std::size_t byteOffset = util::getOffsetOfPointerToMember(Ptr);
+
+            this->flushes.push_back(FlushData {
+                .offset_bytes {(offsetElements * sizeof(T)) + byteOffset},
+                .size_bytes {sizeof(util::MemberTypeT<decltype(Ptr)>)}});
+
+            return this->cpu_buffer[offsetElements].*Ptr;
         }
 
         void flushViaStager(const BufferStager& stager, std::source_location = std::source_location::current());
