@@ -172,7 +172,7 @@ namespace gfx::core::vulkan
                 .size {transfer.size},
             });
 
-            stagingFlushes.push_back(FlushData {.offset_elements {offset}, .size_elements {transfer.size}});
+            stagingFlushes.push_back(FlushData {.offset_bytes {offset}, .size_bytes {transfer.size}});
         }
 
         for (const auto& [outputBuffer, bufferCopies] : copies)

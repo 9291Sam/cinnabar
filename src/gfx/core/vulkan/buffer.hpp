@@ -8,6 +8,7 @@
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <atomic>
+#include <limits>
 #include <source_location>
 #include <type_traits>
 #include <utility>
@@ -24,8 +25,8 @@ namespace gfx::core::vulkan
 
     struct FlushData
     {
-        vk::DeviceSize offset_elements;
-        vk::DeviceSize size_elements;
+        vk::DeviceSize offset_bytes;
+        vk::DeviceSize size_bytes;
     };
 
     extern std::atomic<std::size_t> bufferBytesAllocated; // NOLINT
@@ -294,9 +295,7 @@ namespace gfx::core::vulkan
             std::copy(payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
 
             const gfx::core::vulkan::FlushData flush {
-                .offset_elements {offset},
-                .size_elements {payload.size()},
-            };
+                .offset_bytes {offset * sizeof(T)}, .size_bytes {payload.size_bytes()}};
 
             this->flush({&flush, 1});
         }
@@ -308,8 +307,8 @@ namespace gfx::core::vulkan
             std::fill(data.begin(), data.end(), value);
 
             const gfx::core::vulkan::FlushData flush {
-                .offset_elements {0},
-                .size_elements {this->elements},
+                .offset_bytes {0},
+                .size_bytes {this->elements * sizeof(T)},
             };
 
             this->flush({&flush, 1});
@@ -339,10 +338,7 @@ namespace gfx::core::vulkan
             if (flushes.size() == 1)
             {
                 result = vmaFlushAllocation(
-                    **this->renderer->getAllocator(),
-                    this->allocation,
-                    flushes[0].offset_elements * sizeof(T),
-                    flushes[0].size_elements * sizeof(T));
+                    **this->renderer->getAllocator(), this->allocation, flushes[0].offset_bytes, flushes[0].size_bytes);
             }
             else
             {
@@ -359,8 +355,8 @@ namespace gfx::core::vulkan
 
                 for (const FlushData& f : flushes)
                 {
-                    offsets.push_back(f.offset_elements * sizeof(T));
-                    sizes.push_back(f.size_elements * sizeof(T));
+                    offsets.push_back(f.offset_bytes);
+                    sizes.push_back(f.size_bytes);
                 }
 
                 result = vmaFlushAllocations(
@@ -474,7 +470,7 @@ namespace gfx::core::vulkan
 
         void write(std::size_t offset, std::span<const T> data)
         {
-            this->flushes.push_back(util::InclusiveRange {.start {offset}, .end {offset + data.size() - 1}});
+            this->flushes.push_back(FlushData {.offset_bytes {offset * sizeof(T)}, .size_bytes {data.size_bytes()}});
 
             std::memcpy(&this->cpu_buffer[offset], data.data(), data.size_bytes());
         }
@@ -483,11 +479,15 @@ namespace gfx::core::vulkan
             this->write(offset, std::span<const T> {&t, 1});
         }
 
+        // template<class PointedToField T::* Ptr>
+        // void write(std::size_t, const PointedToField& write)
+        // {}
+
         std::span<T> modify(std::size_t offset, std::size_t size)
         {
             assert::critical(size > 0, "dont do this");
 
-            this->flushes.push_back(util::InclusiveRange {.start {offset}, .end {offset + size - 1}});
+            this->flushes.push_back(FlushData {.offset_bytes {offset * sizeof(T)}, .size_bytes {size * sizeof(T)}});
 
             return std::span<T> {&this->cpu_buffer[offset], size};
         }
@@ -501,40 +501,28 @@ namespace gfx::core::vulkan
         void flushViaStager(const BufferStager& stager, std::source_location = std::source_location::current());
         void flushCachedChangesImmediate()
         {
-            std::vector<FlushData> localFlushes = this->mergeFlushes();
+            std::vector<FlushData> localFlushes = this->grabFlushes();
             const std::span<T>     gpuData      = this->getGpuDataNonCoherent();
 
             for (FlushData& f : localFlushes)
             {
-                std::copy(
-                    this->cpu_buffer.begin() + f.offset_elements,
-                    this->cpu_buffer.begin() + f.offset_elements + f.size_elements,
-                    gpuData.begin() + f.offset_elements);
+                static_assert(std::is_trivially_copyable_v<T>);
+                std::memcpy(
+                    static_cast<char*>(gpuData.begin()) + f.offset_bytes,
+                    static_cast<const char*>(this->cpu_buffer.begin()) + f.offset_bytes,
+                    f.size_bytes);
             }
 
             this->flush(std::move(localFlushes));
         }
 
-        std::vector<FlushData> mergeFlushes()
+        std::vector<FlushData> grabFlushes()
         {
-            // return std::move(this->flushes);
-            std::vector<util::InclusiveRange> mergedRanges = std::move(this->flushes);
-
-            // mergedRanges = util::mergeDownRanges, 128);
-
-            std::vector<FlushData> newFlushes {};
-            newFlushes.reserve(mergedRanges.size());
-
-            for (const auto& r : mergedRanges)
-            {
-                newFlushes.push_back(FlushData {.offset_elements {r.start}, .size_elements {r.size()}});
-            }
-
-            return newFlushes;
+            return std::move(this->flushes);
         }
     private:
-        std::vector<T>                    cpu_buffer;
-        std::vector<util::InclusiveRange> flushes;
+        std::vector<T>         cpu_buffer;
+        std::vector<FlushData> flushes;
     };
 
     class BufferStager
@@ -564,13 +552,13 @@ namespace gfx::core::vulkan
                 location);
         }
 
+        void enqueueByteTransfer(vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
+
         void flushTransfers(vk::CommandBuffer, std::shared_ptr<vk::UniqueFence> flushFinishFence) const;
 
         std::pair<std::size_t, std::size_t> getUsage() const;
 
     private:
-
-        void enqueueByteTransfer(vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
 
         struct BufferTransfer
         {
@@ -603,14 +591,17 @@ namespace gfx::core::vulkan
     template<class T>
     void CpuCachedBuffer<T>::flushViaStager(const BufferStager& stager, std::source_location location)
     {
-        std::vector<FlushData> mergedFlushes = this->mergeFlushes();
+        std::vector<FlushData> mergedFlushes = this->grabFlushes();
 
         for (const FlushData& f : mergedFlushes)
         {
-            stager.enqueueTransfer(
-                *this,
-                static_cast<u32>(f.offset_elements),
-                {this->cpu_buffer.data() + f.offset_elements, f.size_elements},
+            assert::critical(f.offset_bytes < static_cast<u64>(std::numeric_limits<u32>::max()), "oop offset ");
+            assert::critical(f.size_bytes < static_cast<u64>(std::numeric_limits<u32>::max()), "oop size");
+
+            stager.enqueueByteTransfer(
+                **this,
+                static_cast<u32>(f.offset_bytes),
+                {reinterpret_cast<const std::byte*>(this->cpu_buffer.data()) + f.offset_bytes, f.size_bytes},
                 location);
         }
     }
