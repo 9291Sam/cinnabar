@@ -450,7 +450,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         Ray bounceRay =
             Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 1024.0f);
+        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 128.0f);
 
         if (bounceResult.intersect_occur)
         {
