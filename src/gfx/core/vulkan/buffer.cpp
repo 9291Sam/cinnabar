@@ -12,7 +12,8 @@
 
 namespace gfx::core::vulkan
 {
-    std::atomic<std::size_t> bufferBytesAllocated = 0; // NOLINT
+    std::atomic<std::size_t> bufferBytesAllocated            = 0; // NOLINT
+    std::atomic<std::size_t> hostVisibleBufferBytesAllocated = 0; // NOLINT
 
     static constexpr std::size_t StagingBufferSize = std::size_t {32} * 1024 * 1024;
 

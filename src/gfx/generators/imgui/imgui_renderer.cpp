@@ -306,9 +306,12 @@ namespace gfx::generators::imgui
             }
 
             const std::string menuText = std::format(
-                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nRAM Usage: {} | VRAM Usage: {}\nFPS {}: {}\n{}\n{}",
+                "ん✨ち🍋😍🐶🖨🖨🐱🦊🐼🐻🐘🦒🦋🌲🌸🌞🌈\nRAM Usage: {} | VRAM Usage: {} | Addressable VRAM: {}\nFPS "
+                "{}: {}\n{}\n{}",
                 util::bytesAsSiNamed(util::getMemoryUsage()),
                 util::bytesAsSiNamed(gfx::core::vulkan::bufferBytesAllocated.load(std::memory_order_acquire)),
+                util::bytesAsSiNamed(
+                    gfx::core::vulkan::hostVisibleBufferBytesAllocated.load(std::memory_order_acquire)),
                 getDeltaTimeEmoji(deltaTime),
                 1.0f / deltaTime,
                 glm::to_string(camera.getPosition()),

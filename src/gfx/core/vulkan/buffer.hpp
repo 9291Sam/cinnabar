@@ -30,7 +30,8 @@ namespace gfx::core::vulkan
         vk::DeviceSize size_bytes;
     };
 
-    extern std::atomic<std::size_t> bufferBytesAllocated; // NOLINT
+    extern std::atomic<std::size_t> bufferBytesAllocated;            // NOLINT
+    extern std::atomic<std::size_t> hostVisibleBufferBytesAllocated; // NOLINT
 
     template<class T>
         requires std::is_trivially_copyable_v<T>
@@ -58,8 +59,15 @@ namespace gfx::core::vulkan
             , allocation {nullptr}
             , elements {elements_}
             , usage {usage_}
+            , memory_property_flags {memoryPropertyFlags}
             , maybe_descriptor_binding_location {maybeDescriptorBindingLocation}
         {
+            const u64 totalBufferSizeBytes = u64 {elements_} * u64 {sizeof(T)};
+            assert::critical(
+                totalBufferSizeBytes < u64 {std::numeric_limits<u32>::max()},
+                "Tried to create a buffer of size {}, which is larger than the maximum allowed value of {}",
+                util::bytesAsSiNamed(static_cast<long double>(totalBufferSizeBytes)),
+                util::bytesAsSiNamed(static_cast<long double>(std::numeric_limits<u32>::max())));
             assert::critical(!this->name.empty(), "Tried to create buffer with empty name!");
 
             assert::critical(
@@ -126,6 +134,11 @@ namespace gfx::core::vulkan
             }
 
             bufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
+
+            if (vk::MemoryPropertyFlagBits::eHostVisible & memoryPropertyFlags)
+            {
+                hostVisibleBufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
+            }
 
             if (this->usage & vk::BufferUsageFlagBits::eUniformBuffer)
             {
@@ -198,14 +211,16 @@ namespace gfx::core::vulkan
             , allocation {other.allocation}
             , elements {other.elements}
             , usage {other.usage}
+            , memory_property_flags {other.memory_property_flags}
             , maybe_uniform_descriptor_handle {std::exchange(other.maybe_uniform_descriptor_handle, std::nullopt)}
             , maybe_storage_descriptor_handle {std::exchange(other.maybe_storage_descriptor_handle, std::nullopt)}
         {
-            other.renderer   = nullptr;
-            other.buffer     = nullptr;
-            other.allocation = nullptr;
-            other.elements   = 0;
-            other.usage      = {};
+            other.renderer              = nullptr;
+            other.buffer                = nullptr;
+            other.allocation            = nullptr;
+            other.elements              = 0;
+            other.usage                 = {};
+            other.memory_property_flags = {};
         }
 
         vk::Buffer operator* () const
@@ -227,14 +242,19 @@ namespace gfx::core::vulkan
             ::vmaDestroyBuffer(**this->renderer->getAllocator(), this->buffer, this->allocation);
 
             bufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);
+            if (this->memory_property_flags & vk::MemoryPropertyFlagBits::eHostVisible)
+            {
+                hostVisibleBufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);
+            }
         }
 
-        std::string          name;
-        const Renderer*      renderer;
-        vk::Buffer           buffer;
-        VmaAllocation        allocation;
-        std::size_t          elements;
-        vk::BufferUsageFlags usage;
+        std::string             name;
+        const Renderer*         renderer;
+        vk::Buffer              buffer;
+        VmaAllocation           allocation;
+        std::size_t             elements;
+        vk::BufferUsageFlags    usage;
+        vk::MemoryPropertyFlags memory_property_flags;
 
         std::optional<DescriptorHandle<vk::DescriptorType::eUniformBuffer>> maybe_uniform_descriptor_handle;
         std::optional<DescriptorHandle<vk::DescriptorType::eStorageBuffer>> maybe_storage_descriptor_handle;
