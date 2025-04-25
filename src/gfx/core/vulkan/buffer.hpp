@@ -242,6 +242,7 @@ namespace gfx::core::vulkan
             ::vmaDestroyBuffer(**this->renderer->getAllocator(), this->buffer, this->allocation);
 
             bufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);
+
             if (this->memory_property_flags & vk::MemoryPropertyFlagBits::eHostVisible)
             {
                 hostVisibleBufferBytesAllocated.fetch_sub(this->elements * sizeof(T), std::memory_order_release);

@@ -517,12 +517,6 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     }
     
     return incomingLight + calculatedColor;
-    // return giColor;
-    // return calculatedColor + incomingLight;
-    // return incomingLight;     
-    // return calculatedColor * giColor;
-    // return saturate(incomingLight + calculatedColor + incomingLight * calculatedColor);
-    // return giColor * 100000000 *  incomingLight;
 
 }
 
