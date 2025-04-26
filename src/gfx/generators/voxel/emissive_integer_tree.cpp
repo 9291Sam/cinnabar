@@ -31,76 +31,72 @@ for (auto i : v)
 
 #include "emissive_integer_tree.hpp"
 #include "glm/gtx/string_cast.hpp"
-#include "octree.h"
-#include "octree_container.h"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <glm/fwd.hpp>
+#include <kdtree++/kdtree.hpp>
 #include <ranges>
+#include <tuple>
 
 namespace gfx::generators::voxel
 {
     struct EmissiveIntegerTreeImpl
     {
-        OrthoTree::TreePointContainerND<3, i32> tree;
+        KDTree::KDTree<3, glm::i32vec3> tree;
     };
 
     EmissiveIntegerTree::EmissiveIntegerTree()
-        : impl {new EmissiveIntegerTreeImpl {decltype(EmissiveIntegerTreeImpl::tree)::Create<false>(
-              std::span<const decltype(EmissiveIntegerTreeImpl::tree)::TEntity> {},
-              OrthoTree::detail::MortonSpaceIndexing<3>::MAX_THEORETICAL_DEPTH_ID,
-              decltype(EmissiveIntegerTreeImpl::tree)::TBox {
-                  {-PlayBound, -PlayBound, -PlayBound}, {PlayBound, PlayBound, PlayBound}})}}
+        : impl {new EmissiveIntegerTreeImpl {}}
     {}
 
     EmissiveIntegerTree::~EmissiveIntegerTree() = default;
 
     bool EmissiveIntegerTree::insert(glm::i32vec3 v, bool warnIfAlreadyExisting)
     {
-        const bool inserted = this->impl->tree.AddUnique(std::bit_cast<std::array<i32, 3>>(v), 0);
+        auto it = this->impl->tree.find(v);
 
-        if (warnIfAlreadyExisting && !inserted)
+        if (it == this->impl->tree.end())
         {
-            log::warn("Duplicate insert of element @ {}", glm::to_string(v));
-        }
-
-        return inserted;
-    }
-
-    bool EmissiveIntegerTree::remove(glm::i32vec3 v)
-    {
-        panic("wrong");
-        const u32  id      = this->impl->tree.GetCore().FindSmallestNode(std::bit_cast<std::array<i32, 3>>(v));
-        const auto element = this->impl->tree.Get(id);
-
-        log::trace("{} {} {} {}", id, element[0], element[1], element[2]);
-
-        if (std::bit_cast<glm::i32vec3>(element) == v)
-        {
-            this->impl->tree.Erase(id);
-
-            log::trace("dest");
+            this->impl->tree.insert(v);
 
             return true;
+        }
+        else if (warnIfAlreadyExisting)
+        {
+            log::warn("duplicate insertion of {}", glm::to_string(v));
         }
 
         return false;
     }
 
-    std::vector<glm::i32vec3> EmissiveIntegerTree::getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements)
+    void EmissiveIntegerTree::remove(glm::i32vec3 v)
     {
-        std::vector ids =
-            this->impl->tree.GetNearestNeighbors(std::bit_cast<std::array<i32, 3>>(searchPoint), maxElements);
+        this->impl->tree.erase(v);
+    }
 
-        std::vector<glm::i32vec3> result {};
-        result.resize(ids.size());
+    std::vector<glm::i32vec3>
+    EmissiveIntegerTree::getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements, i32 maxDistance)
+    {
+        const glm::f32vec3        floatSearchPos = static_cast<glm::f32vec3>(searchPoint);
+        std::vector<glm::i32vec3> out {};
 
-        for (auto [id, newPosition] : std::ranges::zip_view(ids, result))
+        std::ignore = this->impl->tree.find_within_range(
+            searchPoint, decltype(this->impl->tree)::subvalue_type {maxDistance}, std::back_inserter(out));
+
+        std::ranges::sort(
+            out,
+            [&](glm::i32vec3 l, glm::i32vec3 r)
+            {
+                return glm::distance(static_cast<glm::f32vec3>(l), floatSearchPos)
+                     < glm::distance(static_cast<glm::f32vec3>(r), floatSearchPos);
+            });
+
+        if (out.size() > maxElements)
         {
-            newPosition = std::bit_cast<glm::i32vec3>(this->impl->tree.Get(id));
+            out.resize(maxElements);
         }
 
-        return result;
+        return out;
     }
 
 } // namespace gfx::generators::voxel

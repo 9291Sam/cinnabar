@@ -2,6 +2,7 @@
 
 #include "glm/vec3.hpp"
 #include "util/util.hpp"
+#include <span>
 #include <vector>
 
 namespace gfx::generators::voxel
@@ -29,9 +30,10 @@ namespace gfx::generators::voxel
         bool insert(glm::i32vec3, bool warnIfAlreadyExisting = true);
 
         /// try remove the element, return false if there was no element in the tree
-        bool remove(glm::i32vec3);
+        void remove(glm::i32vec3);
 
-        std::vector<glm::i32vec3> getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements);
+        std::vector<glm::i32vec3>
+        getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements, i32 maxDistance);
 
     private:
         std::unique_ptr<EmissiveIntegerTreeImpl> impl;

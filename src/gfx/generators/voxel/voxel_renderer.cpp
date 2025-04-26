@@ -122,7 +122,7 @@ namespace gfx::generators::voxel
         t.insert({13, 2, 3});
         t.insert({1, 21, 3});
 
-        std::vector<glm::i32vec3> points = t.getNearestElements({0, 0, 0}, 3);
+        std::vector<glm::i32vec3> points = t.getNearestElements({0, 0, 0}, 3, 100);
 
         for (glm::i32vec3 p : points)
         {
@@ -133,7 +133,9 @@ namespace gfx::generators::voxel
 
         log::trace("removed");
 
-        std::vector<glm::i32vec3> points2 = t.getNearestElements({0, 0, 0}, 3);
+        util::Timer t2 {" erm"};
+
+        std::vector<glm::i32vec3> points2 = t.getNearestElements({0, 0, 0}, 3, 100);
 
         for (glm::i32vec3 p : points2)
         {
