@@ -37,6 +37,7 @@ CPMAddPackage("gh:ocornut/imgui#v1.91.8")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
+CPMAddPackage("gh:9291Sam/Octree-pp-fix#7270d2839a69bde5812c6bb417a8b917d7ae8ba3")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS)
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
@@ -67,6 +68,7 @@ add_executable(cinnabar
 
     src/gfx/generators/triangle/triangle_renderer.cpp
 
+    src/gfx/generators/voxel/emissive_integer_tree.cpp
     src/gfx/generators/voxel/generator.cpp
     src/gfx/generators/voxel/material.cpp
     src/gfx/generators/voxel/model.cpp
@@ -126,6 +128,7 @@ target_link_libraries(
 
 target_include_directories(cinnabar PRIVATE src)
 target_include_directories(cinnabar SYSTEM PRIVATE ${CPM_PACKAGE_opengametools_SOURCE_DIR}/src)
+target_include_directories(cinnabar SYSTEM PRIVATE ${CPM_PACKAGE_Octree-pp-fix_SOURCE_DIR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 target_compile_definitions(cinnabar PUBLIC CINNABAR_VERSION_PATCH=${PROJECT_VERSION_PATCH})

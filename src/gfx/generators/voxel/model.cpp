@@ -142,12 +142,18 @@ namespace gfx::generators::voxel
             }
         }
 
+        bool flip = false;
         // Add a light source at the center of the ceiling
         for (uint32_t x = size.x / 3; x < 2 * size.x / 3; ++x)
         {
             for (uint32_t z = size.z / 3; z < 2 * size.z / 3; ++z)
             {
-                voxels[x, size.y - 1, z] = light;
+                if (flip)
+                {
+                    voxels[x, size.y - 1, z] = light;
+                }
+
+                flip = !flip;
             }
         }
 

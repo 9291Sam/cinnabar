@@ -4,6 +4,7 @@
 #include "gfx/core/vulkan/pipeline_manager.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
+#include "gfx/generators/voxel/emissive_integer_tree.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
@@ -112,6 +113,33 @@ namespace gfx::generators::voxel
               SBO_VOXEL_LIGHTS)
         , materials {generateMaterialBuffer(this->renderer)}
     {
+        EmissiveIntegerTree t {};
+
+        t.insert({-13, -23, 2});
+        t.insert({1, 2, 3});
+        t.insert({1, -2, 3});
+        t.insert({1, 2, -3});
+        t.insert({13, 2, 3});
+        t.insert({1, 21, 3});
+
+        std::vector<glm::i32vec3> points = t.getNearestElements({0, 0, 0}, 3);
+
+        for (glm::i32vec3 p : points)
+        {
+            log::trace("Found point {}", glm::to_string(p));
+        }
+
+        t.remove({1, -2, 3});
+
+        log::trace("removed");
+
+        std::vector<glm::i32vec3> points2 = t.getNearestElements({0, 0, 0}, 3);
+
+        for (glm::i32vec3 p : points2)
+        {
+            log::trace("Found point {}", glm::to_string(p));
+        }
+
         // std::vector<std::byte> badAppleData =
         //     util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
 
@@ -372,8 +400,9 @@ namespace gfx::generators::voxel
         }
     }
 
-    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
+    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer)
     {
+        // auto a = &ChunkLocalEmissiveOffset::x;
         // if (this->renderer->getFrameNumber() == 0 || util::receive<bool>("CLEAR_FACE_HASH_MAP").value_or(false))
         // {
         //     commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
@@ -398,7 +427,7 @@ namespace gfx::generators::voxel
         commandBuffer.draw(36 * this->chunk_allocator.getUpperBoundOnAllocatedElements(), 1, 0, 0);
     }
 
-    void VoxelRenderer::recordColorCalculation(vk::CommandBuffer commandBuffer)
+    void VoxelRenderer::recordColorCalculation(vk::CommandBuffer)
     {
         // commandBuffer.bindPipeline(
         //     vk::PipelineBindPoint::eCompute,
