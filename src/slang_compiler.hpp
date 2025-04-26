@@ -49,7 +49,8 @@ namespace cfi
         [[nodiscard]] std::vector<std::filesystem::path>
         getDependencies(slang::IModule*, std::filesystem::path selfPath) const;
         [[nodiscard]] Slang::ComPtr<slang::IComponentType> composeProgram(slang::IModule*, slang::IEntryPoint*) const;
-        [[nodiscard]] Slang::ComPtr<slang::IBlob>          compileComposedProgram(slang::IComponentType*) const;
+        [[nodiscard]] std::pair<Slang::ComPtr<slang::IBlob>, std::string>
+        compileComposedProgram(slang::IComponentType*) const;
     };
 
 } // namespace cfi

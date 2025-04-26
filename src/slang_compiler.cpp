@@ -2,6 +2,7 @@
 #include "util/logger.hpp"
 #include "util/timer.hpp"
 #include "util/util.hpp"
+#include <__expected/unexpected.h>
 #include <expected>
 #include <filesystem>
 #include <fmt/format.h>
@@ -36,15 +37,15 @@ namespace cfi
             return std::unexpected(std::move(maybeCompileMessage));
         }
 
-        const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeFragmentEntry =
-            this->tryFindEntryPoint(maybeModule, "fragmentMain");
         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeVertexEntry =
             this->tryFindEntryPoint(maybeModule, "vertexMain");
+        const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeFragmentEntry =
+            this->tryFindEntryPoint(maybeModule, "fragmentMain");
         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeComputeEntry =
             this->tryFindEntryPoint(maybeModule, "computeMain");
 
-        auto tryComposeEntrypoint =
-            [&](const std::optional<Slang::ComPtr<slang::IEntryPoint>>& maybeEntryPoint) -> std::vector<u32>
+        auto tryComposeEntrypoint = [&](const std::optional<Slang::ComPtr<slang::IEntryPoint>>& maybeEntryPoint)
+            -> std::expected<std::vector<u32>, std::string>
         {
             if (!maybeEntryPoint.has_value())
             {
@@ -53,25 +54,50 @@ namespace cfi
 
             const Slang::ComPtr<slang::IComponentType> composedProgram =
                 this->composeProgram(maybeModule, &**maybeEntryPoint);
-            const Slang::ComPtr<slang::IBlob> spirvBlob = this->compileComposedProgram(composedProgram.get());
+            std::pair<Slang::ComPtr<slang::IBlob>, std::string> maybeBlob =
+                this->compileComposedProgram(composedProgram.get());
 
-            const usize outputSize = spirvBlob->getBufferSize();
+            if (maybeBlob.first != nullptr)
+            {
+                const usize outputSize = maybeBlob.first->getBufferSize();
 
-            assert::critical(
-                outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
+                assert::critical(
+                    outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
 
-            std::vector<u32> data {};
-            data.resize(outputSize / 4);
+                std::vector<u32> data {};
+                data.resize(outputSize / 4);
 
-            std::memcpy(data.data(), spirvBlob->getBufferPointer(), spirvBlob->getBufferSize());
+                std::memcpy(data.data(), maybeBlob.first->getBufferPointer(), maybeBlob.first->getBufferSize());
 
-            return data;
+                return data;
+            }
+            else
+            {
+                return std::unexpected(std::move(maybeBlob.second));
+            }
         };
 
+        std::expected<std::vector<u32>, std::string> maybeVertexSPIRV   = tryComposeEntrypoint(maybeVertexEntry);
+        std::expected<std::vector<u32>, std::string> maybeFragmentSPIRV = tryComposeEntrypoint(maybeFragmentEntry);
+        std::expected<std::vector<u32>, std::string> maybeComputeSPIRV  = tryComposeEntrypoint(maybeComputeEntry);
+
+        if (!maybeVertexSPIRV.has_value())
+        {
+            return std::unexpected(std::move(maybeVertexSPIRV.error()));
+        }
+        if (!maybeFragmentSPIRV.has_value())
+        {
+            return std::unexpected(std::move(maybeFragmentSPIRV.error()));
+        }
+        if (!maybeComputeSPIRV.has_value())
+        {
+            return std::unexpected(std::move(maybeComputeSPIRV.error()));
+        }
+
         return CompileResult {
-            .maybe_vertex_data {tryComposeEntrypoint(maybeVertexEntry)},
-            .maybe_fragment_data {tryComposeEntrypoint(maybeFragmentEntry)},
-            .maybe_compute_data {tryComposeEntrypoint(maybeComputeEntry)},
+            .maybe_vertex_data {std::move(*maybeVertexSPIRV)},
+            .maybe_fragment_data {std::move(*maybeFragmentSPIRV)},
+            .maybe_compute_data {std::move(*maybeComputeSPIRV)},
             .dependent_files {this->getDependencies(maybeModule, std::move(path))},
             .maybe_warnings {std::move(maybeCompileMessage)}};
     }
@@ -116,6 +142,10 @@ namespace cfi
         compileOptions.push_back(slang::CompilerOptionEntry {
             .name {slang::CompilerOptionName::DebugInformation},
             .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
+
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::DisableWarning},
+            .value {.kind {slang::CompilerOptionValueKind::String}, .stringValue0 {"39001"}}});
 
         slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
         slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
@@ -229,7 +259,7 @@ namespace cfi
 
         return composedProgram;
     }
-    Slang::ComPtr<slang::IBlob>
+    std::pair<Slang::ComPtr<slang::IBlob>, std::string>
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram) const
     {
@@ -239,24 +269,16 @@ namespace cfi
         const SlangResult result =
             composedProgram->getEntryPointCode(0, 0, spirvBlob.writeRef(), diagnosticBlob.writeRef());
 
-        if (result != SLANG_OK)
+        std::string outDiagnostic {};
+
+        if (diagnosticBlob != nullptr && diagnosticBlob->getBufferSize() != 0)
         {
-            log::error(
-                "Create Composed Program failed! | Spirv Blob: {} | Diagnostic Blob: {}",
-                static_cast<const void*>(spirvBlob.get()),
-                static_cast<const void*>(diagnosticBlob.get()));
+            outDiagnostic.resize(diagnosticBlob->getBufferSize());
 
-            if (diagnosticBlob != nullptr)
-            {
-                const std::string_view error {
-                    static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
-
-#warning make recoverable
-                panic("Failed to compile composed program: {}", error);
-            }
+            std::memcpy(outDiagnostic.data(), diagnosticBlob->getBufferPointer(), outDiagnostic.size());
         }
 
-        return spirvBlob;
+        return {result == SLANG_OK ? spirvBlob : nullptr, std::move(outDiagnostic)};
     }
 
 } // namespace cfi

@@ -300,6 +300,13 @@ struct GpuColorHashMapNode
 const static u32 faceHashTableCapacity = 1u << 20u;
 const static u32 faceHashTableNullHash = ~0u;
 
+struct ChunkLocalEmissiveOffset
+{
+    i32 x : 11;
+    i32 y : 10;
+    i32 z : 11;
+};
+
 struct GpuChunkData
 {
     AlignedChunkCoordinate aligned_chunk_coordinate;

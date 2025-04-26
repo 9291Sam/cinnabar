@@ -43,9 +43,15 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
     //     }
     // }
 
+    // crazy idea: select the chosen voxel light per workgroup and voxel per frame.
+    // flashy as hell, but once its aeraged into the color buffer it would look nice
+
     const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
-    const uint3 bC = unpacked.position_in_chunk / 8;
-    const uint3 bP = unpacked.position_in_chunk % 8;
+
+    const uint3 positionInChunk = uint3(-0.01 * unpacked.normal + worldStrikePosition - float3(in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner()));
+
+    const uint3 bC = positionInChunk / 8;
+    const uint3 bP = positionInChunk % 8;
 
 
     const PBRVoxelMaterial material = getMaterialFromPosition( 
