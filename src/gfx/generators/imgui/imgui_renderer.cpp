@@ -440,11 +440,6 @@ FPS: {}{} / {}ms
                 util::send<bool>("SETTING_ENABLE_REFLECTIONS", this->are_reflections_enabled);
             }
 
-            if (ImGui::Checkbox("Enable Global Illumination", &this->is_global_illumination_enabled))
-            {
-                util::send<bool>("SETTING_ENABLE_GLOBAL_ILLUMINATION", this->is_global_illumination_enabled);
-            }
-
             ImGui::PopStyleVar();
             ImGui::PopFont();
 

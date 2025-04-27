@@ -79,11 +79,9 @@ namespace gfx
             float      time_alive;
             glm::uvec2 framebuffer_size;
             u32        bool_enable_reflections;
-            u32        bool_enable_global_illumination;
         };
 
         gfx::core::vulkan::WriteOnlyBuffer<GlobalGpuData> global_gpu_data;
-        bool                                              are_reflections_enabled        = true;
-        bool                                              is_global_illumination_enabled = false;
+        bool                                              are_reflections_enabled = true;
     };
 } // namespace gfx

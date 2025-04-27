@@ -37,11 +37,6 @@ namespace gfx
             this->are_reflections_enabled = *enableReflections;
         }
 
-        if (std::optional<bool> enableGlobalIllumination = util::receive<bool>("SETTING_ENABLE_GLOBAL_ILLUMINATION"))
-        {
-            this->is_global_illumination_enabled = *enableGlobalIllumination;
-        }
-
         const GlobalGpuData thisFrameGlobalGpuData {
             .view_matrix {camera.getViewMatrix()},
             .projection_matrix {camera.getProjectionMatrix()},
@@ -55,8 +50,7 @@ namespace gfx
             .aspect_ratio {camera.getAspectRatio()},
             .time_alive {this->renderer->getTimeAlive()},
             .framebuffer_size {glm::uvec2 {framebufferSize.width, framebufferSize.height}},
-            .bool_enable_reflections {static_cast<u32>(this->are_reflections_enabled)},
-            .bool_enable_global_illumination {static_cast<u32>(this->is_global_illumination_enabled)}};
+            .bool_enable_reflections {static_cast<u32>(this->are_reflections_enabled)}};
 
         this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
 

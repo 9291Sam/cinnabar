@@ -286,6 +286,17 @@ struct GpuRaytracedLight
 {
     float4 position_and_half_intensity_distance;
     float4 color_and_power;
+
+#ifndef __cplusplus
+    bool canInfluencePoint(float3 position)
+    {
+        const float minimumPossibleInfluence = (1.0f / 32.0f) * color_and_power.w; 
+        const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
+            log2(minimumPossibleInfluence / color_and_power.w);
+
+        return distanceOfMinimumPossibleInfluence > distance(position_and_half_intensity_distance.xyz, position);
+    }
+#endif
 };
 
 struct GpuColorHashMapNode

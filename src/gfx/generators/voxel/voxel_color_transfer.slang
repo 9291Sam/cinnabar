@@ -62,8 +62,7 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
                 gpu_hashU32(reinterpret<u32>(pos.x)),
                 gpu_hashU32(reinterpret<u32>(pos.y) + reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive)),
             ), 
-            bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections),
-            bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_global_illumination));
+            bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections));
 
     loaded = calculatedColor;
 

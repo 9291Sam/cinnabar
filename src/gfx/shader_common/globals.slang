@@ -32,7 +32,6 @@ struct GlobalGpuData
     float time_alive;
     uint2 framebuffer_size;
     uint bool_enable_reflections;
-    uint bool_enable_global_illumination;
 };
 
 [[vk::binding(3)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];
