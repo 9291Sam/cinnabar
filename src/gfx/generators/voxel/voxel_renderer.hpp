@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data_structures.hpp"
+#include "emissive_integer_tree.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
@@ -52,6 +53,8 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::Pipeline face_normalizer_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
+
+        EmissiveIntegerTree emissives_in_world;
 
         util::OpaqueHandleAllocator<VoxelChunk>              chunk_allocator;
         gfx::core::vulkan::CpuCachedBuffer<GpuChunkData>     gpu_chunk_data;

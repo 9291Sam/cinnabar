@@ -21,6 +21,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
+#include <utility>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -112,69 +113,7 @@ namespace gfx::generators::voxel
               "Voxel Lights",
               SBO_VOXEL_LIGHTS)
         , materials {generateMaterialBuffer(this->renderer)}
-    {
-        EmissiveIntegerTree t {};
-
-        t.insert({-13, -23, 2});
-        t.insert({1, 2, 3});
-        t.insert({1, -2, 3});
-        t.insert({1, 2, -3});
-        t.insert({13, 2, 3});
-        t.insert({1, 21, 3});
-
-        std::vector<glm::i32vec3> points = t.getNearestElements({0, 0, 0}, 3, 100);
-
-        for (glm::i32vec3 p : points)
-        {
-            log::trace("Found point {}", glm::to_string(p));
-        }
-
-        t.remove({1, -2, 3});
-
-        log::trace("removed");
-
-        util::Timer t2 {" erm"};
-
-        std::vector<glm::i32vec3> points2 = t.getNearestElements({0, 0, 0}, 3, 100);
-
-        for (glm::i32vec3 p : points2)
-        {
-            log::trace("Found point {}", glm::to_string(p));
-        }
-
-        // std::vector<std::byte> badAppleData =
-        //     util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/badapple6464.gif"));
-
-        // std::vector<std::byte> goodDragonData =
-        //     util::loadEntireFileFromPath(util::getCanonicalPathOfShaderFile("res/dragon.vox"));
-
-        // this->demos.push_back(Demo {
-        //     .model {AnimatedVoxelModel::fromGif(util::Gif {std::span {badAppleData}})},
-        //     .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel&)
-        //               {
-        //                   return glm::u32vec3 {c.z, c.y, c.x};
-        //               }}});
-        // this->names.push_back("Bad Apple");
-
-        // this->demos.push_back(Demo {
-        //     .model {AnimatedVoxelModel {StaticVoxelModel::fromVoxFile(std::span {goodDragonData})}},
-        //     .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel& m)
-        //               {
-        //                   return glm::u32vec3 {c.x, m.getExtent().y - 64 + c.y, m.getExtent().z - 64 + c.z};
-        //                   //   return c;
-        //               }}});
-        // this->names.push_back("Good Dragon");
-
-        // this->demos.push_back(Demo {
-        //     .model {AnimatedVoxelModel {StaticVoxelModel::createCornelBox()}},
-        //     .sampler {[](glm::u32vec3 c, const AnimatedVoxelModel&)
-        //               {
-        //                   return c;
-        //               }}});
-        // this->names.push_back("Cornel Box");
-
-        // util::send("AllAnimationNames", std::vector {this->names});
-    }
+    {}
 
     VoxelRenderer::~VoxelRenderer()
     {
@@ -192,6 +131,7 @@ namespace gfx::generators::voxel
         this->gpu_chunk_data.write<&GpuChunkData::aligned_chunk_coordinate>(chunkId, coordinate);
         this->gpu_chunk_data.write<&GpuChunkData::offset>(chunkId, ~0u);
         assert::critical(this->cpu_chunk_data[chunkId].brick_allocation.isNull(), "should be empty");
+        assert::critical(this->cpu_chunk_data[chunkId] == CpuChunkData {}, "should be default");
 
         insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);
 
@@ -212,10 +152,45 @@ namespace gfx::generators::voxel
         this->chunk_allocator.free(std::move(c));
 
         oldGpuChunkData = {};
+        oldCpuChunkData = {};
     }
 
     void VoxelRenderer::preFrameUpdate()
     {
+#error finish
+        bool anyUpdates = false;
+        // check for chunks with dirty emissives, if so populate the changes
+        this->chunk_allocator.iterateThroughAllocatedElements(
+            [&](u32 chunkId)
+            {
+                // TODO: this is totally going to be a data race in the future
+                CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
+
+                if (!cpuChunkData.emissive_updates.empty())
+                {
+                    anyUpdates = true;
+
+                    for (EmissiveVoxelUpdateChange emissiveUpdate : cpuChunkData.emissive_updates)
+                    {
+                        if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Insert)
+                        {}
+                        else if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Removal)
+                        {}
+                        else
+                        {
+                            panic(
+                                "unexpected EmissiveVoxelUpdateChangeType of {}",
+                                std::to_underlying(emissiveUpdate.change_type));
+                        }
+                    }
+                }
+            });
+
+        if (anyUpdates)
+        {
+            this->emissives_in_world.optimize();
+        }
+
         this->gpu_chunk_data.flushViaStager(this->renderer->getStager());
         this->chunk_hash_map.flushViaStager(this->renderer->getStager());
         // if (std::optional t = util::receive<f32>("SetAnimationTime"))

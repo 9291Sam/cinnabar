@@ -78,10 +78,9 @@ namespace util
             return this->value == NullValue;
         }
 
-        std::strong_ordering operator<=> (const OpaqueHandle& other) const
-        {
-            return this->value <=> other.value;
-        }
+        std::strong_ordering operator<=> (const OpaqueHandle& other) const = default;
+
+        bool operator== (const OpaqueHandle&) const = default;
 
     protected:
         static constexpr I Null = NullValue;

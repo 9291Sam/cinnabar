@@ -6,6 +6,7 @@
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <array>
+#include <boost/container/flat_set.hpp>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/fwd.hpp>
 #include <glm/vec3.hpp>
@@ -181,8 +182,25 @@ namespace gfx::generators::voxel
         using User = GpuChunkData;
     } // namespace internal
 
+    enum class EmissiveVoxelUpdateChangeType : u8
+    {
+        Insert,
+        Removal
+    };
+
+    struct EmissiveVoxelUpdateChange
+    {
+        ChunkLocalPosition            position {};
+        EmissiveVoxelUpdateChangeType change_type {};
+    };
+    static_assert(sizeof(EmissiveVoxelUpdateChange) == sizeof(u32));
+
     struct CpuChunkData
     {
-        util::RangeAllocation brick_allocation; // change name
+        util::RangeAllocation                   brick_allocation; // change name
+        boost::container::flat_set<glm::u8vec3> current_chunk_local_emissive_voxels;
+        std::vector<EmissiveVoxelUpdateChange>  emissive_updates;
+
+        bool operator== (const CpuChunkData&) const = default;
     };
 } // namespace gfx::generators::voxel
