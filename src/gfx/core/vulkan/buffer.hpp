@@ -540,6 +540,20 @@ namespace gfx::core::vulkan
             return this->cpu_buffer[offsetElements].*Ptr;
         }
 
+        // To modify bytes 4-16 in at index 13
+        // call modifyCoherentRange(13, 4, 12)
+        T& modifyCoherentRange(
+            std::size_t storedArrayElement,
+            std::size_t elementInternalModifiedOffsetStart,
+            std::size_t elementInternalModifiedSize)
+        {
+            this->flushes.push_back(FlushData {
+                .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
+                .size_bytes {elementInternalModifiedSize}});
+
+            return this->cpu_buffer[storedArrayElement];
+        }
+
         void flushViaStager(const BufferStager& stager, std::source_location = std::source_location::current());
         void flushCachedChangesImmediate()
         {

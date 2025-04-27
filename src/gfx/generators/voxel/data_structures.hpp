@@ -144,6 +144,8 @@ namespace gfx::generators::voxel
                 BrickLocalPosition {this->asVector() % BrickSizeVoxels}};
         }
     };
+    static_assert(sizeof(ChunkLocalPosition) == 3);
+    static_assert(alignof(ChunkLocalPosition) == 1);
 
     /// Represents the position of a single voxel in world space
     struct WorldPosition : public VoxelCoordinateBase<
@@ -192,14 +194,16 @@ namespace gfx::generators::voxel
     {
         ChunkLocalPosition            position {};
         EmissiveVoxelUpdateChangeType change_type {};
+
+        bool operator== (const EmissiveVoxelUpdateChange&) const = default;
     };
     static_assert(sizeof(EmissiveVoxelUpdateChange) == sizeof(u32));
 
     struct CpuChunkData
     {
-        util::RangeAllocation                   brick_allocation; // change name
-        boost::container::flat_set<glm::u8vec3> current_chunk_local_emissive_voxels;
-        std::vector<EmissiveVoxelUpdateChange>  emissive_updates;
+        util::RangeAllocation                          brick_allocation; // change name
+        boost::container::flat_set<ChunkLocalPosition> current_chunk_local_emissive_voxels;
+        std::vector<EmissiveVoxelUpdateChange>         emissive_updates;
 
         bool operator== (const CpuChunkData&) const = default;
     };

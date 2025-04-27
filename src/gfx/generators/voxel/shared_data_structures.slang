@@ -306,7 +306,7 @@ struct ChunkLocalEmissiveOffset
     const static i32 x_max = 1023;
 
     const static i32 y_min = -512;
-    const static i32 y_max = 512;
+    const static i32 y_max = 511;
 
     const static i32 z_min = -1024;
     const static i32 z_max = 1023;
@@ -323,7 +323,7 @@ struct GpuChunkData
     MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
     float3 padding;
     u32 number_of_emissives = 0;
-    ChunkLocalEmissiveOffset data[1024];
+    ChunkLocalEmissiveOffset emissive_data[1024];
 
     float3 getWorldChunkCorner()
     {

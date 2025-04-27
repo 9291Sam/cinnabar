@@ -20,7 +20,7 @@ auto        v = a.GetNearestNeighbors({0, 0, 0}, 7);
 
 for (auto i : v)
 {
-    const glm::i32vec3 vec = std::bit_cast<glm::i32vec3>(a.Get(i));
+    const WorldPosition vec = std::bit_cast<WorldPosition>(a.Get(i));
     log::trace("{} -> {} {}", i, glm::to_string(vec), glm::length(static_cast<glm::f32vec3>(vec)));
 }
 
@@ -42,7 +42,7 @@ namespace gfx::generators::voxel
 {
     struct EmissiveIntegerTreeImpl
     {
-        KDTree::KDTree<3, glm::i32vec3> tree;
+        KDTree::KDTree<3, WorldPosition> tree;
     };
 
     EmissiveIntegerTree::EmissiveIntegerTree()
@@ -51,7 +51,7 @@ namespace gfx::generators::voxel
 
     EmissiveIntegerTree::~EmissiveIntegerTree() = default;
 
-    bool EmissiveIntegerTree::insert(glm::i32vec3 v, bool warnIfAlreadyExisting)
+    bool EmissiveIntegerTree::insert(WorldPosition v, bool warnIfAlreadyExisting)
     {
         auto it = this->impl->tree.find(v);
 
@@ -63,26 +63,25 @@ namespace gfx::generators::voxel
         }
         else if (warnIfAlreadyExisting)
         {
-            log::warn("duplicate insertion of {}", glm::to_string(v));
+            log::warn("duplicate insertion of {}", glm::to_string(v.asVector()));
         }
 
         return false;
     }
 
-    void EmissiveIntegerTree::bulkInsertAndOptimize(std::vector<glm::i32vec3> v)
+    void EmissiveIntegerTree::bulkInsertAndOptimize(std::vector<WorldPosition> v)
     {
         this->impl->tree.efficient_replace_and_optimise(v);
     }
 
-    void EmissiveIntegerTree::remove(glm::i32vec3 v)
+    void EmissiveIntegerTree::remove(WorldPosition v)
     {
         this->impl->tree.erase(v);
     }
 
-    std::vector<glm::i32vec3> EmissiveIntegerTree::getNearestElements(glm::i32vec3 searchPoint, i32 maxDistance)
+    std::vector<WorldPosition> EmissiveIntegerTree::getNearestElements(WorldPosition searchPoint, i32 maxDistance)
     {
-        const glm::f32vec3        floatSearchPos = static_cast<glm::f32vec3>(searchPoint);
-        std::vector<glm::i32vec3> out {};
+        std::vector<WorldPosition> out {};
 
         std::ignore = this->impl->tree.find_within_range(
             searchPoint, typename decltype(this->impl->tree)::subvalue_type {maxDistance}, std::back_inserter(out));
