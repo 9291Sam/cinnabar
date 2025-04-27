@@ -414,7 +414,13 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
 
 float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState, bool shouldDoReflect, bool shouldDoGi)
 {
-    const GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+    GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+
+    const u32 thisEmissiveRandomPosition = NextRandom(rngState) % in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives;
+    light.position_and_half_intensity_distance.xyz = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() + in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].emissive_data[thisEmissiveRandomPosition].getCenterPositionOfVoxel();
+
+    // light.position_and_half_intensity_distance.xyz = float3(32.343, 59.324, 93.7503);
+
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
 
     float3 lightColor = calculateSampleColor(
@@ -437,7 +443,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     
     float3 calculatedColor = float3(0.0);
 
-    if (!shadowResult.intersect_occur)
+    if (!shadowResult.intersect_occur || (all(shadowResult.material.emission_metallic.xyz != float3(0.0))))
     {
         calculatedColor += lightColor;
     }
@@ -461,7 +467,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
             const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
             
-            if (!bounceShadow.intersect_occur)
+            if (!bounceShadow.intersect_occur || (all(bounceShadow.material.emission_metallic.xyz != float3(0.0))))
             {
                 float3 reflectionColor = calculateSampleColor(
                     secondWorldStrikePosition,

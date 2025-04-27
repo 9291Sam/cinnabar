@@ -314,6 +314,11 @@ struct ChunkLocalEmissiveOffset
     i32 x : 11;
     i32 y : 10;
     i32 z : 11;
+
+    float3 getCenterPositionOfVoxel()
+    {
+        return float3(0.5) + float3(x, y, z);
+    }
 };
 
 struct GpuChunkData
