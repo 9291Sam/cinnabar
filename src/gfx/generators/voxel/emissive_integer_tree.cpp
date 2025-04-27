@@ -69,34 +69,30 @@ namespace gfx::generators::voxel
         return false;
     }
 
+    void EmissiveIntegerTree::bulkInsertAndOptimize(std::vector<glm::i32vec3> v)
+    {
+        this->impl->tree.efficient_replace_and_optimise(v);
+    }
+
     void EmissiveIntegerTree::remove(glm::i32vec3 v)
     {
         this->impl->tree.erase(v);
     }
 
-    std::vector<glm::i32vec3>
-    EmissiveIntegerTree::getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements, i32 maxDistance)
+    std::vector<glm::i32vec3> EmissiveIntegerTree::getNearestElements(glm::i32vec3 searchPoint, i32 maxDistance)
     {
         const glm::f32vec3        floatSearchPos = static_cast<glm::f32vec3>(searchPoint);
         std::vector<glm::i32vec3> out {};
 
         std::ignore = this->impl->tree.find_within_range(
-            searchPoint, decltype(this->impl->tree)::subvalue_type {maxDistance}, std::back_inserter(out));
-
-        std::ranges::sort(
-            out,
-            [&](glm::i32vec3 l, glm::i32vec3 r)
-            {
-                return glm::distance(static_cast<glm::f32vec3>(l), floatSearchPos)
-                     < glm::distance(static_cast<glm::f32vec3>(r), floatSearchPos);
-            });
-
-        if (out.size() > maxElements)
-        {
-            out.resize(maxElements);
-        }
+            searchPoint, typename decltype(this->impl->tree)::subvalue_type {maxDistance}, std::back_inserter(out));
 
         return out;
+    }
+
+    void EmissiveIntegerTree::optimize()
+    {
+        this->impl->tree.optimize();
     }
 
 } // namespace gfx::generators::voxel

@@ -192,7 +192,7 @@ namespace util
     template<typename T, class M>
     std::size_t getOffsetOfPointerToMember(M T::* member)
     {
-        return std::bit_cast<std::size_t>(member);
+        return static_cast<std::size_t>(std::bit_cast<long>(member));
     }
 
     template<class T>

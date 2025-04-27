@@ -28,12 +28,16 @@ namespace gfx::generators::voxel
         /// Insert an element into the tree
         /// Returns true if the insert was successful
         bool insert(glm::i32vec3, bool warnIfAlreadyExisting = true);
+        void bulkInsertAndOptimize(std::vector<glm::i32vec3>);
 
         /// try remove the element, return false if there was no element in the tree
         void remove(glm::i32vec3);
 
-        std::vector<glm::i32vec3>
-        getNearestElements(glm::i32vec3 searchPoint, std::size_t maxElements, i32 maxDistance);
+        // returns an unordered list of all elements inside the distance from the given point
+        std::vector<glm::i32vec3> getNearestElements(glm::i32vec3 searchPoint, i32 maxDistance);
+
+        void optimize();
+
 
     private:
         std::unique_ptr<EmissiveIntegerTreeImpl> impl;
