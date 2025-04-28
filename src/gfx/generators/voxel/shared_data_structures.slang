@@ -305,7 +305,25 @@ struct GpuColorHashMapNode
     u32 r_1024;
     u32 g_1024;
     u32 b_1024;
-    u32 samples;
+    u32 samples_high_bit_is_bool_is_reflective;
+
+    u32 getSamples()
+    {
+        return samples_high_bit_is_bool_is_reflective & ~(1u << 31u);
+    }
+
+    bool isReflective()
+    {
+        return bool(samples_high_bit_is_bool_is_reflective & (1u << 31u));
+    }
+
+
+    MUTABLE_MEMBER_FUNCTION
+    void setSamplesNonAtomic(u32 samples)
+    {
+        samples_high_bit_is_bool_is_reflective = u32(isReflective()) << 31u | (samples & ~(1u << 31u));
+    }
+
 };
 
 const static u32 faceHashTableCapacity = 1u << 20u;

@@ -471,22 +471,21 @@ namespace gfx::generators::voxel
         }
     }
 
-    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer)
+    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
     {
-        // auto a = &ChunkLocalEmissiveOffset::x;
-        // if (this->renderer->getFrameNumber() == 0 || util::receive<bool>("CLEAR_FACE_HASH_MAP").value_or(false))
-        // {
-        //     commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
-        // }
-        // else
-        // {
-        //     commandBuffer.bindPipeline(
-        //         vk::PipelineBindPoint::eCompute,
-        //         this->renderer->getPipelineManager()->getPipeline(this->face_normalizer_pipeline));
+        if (this->renderer->getFrameNumber() == 0 || util::receive<bool>("CLEAR_FACE_HASH_MAP").value_or(false))
+        {
+            commandBuffer.fillBuffer(*this->face_hash_map, 0, vk::WholeSize, ~0u);
+        }
+        else
+        {
+            commandBuffer.bindPipeline(
+                vk::PipelineBindPoint::eCompute,
+                this->renderer->getPipelineManager()->getPipeline(this->face_normalizer_pipeline));
 
-        //     static_assert(MaxFaceHashMapNodes % 1024 == 0);
-        //     commandBuffer.dispatch(MaxFaceHashMapNodes / 1024, 1, 1);
-        // }
+            static_assert(MaxFaceHashMapNodes % 1024 == 0);
+            commandBuffer.dispatch(MaxFaceHashMapNodes / 1024, 1, 1);
+        }
     }
 
     void VoxelRenderer::recordPrepass(vk::CommandBuffer commandBuffer, const Camera&)
@@ -498,18 +497,18 @@ namespace gfx::generators::voxel
         commandBuffer.draw(36 * this->chunk_allocator.getUpperBoundOnAllocatedElements(), 1, 0, 0);
     }
 
-    void VoxelRenderer::recordColorCalculation(vk::CommandBuffer)
+    void VoxelRenderer::recordColorCalculation(vk::CommandBuffer commandBuffer)
     {
-        // commandBuffer.bindPipeline(
-        //     vk::PipelineBindPoint::eCompute,
-        //     this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
+        commandBuffer.bindPipeline(
+            vk::PipelineBindPoint::eCompute,
+            this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
 
-        // const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
+        const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
-        // commandBuffer.dispatch(
-        //     static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.width), 32) + 1),
-        //     static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.height), 32) + 1),
-        //     1);
+        commandBuffer.dispatch(
+            static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.width), 32) + 1),
+            static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.height), 32) + 1),
+            1);
     }
 
     void VoxelRenderer::recordColorTransfer(vk::CommandBuffer commandBuffer)

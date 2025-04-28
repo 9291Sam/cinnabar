@@ -50,7 +50,11 @@ namespace gfx
             .aspect_ratio {camera.getAspectRatio()},
             .time_alive {this->renderer->getTimeAlive()},
             .framebuffer_size {glm::uvec2 {framebufferSize.width, framebufferSize.height}},
-            .bool_enable_reflections {static_cast<u32>(this->are_reflections_enabled)}};
+            .bool_enable_reflections {static_cast<u32>(this->are_reflections_enabled)},
+            .bool_moved_this_frame {
+                static_cast<u32>(camera.getPosition() != this->maybe_previous_frame_camera_position)}};
+
+        this->maybe_previous_frame_camera_position = camera.getPosition();
 
         this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
 

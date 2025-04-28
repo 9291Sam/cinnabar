@@ -79,9 +79,11 @@ namespace gfx
             float      time_alive;
             glm::uvec2 framebuffer_size;
             u32        bool_enable_reflections;
+            u32        bool_moved_this_frame;
         };
 
         gfx::core::vulkan::WriteOnlyBuffer<GlobalGpuData> global_gpu_data;
         bool                                              are_reflections_enabled = true;
+        std::optional<glm::vec3>                          maybe_previous_frame_camera_position;
     };
 } // namespace gfx
