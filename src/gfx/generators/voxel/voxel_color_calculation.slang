@@ -14,7 +14,7 @@
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_GroupIndex)
 {
-    const int2 thisPixel           = int2(threadId.xy);
+    const int2 thisPixel           = int2(threadId.xy) * 1; // TODO change dither per frame
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size))
     {
@@ -26,8 +26,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
         const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
 
         if (uniqueFaceId != ~0u)
-        {
-          
+        {   
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
 

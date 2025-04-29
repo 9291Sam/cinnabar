@@ -115,7 +115,7 @@ namespace cfi
 
         slang::TargetDesc target {
             .format {SlangCompileTarget::SLANG_SPIRV},
-            .profile {this->global_session->findProfile("spirv_1_5")},
+            .profile {this->global_session->findProfile("spirv_1_5, spvGroupNonUniformBallot")},
             .flags {0},
         };
 
@@ -127,28 +127,24 @@ namespace cfi
 
         std::vector<slang::CompilerOptionEntry> compileOptions {};
 
-        compileOptions.push_back(
-            slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::FloatingPointMode},
-                .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::FloatingPointMode},
+            .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
 
-        compileOptions.push_back(
-            slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::Optimization},
-                .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::Optimization},
+            .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
 
         compileOptions.push_back(
             slang::CompilerOptionEntry {.name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0 {1}}});
 
-        compileOptions.push_back(
-            slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::DebugInformation},
-                .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::DebugInformation},
+            .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
 
-        compileOptions.push_back(
-            slang::CompilerOptionEntry {
-                .name {slang::CompilerOptionName::DisableWarning},
-                .value {.kind {slang::CompilerOptionValueKind::String}, .stringValue0 {"39001"}}});
+        compileOptions.push_back(slang::CompilerOptionEntry {
+            .name {slang::CompilerOptionName::DisableWarning},
+            .value {.kind {slang::CompilerOptionValueKind::String}, .stringValue0 {"39001"}}});
 
         slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
         slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();

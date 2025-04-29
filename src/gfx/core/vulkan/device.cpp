@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -213,6 +214,12 @@ namespace gfx::core::vulkan
         features11.shaderDrawParameters          = vk::True;
         features11.variablePointersStorageBuffer = vk::True;
         features11.variablePointers              = vk::True;
+
+        // vk::PhysicalDeviceShaderQuadControlFeaturesKHR subgroupProperties {
+        //     .sType {vk::StructureType::ePhysicalDeviceShaderQuadControlFeaturesKHR},
+        //     .pNext {&features11},
+        //     .shaderQuadControl {vk::True},
+        // };
 
         vk::PhysicalDeviceFeatures2 features102 {};
         features102.sType                             = vk::StructureType::ePhysicalDeviceFeatures2;
