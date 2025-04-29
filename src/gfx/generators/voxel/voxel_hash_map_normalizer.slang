@@ -14,8 +14,8 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     GpuColorHashMapNode node = in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot];
     // node = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
 
-    const float fadeFactorDiffuse = 0.9;
-    const float fadeFactorReflective = 0.4533;
+    const float fadeFactorDiffuse = 0.95;
+    const float fadeFactorReflective = 0.0;
 
     const float fadeFactor = (node.isReflective() && bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame)) ? fadeFactorReflective : fadeFactorDiffuse;
 

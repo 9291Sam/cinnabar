@@ -6,6 +6,24 @@
 #include "voxel_tracing.slang"
 #include "shared_data_structures.slang"
 
+u32 subgroupMatch(u32 value)
+{
+    u32 result = 0;
+    const u32 activeWaves = WaveActiveBallot(true).x;
+
+    for (uint w = 0; w < 32; ++w)
+    {
+        const bool isWaveActive = bitfieldExtract(activeWaves, w, 1) == 1;
+
+        if (isWaveActive && value == WaveReadLaneAt(value, w))
+        {
+            result = bitfieldInsert(result, 1, w, 1);
+        }
+    }
+    
+    return result;
+}
+
 
 [format("rgba32f")]
 [[vk::binding(2)]] RWTexture2D<float4> visible_voxel_image[];
@@ -14,7 +32,10 @@
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_GroupIndex)
 {
-    const int2 thisPixel           = int2(threadId.xy) * 1; // TODO change dither per frame
+    const u32 rdSeed = gpu_hashU32(reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive));
+    int2 thisPixel           = int2(threadId.xy) * 2; // TODO change dither per frame
+    thisPixel.x += (((rdSeed & 1u) == 0u) ? 1u : 0u);
+    thisPixel.y += (((rdSeed & 2u) == 0u) ? 1u : 0u);
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size))
     {
@@ -25,7 +46,14 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
 
         const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
 
-        if (uniqueFaceId != ~0u)
+        const u32 otherWavesWithThisFaceId = subgroupMatch(uniqueFaceId);
+
+        const u32 waveThatShouldProcessThisFace = firstbitlow(otherWavesWithThisFaceId);
+        const u32 otherWaveThatShouldProcessThisFace = firstbithigh(otherWavesWithThisFaceId);
+
+        const bool shouldThisLaneExecute = true; //  (waveThatShouldProcessThisFace == WaveGetLaneIndex() || otherWaveThatShouldProcessThisFace == WaveGetLaneIndex());
+
+        if (uniqueFaceId != ~0u && shouldThisLaneExecute)
         {   
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
