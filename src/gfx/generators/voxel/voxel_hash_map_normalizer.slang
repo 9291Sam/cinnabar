@@ -15,11 +15,11 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     // node = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
 
     const float fadeFactorDiffuse = 0.95;
-    const float fadeFactorReflective = 0.0;
+    const float fadeFactorReflective = 0.4533;
 
     const float fadeFactor = (node.isReflective() && bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame)) ? fadeFactorReflective : fadeFactorDiffuse;
 
-    if (node.key != ~0u)
+    if (node.key != ~0u && node.getSamples() > 16)
     {
         float3 colors1024 = float3(node.r_1024, node.g_1024, node.b_1024);
         colors1024 *= fadeFactor;
