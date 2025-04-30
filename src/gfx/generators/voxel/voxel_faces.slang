@@ -37,44 +37,49 @@ u32 packNormalId(float3 normal)
     return 0;
 }
 
+u32 hashFaceId(UnpackUniqueFaceIdResult unpacked, uint3 chunk_position)
+{
+    u32 res = 0;
+
+    res = bitfieldInsert(res, chunk_position.x, 0, 6);
+    res = bitfieldInsert(res, chunk_position.y, 6, 6);
+    res = bitfieldInsert(res, chunk_position.z, 12, 6);
+
+    res = bitfieldInsert(res, packNormalId(unpacked.normal), 18, 3);
+
+    res = bitfieldInsert(res, unpacked.chunk_id, 21, 11);
+
+    return gpu_hashU32(res);
+}
+
 struct UnpackUniqueFaceIdResult
 {
     static UnpackUniqueFaceIdResult unpack(u32 packed)
     {
         UnpackUniqueFaceIdResult res;
-        res.position_in_chunk.x = bitfieldExtract(packed, 0, 6);
-        res.position_in_chunk.y = bitfieldExtract(packed, 6, 6);
-        res.position_in_chunk.z = bitfieldExtract(packed, 12, 6);
+        res.normal = unpackNormalId(bitfieldExtract(packed, 0, 3));
 
-        res.normal = unpackNormalId(bitfieldExtract(packed, 18, 3));
-
-        res.chunk_id = bitfieldExtract(packed, 21, 11);
+        res.chunk_id = bitfieldExtract(packed, 3, 11);
 
         return res;
     }
 
-    __init(float3 in_normal, uint3 in_chunk_position, uint in_chunk_id)
+    __init(float3 in_normal, uint in_chunk_id)
     {
         this.normal = in_normal;
-        this.position_in_chunk = in_chunk_position;
         this.chunk_id = in_chunk_id;
     }
 
     float3  normal;
-    uint3 position_in_chunk; // Does this really need to be here? you can always derive the other stuff from the position inside the chunk
     uint  chunk_id;
 
     u32 pack()
     {
         u32 res = 0;
 
-        res = bitfieldInsert(res, this.position_in_chunk.x, 0, 6);
-        res = bitfieldInsert(res, this.position_in_chunk.y, 6, 6);
-        res = bitfieldInsert(res, this.position_in_chunk.z, 12, 6);
+        res = bitfieldInsert(res, packNormalId(this.normal), 0, 3);
 
-        res = bitfieldInsert(res, packNormalId(this.normal), 18, 3);
-
-        res = bitfieldInsert(res, this.chunk_id, 21, 11);
+        res = bitfieldInsert(res, this.chunk_id, 3, 29);
 
         return res;
     }

@@ -30,7 +30,7 @@
 #include <vulkan/vulkan_structs.hpp>
 
 static constexpr u32 MaxFaceHashMapNodes                = 1u << 20u;
-static constexpr u32 MaxChunks                          = 1u << 11u; // this can be extended
+static constexpr u32 MaxChunks                          = 1u << 14u; // this can be extended
 static constexpr u32 AverageNonHomogenousBricksPerChunk = 192;
 static constexpr u32 BricksToAllocate                   = MaxChunks * AverageNonHomogenousBricksPerChunk;
 
@@ -365,9 +365,8 @@ namespace gfx::generators::voxel
 
         for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
         {
-            cpuChunkData.emissive_updates.push_back(
-                EmissiveVoxelUpdateChange {
-                    .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
+            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
+                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
         }
 
         if (input.empty())

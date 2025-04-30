@@ -134,7 +134,7 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
     FragmentOutput out;
 
 
-    const u32 uniqueFaceId = UnpackUniqueFaceIdResult(result.voxel_normal, result.chunk_local_voxel_position, chunkId).pack();
+    const u32 uniqueFaceId = UnpackUniqueFaceIdResult(result.voxel_normal, chunkId).pack();
 
     out.out_position_and_id = float4(worldStrikePosition, reinterpret<f32>(uniqueFaceId));
 

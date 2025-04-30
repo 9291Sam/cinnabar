@@ -54,25 +54,27 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
         const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
         const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
 
-        const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
+        const uint3 positionInChunk = uint3(-0.01 * unpacked.normal + worldStrikePosition - float3(in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner()));
+
         if (uniqueFaceId != ~0u )
         {   
-            const uint3 bC = unpacked.position_in_chunk / 8;
-            const uint3 bP = unpacked.position_in_chunk % 8;
+            const uint3 bC = positionInChunk / 8;
+            const uint3 bP = positionInChunk % 8;
 
             const PBRVoxelMaterial material = getMaterialFromPosition( 
                 in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].brick_map[bC.x][bC.y][bC.z], unpacked.chunk_id, bP);
  
-            const u32 startSlot = gpu_hashU32(uniqueFaceId) % faceHashTableCapacity;
+            const u32 hash = hashFaceId(unpacked, positionInChunk);
+            const u32 startSlot = hash % faceHashTableCapacity;
 
             for (uint i = 0; i < 32; ++i)
             {
                 const u32 thisSlot = (startSlot + i) % faceHashTableCapacity;
                 
                 u32 prev;
-                InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, faceHashTableNullHash, uniqueFaceId, prev);
+                InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, faceHashTableNullHash, hash, prev);
 
-                if (prev == faceHashTableNullHash || prev == uniqueFaceId)
+                if (prev == faceHashTableNullHash || prev == hash)
                 {
     
                     float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked,
