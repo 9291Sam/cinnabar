@@ -365,8 +365,9 @@ namespace gfx::generators::voxel
 
         for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
         {
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
+            cpuChunkData.emissive_updates.push_back(
+                EmissiveVoxelUpdateChange {
+                    .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
         }
 
         if (input.empty())
@@ -502,6 +503,9 @@ namespace gfx::generators::voxel
         commandBuffer.bindPipeline(
             vk::PipelineBindPoint::eCompute,
             this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
+
+        commandBuffer.pushConstants<u32>(
+            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, {1});
 
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 

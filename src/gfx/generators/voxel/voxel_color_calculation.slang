@@ -28,14 +28,24 @@ u32 subgroupMatch(u32 value)
 [format("rgba32f")]
 [[vk::binding(2)]] RWTexture2D<float4> visible_voxel_image[];
 
+struct PushConstant
+{
+    u32 bool_is_quarter_res;
+};
+
 [shader("compute")]
 [numthreads(32, 32, 1)]
-void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_GroupIndex)
+void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_GroupIndex, [vk_push_constant] uniform PushConstant pushConstant)
 {
     const u32 rdSeed = gpu_hashU32(reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive));
-    int2 thisPixel           = int2(threadId.xy) * 2; // TODO change dither per frame
-    thisPixel.x += (((rdSeed & 1u) == 0u) ? 1u : 0u);
-    thisPixel.y += (((rdSeed & 2u) == 0u) ? 1u : 0u);
+    int2 thisPixel           = int2(threadId.xy);
+
+    if (pushConstant.bool_is_quarter_res != 0)
+    {
+        thisPixel *= 2;
+        thisPixel.x += (((rdSeed & 1u) == 0u) ? 1u : 0u);
+        thisPixel.y += (((rdSeed & 2u) == 0u) ? 1u : 0u);
+    }
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size))
     {
@@ -45,15 +55,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
         const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
 
         const float3 chunkStrikePosition = worldStrikePosition - in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner();
-
-        const u32 otherWavesWithThisFaceId = subgroupMatch(uniqueFaceId);
-
-        const u32 waveThatShouldProcessThisFace = firstbitlow(otherWavesWithThisFaceId);
-        const u32 otherWaveThatShouldProcessThisFace = firstbithigh(otherWavesWithThisFaceId);
-
-        const bool shouldThisLaneExecute = true; //  (waveThatShouldProcessThisFace == WaveGetLaneIndex() || otherWaveThatShouldProcessThisFace == WaveGetLaneIndex());
-
-        if (uniqueFaceId != ~0u && shouldThisLaneExecute)
+        if (uniqueFaceId != ~0u )
         {   
             const uint3 bC = unpacked.position_in_chunk / 8;
             const uint3 bP = unpacked.position_in_chunk % 8;
@@ -74,7 +76,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
                 {
     
                     float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked,
-                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + u32(workgroup),
+                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + u32(workgroup) + rdSeed,
                         bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections));
 
                     calculatedColor = min(calculatedColor, float3(1.0));

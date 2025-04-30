@@ -14,12 +14,16 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     GpuColorHashMapNode node = in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot];
     // node = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
 
-    const float fadeFactorDiffuse = 0.95;
+    const float fadeFactorDiffuse = 0.99;
     const float fadeFactorReflective = 0.4533;
 
-    const float fadeFactor = (node.isReflective() && bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame)) ? fadeFactorReflective : fadeFactorDiffuse;
+    const uint samplesStatic = 256;
+    const uint samplesDynamic = 64;
 
-    if (node.key != ~0u && node.getSamples() > 16)
+    const float fadeFactor = (node.isReflective() && bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame)) ? fadeFactorReflective : fadeFactorDiffuse;
+    const uint samplesForNormalization =  bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame) ? samplesDynamic : samplesStatic;
+
+    if (node.key != ~0u && node.getSamples() > samplesForNormalization)
     {
         float3 colors1024 = float3(node.r_1024, node.g_1024, node.b_1024);
         colors1024 *= fadeFactor;
