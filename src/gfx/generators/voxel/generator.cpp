@@ -90,7 +90,6 @@ namespace gfx::generators::voxel
                         out.push_back({voxel::ChunkLocalPosition {{i, h, j}}, voxel::Voxel::Dirt});
                     }
                     else if (relativeDistanceToHeight < 3 * integerScale)
-
                     {
                         out.push_back({voxel::ChunkLocalPosition {{i, h, j}}, voxel::Voxel::Grass});
                     }

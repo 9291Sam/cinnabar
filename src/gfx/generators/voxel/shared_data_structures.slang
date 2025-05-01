@@ -393,7 +393,7 @@ struct ChunkHashMapNode
     u32 id = ~0u;
 };
 
-const static u32 chunkHashTableCapacity = 1u << 13u;
+const static u32 chunkHashTableCapacity = 1u << 16u;
 const static u32 chunkHashTableNullHash = ~0u;
 
 #ifndef __cplusplus

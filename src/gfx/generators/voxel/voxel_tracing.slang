@@ -325,7 +325,7 @@ float3 calculateSampleColor(
     if (dot(N, V) <= 0.0) {
         return float3(0, 0, 0);
     }
-    // HACK!
+    // HACK! I mean it loolks pretty
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
 
     float3 H = normalize(V + L);
@@ -417,6 +417,10 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
     const u32 thisEmissiveRandomPosition = NextRandom(rngState) % in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives;
+    if (in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives == 0)
+    {
+        return float3(0);
+    }
     light.position_and_half_intensity_distance.xyz = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() + in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].emissive_data[thisEmissiveRandomPosition].getCenterPositionOfVoxel();
 
     

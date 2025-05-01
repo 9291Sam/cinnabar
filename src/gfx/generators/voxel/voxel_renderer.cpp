@@ -6,16 +6,12 @@
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/emissive_integer_tree.hpp"
 #include "gfx/generators/voxel/material.hpp"
-#include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/shader_common/bindings.slang"
 #include "util/allocators/range_allocator.hpp"
 #include "util/events.hpp"
-#include "util/gif.hpp"
 #include "util/logger.hpp"
-#include "util/timer.hpp"
 #include "util/util.hpp"
-#include <atomic>
 #include <cstddef>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/geometric.hpp>
@@ -230,7 +226,7 @@ namespace gfx::generators::voxel
             this->chunk_allocator.iterateThroughAllocatedElements(
                 [&](u32 chunkId)
                 {
-                    const i32 searchRadius = 384;
+                    const i32 searchRadius = 512;
 
                     const WorldPosition chunkCornerPosition =
                         WorldPosition::assemble(this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate, {});
@@ -250,6 +246,9 @@ namespace gfx::generators::voxel
                             .y {nearEmissiveWorldPosition.y - chunkCornerPosition.y},
                             .z {nearEmissiveWorldPosition.z - chunkCornerPosition.z},
                         };
+
+#warning better vertifiation and extend the range to truly be 1024x512x1024
+                        // TODO: fix face hash table info to prevent colissions
 
                         thisChunkPossibleEmissivies.push_back(thisEmissiveChunkLocalOffset);
                     }

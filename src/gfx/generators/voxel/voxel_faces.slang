@@ -47,9 +47,7 @@ u32 hashFaceId(UnpackUniqueFaceIdResult unpacked, uint3 chunk_position)
 
     res = bitfieldInsert(res, packNormalId(unpacked.normal), 18, 3);
 
-    res = bitfieldInsert(res, unpacked.chunk_id, 21, 11);
-
-    return gpu_hashU32(res);
+    return gpu_hashCombineU32(gpu_hashU32(res) ,gpu_hashU32(unpacked.chunk_id));
 }
 
 struct UnpackUniqueFaceIdResult
@@ -59,7 +57,7 @@ struct UnpackUniqueFaceIdResult
         UnpackUniqueFaceIdResult res;
         res.normal = unpackNormalId(bitfieldExtract(packed, 0, 3));
 
-        res.chunk_id = bitfieldExtract(packed, 3, 11);
+        res.chunk_id = bitfieldExtract(packed, 3, 29);
 
         return res;
     }
