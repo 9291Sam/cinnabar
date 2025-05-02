@@ -25,7 +25,6 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
-static constexpr u32 MaxFaceHashMapNodes                = 1u << 20u;
 static constexpr u32 MaxChunks                          = 1u << 14u; // this can be extended
 static constexpr u32 AverageNonHomogenousBricksPerChunk = 192;
 static constexpr u32 BricksToAllocate                   = MaxChunks * AverageNonHomogenousBricksPerChunk;
@@ -100,7 +99,7 @@ namespace gfx::generators::voxel
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
-              MaxFaceHashMapNodes,
+              faceHashTableCapacity,
               "Face Hash Map",
               SBO_FACE_HASH_MAP)
         , lights(
@@ -482,8 +481,8 @@ namespace gfx::generators::voxel
                 vk::PipelineBindPoint::eCompute,
                 this->renderer->getPipelineManager()->getPipeline(this->face_normalizer_pipeline));
 
-            static_assert(MaxFaceHashMapNodes % 1024 == 0);
-            commandBuffer.dispatch(MaxFaceHashMapNodes / 1024, 1, 1);
+            static_assert(faceHashTableCapacity % 1024 == 0);
+            commandBuffer.dispatch(faceHashTableCapacity / 1024, 1, 1);
         }
     }
 

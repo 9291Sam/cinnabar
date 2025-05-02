@@ -326,7 +326,7 @@ struct GpuColorHashMapNode
 
 };
 
-const static u32 faceHashTableCapacity = 1u << 20u;
+const static u32 faceHashTableCapacity = 1u << 22u;
 const static u32 faceHashTableNullHash = ~0u;
 
 struct ChunkLocalEmissiveOffset

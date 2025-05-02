@@ -59,8 +59,7 @@ namespace gfx::generators::voxel
         auto mountainHeight = gen2D(static_cast<float>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
         // auto mainRock    = gen3D(static_cast<float>(integerScale) * 0.001f, this->seed - 747875);
         // auto pebblesRock = gen3D(static_cast<float>(integerScale) * 0.01f, this->seed -
-        // 52649274); auto pebbles     = gen3D(static_cast<float>(integerScale) * 0.05f, this->seed
-        // - 948);
+        // 52649274); auto pebbles        = gen3D(static_cast<float>(integerScale) * 0.05f, this->seed - 948);
 
         std::vector<std::pair<ChunkLocalPosition, Voxel>> out {};
         out.reserve(32768);
