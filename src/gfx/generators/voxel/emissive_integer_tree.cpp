@@ -1,97 +1,81 @@
-
-
-/*
-OrthoTree::TreePointContainerND<3, i32> a {decltype(a)::Create<false>(
-    std::span<const decltype(a)::TEntity> {},
-    OrthoTree::detail::MortonSpaceIndexing<3>::MAX_THEORETICAL_DEPTH_ID,
-    decltype(a)::TBox {{-PlayBound, -PlayBound, -PlayBound}, {PlayBound, PlayBound, PlayBound}})};
-
-a.Add({-13, -23, 2});
-a.Add({1, 2, 3});
-a.Add({1, -2, 3});
-a.Add({1, 2, -3});
-a.Add({13, 2, 3});
-a.Add({1, 21, 3});
-
-a.Get(0);
-
-util::Timer ta {"find"};
-auto        v = a.GetNearestNeighbors({0, 0, 0}, 7);
-
-for (auto i : v)
-{
-    const WorldPosition vec = std::bit_cast<WorldPosition>(a.Get(i));
-    log::trace("{} -> {} {}", i, glm::to_string(vec), glm::length(static_cast<glm::f32vec3>(vec)));
-}
-
-*/
-
-#include <thread>
-// dumbass library author doesn't understand headers
-
 #include "emissive_integer_tree.hpp"
+#include "gfx/generators/voxel/data_structures.hpp"
+#include "gfx/transform.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <glm/fwd.hpp>
-#include <kdtree++/kdtree.hpp>
-#include <ranges>
-#include <tuple>
+// #include <kdtree++/kdtree.hpp> TODO: some other time it sucks
 
 namespace gfx::generators::voxel
 {
-    struct EmissiveIntegerTreeImpl
+    namespace
     {
-        KDTree::KDTree<3, WorldPosition> tree;
-    };
+        bool doesCubeIntersectSphere(glm::vec3 sphereCenter, float radius, glm::vec3 cubeMin, glm::vec3 cubeMax)
+        {
+            const float closestX = std::clamp(sphereCenter.x, cubeMin.x, cubeMax.x);
+            const float closestY = std::clamp(sphereCenter.y, cubeMin.y, cubeMax.y);
+            const float closestZ = std::clamp(sphereCenter.z, cubeMin.z, cubeMax.z);
 
-    EmissiveIntegerTree::EmissiveIntegerTree()
-        : impl {new EmissiveIntegerTreeImpl {}}
-    {}
+            const glm::vec3 closestPointBetweenSphereAndCube(closestX, closestY, closestZ);
+
+            return glm::distance2(sphereCenter, closestPointBetweenSphereAndCube) <= radius * radius;
+        }
+    } // namespace
+    EmissiveIntegerTree::EmissiveIntegerTree() = default;
 
     EmissiveIntegerTree::~EmissiveIntegerTree() = default;
 
-    bool EmissiveIntegerTree::insert(WorldPosition v, bool warnIfAlreadyExisting)
+    bool EmissiveIntegerTree::insert(WorldPosition p, float r, bool warnIfAlreadyExisting)
     {
-        auto it = this->impl->tree.find(v);
+        const decltype(this->data)::const_iterator it = this->data.find(p);
 
-        if (it == this->impl->tree.end())
+        if (it == this->data.cend())
         {
-            this->impl->tree.insert(v);
+            this->data.insert({static_cast<glm::vec3>(p.asVector()), r});
 
             return true;
         }
         else if (warnIfAlreadyExisting)
         {
-            log::warn("duplicate insertion of {}", glm::to_string(v.asVector()));
+            log::warn("duplicate insertion of {}", glm::to_string(p.asVector()));
         }
 
         return false;
     }
 
-    void EmissiveIntegerTree::bulkInsertAndOptimize(std::vector<WorldPosition> v)
+    void EmissiveIntegerTree::erase(WorldPosition p)
     {
-        this->impl->tree.efficient_replace_and_optimise(v);
+        this->data.erase(static_cast<glm::vec3>(p.asVector()));
+        // this->impl->tree.efficient_replace_and_optimise(p);
     }
 
-    void EmissiveIntegerTree::remove(WorldPosition v)
+    std::vector<WorldPosition> EmissiveIntegerTree::getPossibleInfluencingPoints(AlignedChunkCoordinate chunk)
     {
-        this->impl->tree.erase(v);
-    }
+        const WorldPosition searchPoint = WorldPosition::assemble(chunk, {});
 
-    std::vector<WorldPosition> EmissiveIntegerTree::getNearestElements(WorldPosition searchPoint, i32 maxDistance)
-    {
         std::vector<WorldPosition> out {};
 
-        std::ignore = this->impl->tree.find_within_range(
-            searchPoint, typename decltype(this->impl->tree)::subvalue_type {maxDistance}, std::back_inserter(out));
+        const glm::vec3 chunkMin = searchPoint.asVector();
+        const glm::vec3 chunkMax = searchPoint.asVector() + static_cast<i32>(ChunkSizeVoxels);
+
+        for (const auto& [wP, r] : this->data)
+        {
+            if (doesCubeIntersectSphere(wP, r, chunkMin, chunkMax))
+            {
+                out.push_back(WorldPosition {static_cast<glm::i32vec3>(wP)});
+            }
+        }
+
+        if (chunk == AlignedChunkCoordinate {0, 0, 0})
+        {
+            for (const auto& wP : out)
+            {
+                log::trace("{}", glm::to_string(wP.asVector()));
+            }
+        }
 
         return out;
-    }
-
-    void EmissiveIntegerTree::optimize()
-    {
-        this->impl->tree.optimize();
     }
 
 } // namespace gfx::generators::voxel

@@ -4,6 +4,7 @@
     #include "util/util.hpp"
     #include <glm/vec3.hpp>
     #include <glm/vec4.hpp>
+    // #include <glm/gtx/string_cast.hpp.hpp>
     // #include "util/allocators/range_allocator.hpp"
     
     #define float3 glm::vec3
@@ -290,11 +291,20 @@ struct GpuRaytracedLight
 #ifndef __cplusplus
     bool canInfluencePoint(float3 position)
     {
-        const float minimumPossibleInfluence = (1.0f / 32.0f) * color_and_power.w; 
+        const float minimumPossibleInfluence = (1.0f / 32.0f); 
         const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
             log2(minimumPossibleInfluence / color_and_power.w);
 
         return distanceOfMinimumPossibleInfluence > distance(position_and_half_intensity_distance.xyz, position);
+    }
+#else
+    bool canInfluencePoint(float3 position)
+    {
+        const float minimumPossibleInfluence = (1.0f / 32.0f); 
+        const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
+            std::log2(minimumPossibleInfluence / color_and_power.w);
+
+        return distanceOfMinimumPossibleInfluence > glm::distance(position_and_half_intensity_distance.xyz(), position);
     }
 #endif
 };

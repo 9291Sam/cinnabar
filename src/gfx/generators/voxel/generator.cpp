@@ -90,7 +90,15 @@ namespace gfx::generators::voxel
                     }
                     else if (relativeDistanceToHeight < 3 * integerScale)
                     {
-                        out.push_back({voxel::ChunkLocalPosition {{i, h, j}}, voxel::Voxel::Grass});
+                        if (rand() % 1024 == 0)
+                        {
+                            out.push_back(
+                                {voxel::ChunkLocalPosition {{i, std::min(63, h + 2), j}}, voxel::Voxel::EmissiveWhite});
+                        }
+                        else
+                        {
+                            out.push_back({voxel::ChunkLocalPosition {{i, h, j}}, voxel::Voxel::Grass});
+                        }
                     }
                 }
             }

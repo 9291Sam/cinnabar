@@ -150,7 +150,7 @@ namespace gfx::generators::voxel
 
         for (ChunkLocalPosition p : oldCpuChunkData.current_chunk_local_emissive_voxels)
         {
-            this->emissives_in_world.remove(WorldPosition::assemble(oldGpuChunkData.aligned_chunk_coordinate, p));
+            this->emissives_in_world.erase(WorldPosition::assemble(oldGpuChunkData.aligned_chunk_coordinate, p));
         }
 
         oldGpuChunkData = {};
@@ -180,7 +180,7 @@ namespace gfx::generators::voxel
 
                         if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Insert)
                         {
-                            this->emissives_in_world.insert(thisWorldPosition);
+                            this->emissives_in_world.insert(thisWorldPosition, static_cast<f32>(emissiveUpdate.radius));
                             const auto [_, wasInserted] =
                                 cpuChunkData.current_chunk_local_emissive_voxels.insert(emissiveUpdate.position);
 
@@ -196,7 +196,7 @@ namespace gfx::generators::voxel
                         }
                         else if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Removal)
                         {
-                            this->emissives_in_world.remove(thisWorldPosition);
+                            this->emissives_in_world.erase(thisWorldPosition);
                             const std::size_t elementsRemoved =
                                 cpuChunkData.current_chunk_local_emissive_voxels.erase(emissiveUpdate.position);
 
@@ -220,36 +220,46 @@ namespace gfx::generators::voxel
 
         if (anyUpdates)
         {
-            this->emissives_in_world.optimize();
-
             this->chunk_allocator.iterateThroughAllocatedElements(
                 [&](u32 chunkId)
                 {
-                    const i32 searchRadius = 512;
+                    const AlignedChunkCoordinate chunkCoordinate =
+                        this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate;
 
-                    const WorldPosition chunkCornerPosition =
-                        WorldPosition::assemble(this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate, {});
+                    WorldPosition chunkCornerPosition = WorldPosition::assemble(chunkCoordinate, {});
 
-                    const std::vector<WorldPosition> nearEmissiviesPositions =
-                        this->emissives_in_world.getNearestElements(chunkCornerPosition, searchRadius);
-
-                    // TODO: sort by importance
+                    const std::vector<WorldPosition> nearEmissiviesPositionsUnchecked =
+                        this->emissives_in_world.getPossibleInfluencingPoints(chunkCoordinate);
 
                     std::vector<ChunkLocalEmissiveOffset> thisChunkPossibleEmissivies;
-                    thisChunkPossibleEmissivies.reserve(nearEmissiviesPositions.size());
+                    thisChunkPossibleEmissivies.reserve(nearEmissiviesPositionsUnchecked.size());
 
-                    for (WorldPosition nearEmissiveWorldPosition : nearEmissiviesPositions)
+                    for (WorldPosition nearEmissiveWorldPosition : nearEmissiviesPositionsUnchecked)
                     {
-                        const ChunkLocalEmissiveOffset thisEmissiveChunkLocalOffset {
-                            .x {nearEmissiveWorldPosition.x - chunkCornerPosition.x},
-                            .y {nearEmissiveWorldPosition.y - chunkCornerPosition.y},
-                            .z {nearEmissiveWorldPosition.z - chunkCornerPosition.z},
-                        };
+                        const glm::i32vec3 uncheckedOffset = nearEmissiveWorldPosition - chunkCornerPosition;
+                        const glm::i32vec3 minPossibleEmissivePosition = chunkCornerPosition
+                                                                       + glm::i32vec3 {
+                                                                           ChunkLocalEmissiveOffset::x_min,
+                                                                           ChunkLocalEmissiveOffset::y_min,
+                                                                           ChunkLocalEmissiveOffset::z_min};
 
-#warning better vertifiation and extend the range to truly be 1024x512x1024
-                        // TODO: fix face hash table info to prevent colissions
+                        const glm::i32vec3 maxPossibleEmissivePosition = chunkCornerPosition
+                                                                       + glm::i32vec3 {
+                                                                           ChunkLocalEmissiveOffset::x_max,
+                                                                           ChunkLocalEmissiveOffset::y_max,
+                                                                           ChunkLocalEmissiveOffset::z_max};
 
-                        thisChunkPossibleEmissivies.push_back(thisEmissiveChunkLocalOffset);
+                        if (glm::all(glm::lessThan(minPossibleEmissivePosition, uncheckedOffset))
+                            && glm::all(glm::lessThan(uncheckedOffset, maxPossibleEmissivePosition)))
+                        {
+                            const ChunkLocalEmissiveOffset thisEmissiveChunkLocalOffset {
+                                .x {nearEmissiveWorldPosition.x - chunkCornerPosition.x},
+                                .y {nearEmissiveWorldPosition.y - chunkCornerPosition.y},
+                                .z {nearEmissiveWorldPosition.z - chunkCornerPosition.z},
+                            };
+
+                            thisChunkPossibleEmissivies.push_back(thisEmissiveChunkLocalOffset);
+                        }
                     }
 
                     const u32 emissiveDataPacketBytes =
@@ -380,9 +390,10 @@ namespace gfx::generators::voxel
         {
             if (getMaterialFromVoxel(v).emission_metallic.xyz() != glm::vec3(0.0))
             {
-                // we have an emissive voxel
-                cpuChunkData.emissive_updates.push_back(
-                    EmissiveVoxelUpdateChange {.position {cP}, .change_type {EmissiveVoxelUpdateChangeType::Insert}});
+// we have an emissive voxel
+#warning this radius is wrong!
+                cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
+                    .position {cP}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {96}});
             }
 
             if (v == Voxel::NullAirEmpty)

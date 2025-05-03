@@ -1,9 +1,9 @@
 #pragma once
 
 #include "data_structures.hpp"
-#include "glm/vec3.hpp"
 #include "util/util.hpp"
-#include <span>
+#include <boost/container/flat_map.hpp>
+#include <compare>
 #include <vector>
 
 namespace gfx::generators::voxel
@@ -12,9 +12,6 @@ namespace gfx::generators::voxel
     // The world is 2m voxels per axis because of floats
     static constexpr i32 PlayBound = 1u << 20u;
 
-    struct EmissiveIntegerTreeImpl;
-
-    // A tree that holds
     class EmissiveIntegerTree
     {
     public:
@@ -28,19 +25,24 @@ namespace gfx::generators::voxel
 
         /// Insert an element into the tree
         /// Returns true if the insert was successful
-        bool insert(WorldPosition, bool warnIfAlreadyExisting = true);
-        void bulkInsertAndOptimize(std::vector<WorldPosition>);
+        bool insert(WorldPosition, float radius, bool warnIfAlreadyExisting = true);
 
         /// try remove the element, return false if there was no element in the tree
-        void remove(WorldPosition);
+        void erase(WorldPosition);
 
         // returns an unordered list of all elements inside the distance from the given point
-        std::vector<WorldPosition> getNearestElements(WorldPosition searchPoint, i32 maxDistance);
-
-        void optimize();
+        std::vector<WorldPosition> getPossibleInfluencingPoints(AlignedChunkCoordinate);
 
 
     private:
-        std::unique_ptr<EmissiveIntegerTreeImpl> impl;
+        struct OrdVec3
+        {
+            bool operator() (const glm::vec3& l, const glm::vec3& r) const
+            {
+                return std::tuple {l.x, l.y, l.z} < std::tuple {r.x, r.y, r.z};
+            }
+        };
+
+        boost::container::flat_map<glm::vec3, float, OrdVec3> data;
     };
 } // namespace gfx::generators::voxel

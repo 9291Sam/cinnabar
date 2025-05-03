@@ -9,6 +9,7 @@
 #include <boost/container/flat_set.hpp>
 #include <glm/ext/vector_uint3_sized.hpp>
 #include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <limits>
@@ -194,10 +195,10 @@ namespace gfx::generators::voxel
     {
         ChunkLocalPosition            position {};
         EmissiveVoxelUpdateChangeType change_type {};
+        i32                           radius {};
 
         bool operator== (const EmissiveVoxelUpdateChange&) const = default;
     };
-    static_assert(sizeof(EmissiveVoxelUpdateChange) == sizeof(u32));
 
     struct CpuChunkData
     {
