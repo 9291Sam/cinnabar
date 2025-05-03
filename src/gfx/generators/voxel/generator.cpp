@@ -93,7 +93,7 @@ namespace gfx::generators::voxel
                         if (rand() % 1024 == 0)
                         {
                             out.push_back(
-                                {voxel::ChunkLocalPosition {{i, std::min(63, h + 2), j}}, voxel::Voxel::EmissiveWhite});
+                                {voxel::ChunkLocalPosition {{i, std::min(63, h + 6), j}}, voxel::Voxel::EmissiveWhite});
                         }
                         else
                         {
