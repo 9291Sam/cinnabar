@@ -349,7 +349,6 @@ float3 calculateSampleColor(
 
     float NdotL = max(dot(N, L), 0.0);
 
-    // Custom light intensity calculation with exponential falloff
     float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
     float lightIntensity =
         pow(2.0, -distanceToLight / light.position_and_half_intensity_distance.w) * light.color_and_power.w;
@@ -416,13 +415,15 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 {
     GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-    const u32 thisEmissiveRandomPosition = NextRandom(rngState) % in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives;
-    if (in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives == 0)
+    const u32 numberOfPossibleEmissives = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives;
+
+    const u32 thisEmissiveRandomPosition = NextRandom(rngState) % numberOfPossibleEmissives;
+    if (numberOfPossibleEmissives == 0)
     {
         return float3(0);
     }
     light.position_and_half_intensity_distance.xyz = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() + in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].emissive_data[thisEmissiveRandomPosition].getCenterPositionOfVoxel();
-
+    light.color_and_power.w *= numberOfPossibleEmissives;
     
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);

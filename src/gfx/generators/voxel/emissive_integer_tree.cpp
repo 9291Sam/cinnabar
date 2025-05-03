@@ -67,14 +67,6 @@ namespace gfx::generators::voxel
             }
         }
 
-        if (chunk == AlignedChunkCoordinate {0, 0, 0})
-        {
-            for (const auto& wP : out)
-            {
-                log::trace("{}", glm::to_string(wP.asVector()));
-            }
-        }
-
         return out;
     }
 
