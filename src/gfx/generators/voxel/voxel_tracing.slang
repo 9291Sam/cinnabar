@@ -310,8 +310,7 @@ float geometrySmith(float3 N, float3 V, float3 L, float roughness)
 float3 fresnelSchlick(float cosTheta, float3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-float3 calculateSampleColor(
+}float3 calculateSampleColor(
     float3              worldPos,
     float3              N,
     float3              V,
@@ -340,22 +339,18 @@ float3 calculateSampleColor(
     float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
 
     float3 numerator   = NDF * G * F;
-    float denominator  = max(4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0), 1e-4);
-    float3 specular    = numerator / denominator;
-
-    if (!includeSpecular) {
-        specular = float3(0.0);
-    }
+    float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+    float3 specular    = numerator / max(denominator, 0.1);
+    specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
 
     float NdotL = max(dot(N, L), 0.0);
 
-    // Updated rational-form light attenuation
     float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
-    float r = light.position_and_half_intensity_distance.w;
+    float r = max(light.position_and_half_intensity_distance.w, 0.001);
     float p = light.color_and_power.w;
-    float lightIntensity = p / ((distanceToLight / r) * (distanceToLight / r) + 1.0);
+    float d = distanceToLight / r;
+    float lightIntensity = p / (d * d + 1.0);  // Smooth falloff, stable
 
-    // Final color calculation
     float3 diffuse = kD * material.albedo_roughness.xyz / PI;
     float3 lighting = light.color_and_power.xyz * (diffuse + specular) * NdotL * lightIntensity;
 

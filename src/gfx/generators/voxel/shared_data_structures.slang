@@ -296,7 +296,7 @@ struct GpuRaytracedLight
 
    bool canInfluencePoint(float3 position)
     {
-        return euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position) < 4 * position_and_half_intensity_distance.w;
+        return euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position) < 8 * position_and_half_intensity_distance.w;
 
 
         // const float minimumPossibleInfluence = (1.0f / 1024.0f); 
