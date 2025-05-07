@@ -311,60 +311,61 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
 float3 calculateSampleColor(
     float3              worldPos,
     float3              N,
     float3              V,
     float3              L,
-    GpuRaytracedLight light,
-    PBRVoxelMaterial  material,
-    bool              includeSpecular,
-    bool              includeEmissive)
+    GpuRaytracedLight   light,
+    PBRVoxelMaterial    material,
+    bool                includeSpecular,
+    bool                includeEmissive)
 {
     if (dot(N, V) <= 0.0) {
         return float3(0, 0, 0);
     }
+
     // HACK! I mean it loolks pretty
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
 
     float3 H = normalize(V + L);
 
-    float3  F0  = lerp(float3(0.04), pow(material.albedo_roughness.xyz, float3(2.2)), material.emission_metallic.w);
+    // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
+    float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
+
     float NDF = distributionGGX(N, H, material.albedo_roughness.w);
     float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
-    float3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
-    float3  kD  = float3(1.0) - F;
+    float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-    kD *= 1.0 - material.emission_metallic.w;
+    float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
 
-    float3  numerator   = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-    float3  specular    = numerator / max(denominator, 0.001);
+    float3 numerator   = NDF * G * F;
+    float denominator  = max(4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0), 1e-4);
+    float3 specular    = numerator / denominator;
 
-    if (!includeSpecular)
-    {
+    if (!includeSpecular) {
         specular = float3(0.0);
     }
 
     float NdotL = max(dot(N, L), 0.0);
 
+    // Updated rational-form light attenuation
     float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
-    float lightIntensity =
-        pow(2.0, -distanceToLight / light.position_and_half_intensity_distance.w) * light.color_and_power.w;
-    lightIntensity = max(lightIntensity, 0.0);
+    float r = light.position_and_half_intensity_distance.w;
+    float p = light.color_and_power.w;
+    float lightIntensity = p / ((distanceToLight / r) * (distanceToLight / r) + 1.0);
 
-    // Calculate final color with custom light intensity
-    float3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, float3(1.0)) / PI + specular)
-               * NdotL * lightIntensity;
+    // Final color calculation
+    float3 diffuse = kD * material.albedo_roughness.xyz / PI;
+    float3 lighting = light.color_and_power.xyz * (diffuse + specular) * NdotL * lightIntensity;
 
-    if (includeEmissive)
-    {
-        color += material.emission_metallic.xyz ;
+    if (includeEmissive) {
+        lighting += material.emission_metallic.xyz;
     }
 
-    return color;
+    return lighting;
 }
+
 
 
 VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
@@ -421,23 +422,36 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         return float3(0);
     }
-    
-    const u32 triesLeftToFindALight = min(16, numberOfPossibleEmissives);
+
+    float selectionProbability = 0.0f;
+    bool foundLight = false;
+    const uint initialEmissiveIndex = NextRandom(rngState) % numberOfPossibleEmissives;
+
+    const u32 triesLeftToFindALight = min(128, numberOfPossibleEmissives);
     for (int i = 0; i < triesLeftToFindALight; ++i)
     {
         light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-        const u32 thisEmissiveRandomPosition = NextRandom(rngState) % numberOfPossibleEmissives;
-       
-        light.position_and_half_intensity_distance.xyz = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() + in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].emissive_data[thisEmissiveRandomPosition].getCenterPositionOfVoxel();
-        
+        const u32 thisEmissiveRandomPosition = (initialEmissiveIndex + i) % numberOfPossibleEmissives;
+
+        light.position_and_half_intensity_distance.xyz =
+            in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() +
+            in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id]
+                .emissive_data[thisEmissiveRandomPosition]
+                .getCenterPositionOfVoxel();
+
         if (light.canInfluencePoint(firstWorldStrikePosition))
         {
-            light.color_and_power.w *= numberOfPossibleEmissives;
+            selectionProbability = 1.0f / float(numberOfPossibleEmissives);
+            foundLight = true;
             break;
         }
     }
-    
+
+    if (!foundLight)
+    {
+        return float3(0);
+    }
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
 
@@ -454,30 +468,28 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;
     const float3 dir = normalize(end - start);
-    const f32 len = distance(end, start);
-
+    const float len = distance(end, start);
 
     float3 calculatedColor = float3(0.0);
-
 
     if (light.canInfluencePoint(firstWorldStrikePosition))
     {
         const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
-        
-        if (!shadowResult.intersect_occur || (all(shadowResult.material.emission_metallic.xyz != float3(0.0))))
+
+        if (!shadowResult.intersect_occur || all(shadowResult.material.emission_metallic.xyz != float3(0.0)))
         {
-            calculatedColor += lightColor;
+            calculatedColor += lightColor / selectionProbability;
         }
     }
+
     if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
     {
         const float3 toFragmentDir = normalize(firstWorldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
 
-        Ray bounceRay =
-            Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
+        Ray bounceRay = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
         const VoxelTraceResult bounceResult = traceWorld(bounceRay, 128.0f);
-\
+
         if (bounceResult.intersect_occur)
         {
             const float3 secondWorldStrikePosition = bounceRay.origin + bounceResult.t * bounceRay.direction;
@@ -488,8 +500,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             if (light.canInfluencePoint(shadowRay.origin))
             {
                 const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
-                
-                if (!bounceShadow.intersect_occur || (all(bounceShadow.material.emission_metallic.xyz != float3(0.0))))
+
+                if (!bounceShadow.intersect_occur || all(bounceShadow.material.emission_metallic.xyz != float3(0.0)))
                 {
                     float3 reflectionColor = calculateSampleColor(
                         secondWorldStrikePosition,
@@ -501,7 +513,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                         true,
                         true) * firstMaterial.albedo_roughness.xyz;
 
-                    calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) ;
+                    calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) / selectionProbability;
                 }
             }
         }
@@ -509,11 +521,9 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         {
             calculatedColor += totalSkybox(bounceRay.direction, false) * firstMaterial.albedo_roughness.xyz;
         }
-
     }
 
     return calculatedColor;
-
 }
 
 
