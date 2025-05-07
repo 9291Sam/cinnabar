@@ -10,6 +10,9 @@
     #define float3 glm::vec3
     #define float4 glm::vec4
     #define int3 glm::ivec3
+    #define log2 std::log2
+    #define euclidean_distance glm::distance
+    #define XYZ_VEC .xyz()
 
     #define INLINE inline
     #define CONST_MEMBER_FUNCTION const
@@ -21,6 +24,8 @@
     #define MUTABLE_MEMBER_FUNCTION [mutating]
     #define NODISCARD
     #define INLINE
+    #define euclidean_distance distance
+    #define XYZ_VEC .xyz
 
     typedef int3 AlignedChunkCoordinate;
     typedef uint3 BrickLocalPosition;
@@ -288,25 +293,14 @@ struct GpuRaytracedLight
     float4 position_and_half_intensity_distance;
     float4 color_and_power;
 
-#ifndef __cplusplus
     bool canInfluencePoint(float3 position)
     {
         const float minimumPossibleInfluence = (1.0f / 256.0f); 
         const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
             log2(minimumPossibleInfluence / color_and_power.w);
 
-        return distanceOfMinimumPossibleInfluence > distance(position_and_half_intensity_distance.xyz, position);
+        return distanceOfMinimumPossibleInfluence > euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position);
     }
-#else
-    bool canInfluencePoint(float3 position)
-    {
-        const float minimumPossibleInfluence = (1.0f / 256.0f); 
-        const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
-            std::log2(minimumPossibleInfluence / color_and_power.w);
-
-        return distanceOfMinimumPossibleInfluence > glm::distance(position_and_half_intensity_distance.xyz(), position);
-    }
-#endif
 };
 
 struct GpuColorHashMapNode
