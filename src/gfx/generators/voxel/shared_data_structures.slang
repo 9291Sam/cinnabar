@@ -291,7 +291,7 @@ struct GpuRaytracedLight
 #ifndef __cplusplus
     bool canInfluencePoint(float3 position)
     {
-        const float minimumPossibleInfluence = (1.0f / 32.0f); 
+        const float minimumPossibleInfluence = (1.0f / 256.0f); 
         const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
             log2(minimumPossibleInfluence / color_and_power.w);
 
@@ -300,7 +300,7 @@ struct GpuRaytracedLight
 #else
     bool canInfluencePoint(float3 position)
     {
-        const float minimumPossibleInfluence = (1.0f / 32.0f); 
+        const float minimumPossibleInfluence = (1.0f / 256.0f); 
         const float distanceOfMinimumPossibleInfluence =  -position_and_half_intensity_distance.w * 
             std::log2(minimumPossibleInfluence / color_and_power.w);
 

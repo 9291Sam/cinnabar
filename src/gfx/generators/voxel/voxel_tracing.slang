@@ -355,8 +355,8 @@ float3 calculateSampleColor(
     lightIntensity = max(lightIntensity, 0.0);
 
     // Calculate final color with custom light intensity
-    float3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, float3(2.2)) / PI + specular)
-               * (NdotL / distanceToLight) * lightIntensity;
+    float3 color = light.color_and_power.xyz * (kD * pow(material.albedo_roughness.xyz, float3(1.0)) / PI + specular)
+               * NdotL * lightIntensity;
 
     if (includeEmissive)
     {
