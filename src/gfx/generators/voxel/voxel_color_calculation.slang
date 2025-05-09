@@ -78,7 +78,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
                 {
     
                     float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked,
-                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + u32(workgroup) + rdSeed,
+                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + gpu_hashU32(u32(workgroup)) + rdSeed,
                         bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections));
                
 

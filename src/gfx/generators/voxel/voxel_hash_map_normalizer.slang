@@ -12,7 +12,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     const uint NormalizedSampleLength = 1024;
 
     GpuColorHashMapNode node = in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot];
-    // node = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
+    // in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot] = GpuColorHashMapNode(~0u, ~0u, ~0u, ~0u, ~0u);
 
     const float fadeFactorDiffuse = 0.99;
     const float fadeFactorReflective = 0.4533;

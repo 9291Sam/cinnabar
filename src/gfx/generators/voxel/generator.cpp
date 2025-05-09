@@ -90,7 +90,7 @@ namespace gfx::generators::voxel
                     }
                     else if (relativeDistanceToHeight < 3 * integerScale)
                     {
-                        if (rand() % 1024 == 0)
+                        if (rand() % 8192 * 8 == 0)
                         {
                             out.push_back(
                                 {voxel::ChunkLocalPosition {{i, std::min(63, h + 6), j}}, voxel::Voxel::EmissiveWhite});

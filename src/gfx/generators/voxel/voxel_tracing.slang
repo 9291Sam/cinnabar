@@ -320,43 +320,60 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     bool                includeSpecular,
     bool                includeEmissive)
 {
-    if (dot(N, V) <= 0.0) {
+
+    const float nDotL = dot(N, L);
+
+    if (dot(N, V) <= 0.0)
+    {
         return float3(0, 0, 0);
     }
 
-    // HACK! I mean it loolks pretty
-    material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
 
-    float3 H = normalize(V + L);
-
-    // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
-    float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
-
-    float NDF = distributionGGX(N, H, material.albedo_roughness.w);
-    float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
-    float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
-
-    float3 numerator   = NDF * G * F;
-    float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
-    float3 specular    = numerator / max(denominator, 0.1);
-    specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
-
-    float NdotL = max(dot(N, L), 0.0);
-
-    float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
+    const float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
     float r = max(light.position_and_half_intensity_distance.w, 0.001);
     float p = light.color_and_power.w;
     float d = distanceToLight / r;
-    float lightIntensity = p / (d * d + 1.0);  // Smooth falloff, stable
+    float lightIntensity = p / (d * d + 1);  // Smooth falloff, stable
 
-    float3 diffuse = kD * material.albedo_roughness.xyz / PI;
-    float3 lighting = light.color_and_power.xyz * (diffuse + specular) * NdotL * lightIntensity;
+    // return light.color_and_power.w * lightIntensity;
 
-    if (includeEmissive) {
-        lighting += material.emission_metallic.xyz;
-    }
+    const float3 diffuse = material.albedo_roughness.xyz * nDotL * lightIntensity;
+
+    // if (any(diffuse > float3(1)))
+    // {
+    //     return float3(0);
+    // }
+
+    return diffuse;
+
+
+    // // HACK! I mean it loolks pretty
+    // material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
+
+    // float3 H = normalize(V + L);
+
+    // // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
+    // float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
+
+    // float NDF = distributionGGX(N, H, material.albedo_roughness.w);
+    // float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
+    // float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    // float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
+
+    // float3 numerator   = NDF * G * F;
+    // float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+    // float3 specular    = numerator / max(denominator, 0.1);
+    // specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
+
+
+    // // float3 diffuse = kD * material.albedo_roughness.xyz / PI;
+    // float3 diffuse = material.albedo_roughness.xyz;
+    float3 lighting = material.albedo_roughness.xyz; //light.color_and_power.xyz * (diffuse) * NdotL * lightIntensity;
+
+    // if (includeEmissive) {
+    //     lighting += material.emission_metallic.xyz;
+    // }
 
     return lighting;
 }
@@ -420,14 +437,13 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
     float selectionProbability = 0.0f;
     bool foundLight = false;
-    const uint initialEmissiveIndex = NextRandom(rngState) % numberOfPossibleEmissives;
 
     const u32 triesLeftToFindALight = min(128, numberOfPossibleEmissives);
     for (int i = 0; i < triesLeftToFindALight; ++i)
     {
         light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
-        const u32 thisEmissiveRandomPosition = (initialEmissiveIndex + i) % numberOfPossibleEmissives;
+        const u32 thisEmissiveRandomPosition = NextRandom(rngState) % numberOfPossibleEmissives;
 
         light.position_and_half_intensity_distance.xyz =
             in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() +
@@ -442,10 +458,13 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             break;
         }
     }
-
+\
     if (!foundLight)
     {
         return float3(0);
+    }
+    else {
+        light.color_and_power.w /= selectionProbability;
     }
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
@@ -459,6 +478,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         firstMaterial,
         true,
         true);
+
+        return lightColor * selectionProbability;
 
     const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;

@@ -294,20 +294,18 @@ struct GpuRaytracedLight
     float4 position_and_half_intensity_distance;
     float4 color_and_power;
 
-   bool canInfluencePoint(float3 position)
+    bool canInfluencePoint(float3 position)
     {
-        return euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position) < 8 * position_and_half_intensity_distance.w;
+        // return euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position) < position_and_half_intensity_distance.w * 64;
+        const float minimumPossibleInfluence = (1.0f / 4096.0f); 
 
+        float r = position_and_half_intensity_distance.w;
+        float p = color_and_power.w;
 
-        // const float minimumPossibleInfluence = (1.0f / 1024.0f); 
+        float maxDistance = r * sqrt(p / minimumPossibleInfluence - 1.0f);
+        float actualDistance = euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position);
 
-        // float r = position_and_half_intensity_distance.w;
-        // float p = color_and_power.w;
-
-        // float maxDistance = r * sqrt(p / minimumPossibleInfluence - 1.0f);
-        // float actualDistance = euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position);
-
-        // return maxDistance > actualDistance;
+        return maxDistance > actualDistance;
     }
 
 };
