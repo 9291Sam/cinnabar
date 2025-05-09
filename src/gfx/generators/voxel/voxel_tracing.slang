@@ -321,6 +321,8 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     bool                includeEmissive)
 {
 
+    // HACK! I mean it looks pretty
+    material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
     const float nDotL = dot(N, L);
 
     if (dot(N, V) <= 0.0)
@@ -328,52 +330,36 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
         return float3(0, 0, 0);
     }
 
-
     const float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
     float r = max(light.position_and_half_intensity_distance.w, 0.001);
     float p = light.color_and_power.w;
     float d = distanceToLight / r;
     float lightIntensity = p / (d * d + 1);  // Smooth falloff, stable
 
-    // return light.color_and_power.w * lightIntensity;
 
-    const float3 diffuse = material.albedo_roughness.xyz * nDotL * lightIntensity;
+    float3 H = normalize(V + L);
 
-    // if (any(diffuse > float3(1)))
-    // {
-    //     return float3(0);
-    // }
+    // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
+    float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
 
-    return diffuse;
+    float NDF = distributionGGX(N, H, material.albedo_roughness.w);
+    float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
+    float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
+    float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
 
-    // // HACK! I mean it loolks pretty
-    // material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
-
-    // float3 H = normalize(V + L);
-
-    // // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
-    // float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
-
-    // float NDF = distributionGGX(N, H, material.albedo_roughness.w);
-    // float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
-    // float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    // float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
-
-    // float3 numerator   = NDF * G * F;
-    // float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
-    // float3 specular    = numerator / max(denominator, 0.1);
-    // specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
+    float3 numerator   = NDF * G * F;
+    float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+    float3 specular    = numerator / max(denominator, 0.1);
+    specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
 
 
-    // // float3 diffuse = kD * material.albedo_roughness.xyz / PI;
-    // float3 diffuse = material.albedo_roughness.xyz;
-    float3 lighting = material.albedo_roughness.xyz; //light.color_and_power.xyz * (diffuse) * NdotL * lightIntensity;
+    float3 diffuse = kD * material.albedo_roughness.xyz / PI;
+    float3 lighting = light.color_and_power.xyz * (diffuse) * nDotL * lightIntensity;
 
-    // if (includeEmissive) {
-    //     lighting += material.emission_metallic.xyz;
-    // }
+    if (includeEmissive) {
+        lighting += material.emission_metallic.xyz;
+    }
 
     return lighting;
 }
