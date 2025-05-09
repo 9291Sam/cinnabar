@@ -424,6 +424,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     float selectionProbability = 0.0f;
     bool foundLight = false;
 
+    uint nonVisibleLights = 1;
     const u32 triesLeftToFindALight = min(128, numberOfPossibleEmissives);
     for (int i = 0; i < triesLeftToFindALight; ++i)
     {
@@ -439,19 +440,22 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
         if (light.canInfluencePoint(firstWorldStrikePosition))
         {
-            selectionProbability = 1.0f / float(numberOfPossibleEmissives);
+            selectionProbability = nonVisibleLights / float(numberOfPossibleEmissives);
             foundLight = true;
             break;
         }
+        else {
+            nonVisibleLights++;
+        }
     }
-\
+
     if (!foundLight)
     {
         return float3(0);
     }
-    else {
-        light.color_and_power.w /= selectionProbability;
-    }
+    // else {
+    //     light.color_and_power.w /= selectionProbability;
+    // }
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
 
@@ -482,6 +486,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
             calculatedColor += lightColor;
         }
     }
+
+    calculatedColor /= selectionProbability;
 
     if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
     {
@@ -514,7 +520,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                         true,
                         true) * firstMaterial.albedo_roughness.xyz;
 
-                    calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
+                    calculatedColor += (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / selectionProbability;
                 }
             }
         }
