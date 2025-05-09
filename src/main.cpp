@@ -70,34 +70,34 @@ struct TemporaryGameState : game::Game::GameState
                     std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
                         newVoxels {};
 
-                    // if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 1})
-                    // {
-                    //     gfx::generators::voxel::StaticVoxelModel cornelBox =
-                    //         gfx::generators::voxel::StaticVoxelModel::createCornelBox();
+                    if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 1})
+                    {
+                        gfx::generators::voxel::StaticVoxelModel cornelBox =
+                            gfx::generators::voxel::StaticVoxelModel::createCornelBox();
 
-                    //     const glm::u32vec3 extents = cornelBox.getExtent();
-                    //     const auto         voxels  = cornelBox.getModel();
+                        const glm::u32vec3 extents = cornelBox.getExtent();
+                        const auto         voxels  = cornelBox.getModel();
 
-                    //     assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
+                        assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
 
-                    //     for (u32 x = 0; x < extents.x; ++x)
-                    //     {
-                    //         for (u32 y = 0; y < extents.y; ++y)
-                    //         {
-                    //             for (u32 z = 0; z < extents.z; ++z)
-                    //             {
-                    //                 const gfx::generators::voxel::Voxel v = voxels[x, y, z];
+                        for (u32 x = 0; x < extents.x; ++x)
+                        {
+                            for (u32 y = 0; y < extents.y; ++y)
+                            {
+                                for (u32 z = 0; z < extents.z; ++z)
+                                {
+                                    const gfx::generators::voxel::Voxel v = voxels[x, y, z];
 
-                    //                 if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
-                    //                 {
-                    //                     newVoxels.push_back(
-                    //                         {gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
-                    // else
+                                    if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
+                                    {
+                                        newVoxels.push_back(
+                                            {gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
                     {
                         newVoxels = wg.generateChunk(aC);
                     }

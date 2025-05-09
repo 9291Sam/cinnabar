@@ -479,7 +479,6 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         true,
         true);
 
-        return lightColor * selectionProbability;
 
     const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;
@@ -494,7 +493,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
         if (!shadowResult.intersect_occur || all(shadowResult.material.emission_metallic.xyz != float3(0.0)))
         {
-            calculatedColor += lightColor / selectionProbability;
+            calculatedColor += lightColor;
         }
     }
 
@@ -529,7 +528,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                         true,
                         true) * firstMaterial.albedo_roughness.xyz;
 
-                    calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w) / selectionProbability;
+                    calculatedColor += reflectionColor * (1.0 - firstMaterial.albedo_roughness.w);
                 }
             }
         }

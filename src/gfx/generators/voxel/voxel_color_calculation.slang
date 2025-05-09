@@ -82,16 +82,13 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
                         bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections));
                
 
-                    calculatedColor = min(calculatedColor, float3(1.0));
-
-                    // if (unpacked.chunk_id > 2048)
-                    // {
-                    //     calculatedColor = 1;
-                    // }
-
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, uint(calculatedColor.x * 1024));
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, uint(calculatedColor.y * 1024));
-                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, uint(calculatedColor.z * 1024));
+                    // calculatedColor = min(calculatedColor, float3(1.0));
+                    
+                    const uint3 color1024 = uint3(calculatedColor * 1024);
+                    
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].r_1024, color1024.x);
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].g_1024, color1024.y);
+                    InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].b_1024, color1024.z);
                     InterlockedAdd(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].samples_high_bit_is_bool_is_reflective, 1);
 
                     if (prev == faceHashTableNullHash)
