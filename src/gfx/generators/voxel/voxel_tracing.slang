@@ -439,7 +439,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                 .emissive_data[thisEmissiveRandomPosition]
                 .getCenterPositionOfVoxel();
 
-        if (light.canInfluencePoint(firstWorldStrikePosition))
+        if (light.canInfluencePoint(firstWorldStrikePosition, numberOfPossibleEmissives))
         {
             foundLight = true;
             break;
@@ -473,7 +473,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
     float3 calculatedColor = float3(0.0);
 
-    if (light.canInfluencePoint(firstWorldStrikePosition))
+    if (light.canInfluencePoint(firstWorldStrikePosition, numberOfPossibleEmissives))
     {
         const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
 
@@ -498,7 +498,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
             const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
 
-            if (light.canInfluencePoint(shadowRay.origin))
+            if (light.canInfluencePoint(shadowRay.origin, numberOfPossibleEmissives))
             {
                 const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
 
@@ -514,7 +514,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                         true,
                         true) * firstMaterial.albedo_roughness.xyz;
 
-                    calculatedColor += (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / approxProbability;
+                    calculatedColor += min(float3(1.0), (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / approxProbability);
                 }
             }
         }
