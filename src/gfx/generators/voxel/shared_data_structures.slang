@@ -296,8 +296,9 @@ struct GpuRaytracedLight
 
     bool canInfluencePoint(float3 position)
     {
+        #warning this minimum posible influence depeds on the number of lights in the chunjk
         // return euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position) < position_and_half_intensity_distance.w * 64;
-        const float minimumPossibleInfluence = (1.0f / 4096.0f); 
+        const float minimumPossibleInfluence = (1.0f / 256.0f); 
 
         float r = position_and_half_intensity_distance.w;
         float p = color_and_power.w;

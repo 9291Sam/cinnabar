@@ -323,6 +323,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 
     // HACK! I mean it looks pretty
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
+    
     const float nDotL = dot(N, L);
 
     if (dot(N, V) <= 0.0)
@@ -355,7 +356,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 
 
     float3 diffuse = kD * material.albedo_roughness.xyz / PI;
-    float3 lighting = light.color_and_power.xyz * (diffuse) * nDotL * lightIntensity;
+    float3 lighting = light.color_and_power.xyz * (diffuse + specular) * nDotL * lightIntensity;
 
     if (includeEmissive) {
         lighting += material.emission_metallic.xyz;
@@ -424,9 +425,9 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     float selectionProbability = 0.0f;
     bool foundLight = false;
 
-    uint nonVisibleLights = 1;
-    const u32 triesLeftToFindALight = min(128, numberOfPossibleEmissives);
-    for (int i = 0; i < triesLeftToFindALight; ++i)
+    const u32 triesLeftToFindALight = min(1, numberOfPossibleEmissives);
+    uint i = 0;
+    for (; i < triesLeftToFindALight; ++i)
     {
         light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
 
@@ -440,12 +441,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
         if (light.canInfluencePoint(firstWorldStrikePosition))
         {
-            selectionProbability = nonVisibleLights / float(numberOfPossibleEmissives);
             foundLight = true;
             break;
-        }
-        else {
-            nonVisibleLights++;
         }
     }
 
@@ -453,9 +450,8 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         return float3(0);
     }
-    // else {
-    //     light.color_and_power.w /= selectionProbability;
-    // }
+    const float approxProbability = exp(float(i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
+    
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
 
@@ -483,11 +479,9 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
         if (!shadowResult.intersect_occur || all(shadowResult.material.emission_metallic.xyz != float3(0.0)))
         {
-            calculatedColor += lightColor;
+            calculatedColor += lightColor / approxProbability;
         }
     }
-
-    calculatedColor /= selectionProbability;
 
     if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
     {
@@ -520,7 +514,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
                         true,
                         true) * firstMaterial.albedo_roughness.xyz;
 
-                    calculatedColor += (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / selectionProbability;
+                    calculatedColor += (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / approxProbability;
                 }
             }
         }
@@ -531,6 +525,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     }
 
     return calculatedColor;
+
 }
 
 
