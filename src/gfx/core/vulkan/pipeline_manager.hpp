@@ -53,6 +53,13 @@ namespace gfx::core::vulkan
 
         void destroyPipeline(Pipeline) const;
 
+        using UniquePipeline = util::UniqueOpaqueHandle<Pipeline, &PipelineManager::destroyPipeline>;
+
+        [[nodiscard]] UniquePipeline createPipelineUnique(GraphicsPipelineDescriptor d) const
+        {
+            return UniquePipeline {this->createPipeline(std::move(d)), this};
+        }
+
         /// The value returned is valid until the next call to reloadShaders or till the pipeline is destroyed,
         /// whichever is sooner
         [[nodiscard]] vk::Pipeline getPipeline(const Pipeline&) const;

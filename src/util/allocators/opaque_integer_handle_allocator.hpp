@@ -34,12 +34,14 @@ namespace util
 
     template<StringSneaker Name, class I, class FriendedClass = NoFriendDeclaration>
         requires (std::is_integral_v<I> && !std::is_floating_point_v<I>)
-    struct [[nodiscard]] OpaqueHandle final
+    struct [[nodiscard]] OpaqueHandle
     {
     public:
-        using IndexType                    = I;
-        static constexpr I NullValue       = std::numeric_limits<I>::max();
-        static constexpr I MaxValidElement = NullValue - 1;
+        static constexpr StringSneaker HandleName = Name;
+        using FriendedClassType                   = FriendedClass;
+        using IndexType                           = I;
+        static constexpr I NullValue              = std::numeric_limits<I>::max();
+        static constexpr I MaxValidElement        = NullValue - 1;
 
         constexpr OpaqueHandle()
             : value {NullValue}
@@ -104,6 +106,29 @@ namespace util
 
     private:
         I value;
+    };
+
+    template<class Handle, auto PtrToMemberDeleter>
+    class UniqueOpaqueHandle : public Handle
+    {
+    public:
+        using TypeWithDeleter = util::MemberTypeContainer<decltype(PtrToMemberDeleter)>;
+    public:
+        UniqueOpaqueHandle()
+            : Handle {}
+        {}
+        UniqueOpaqueHandle(Handle h, const TypeWithDeleter* owner_)
+            : Handle {std::move(h)}
+            , owner {owner_}
+        {}
+        ~UniqueOpaqueHandle();
+
+        UniqueOpaqueHandle(const UniqueOpaqueHandle&)             = delete;
+        UniqueOpaqueHandle(UniqueOpaqueHandle&&)                  = default;
+        UniqueOpaqueHandle& operator= (const UniqueOpaqueHandle&) = delete;
+        UniqueOpaqueHandle& operator= (UniqueOpaqueHandle&&)      = default;
+    private:
+        const TypeWithDeleter* owner;
     };
 
     template<class Handle>
@@ -177,4 +202,14 @@ namespace util
     private:
         util::IndexAllocator allocator;
     };
+
+    template<class Handle, auto PtrToMemberDeleter>
+    UniqueOpaqueHandle<Handle, PtrToMemberDeleter>::~UniqueOpaqueHandle()
+    {
+        if (!this->isNull())
+        {
+            (this->owner->*PtrToMemberDeleter)(std::move(*static_cast<Handle*>(this)));
+        }
+    }
+
 } // namespace util

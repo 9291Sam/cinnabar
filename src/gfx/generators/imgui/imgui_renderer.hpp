@@ -34,8 +34,8 @@ namespace gfx::generators::imgui
 
         vk::UniqueDescriptorPool imgui_descriptor_pool;
 
-        ImFont*                                 font;
-        core::vulkan::PipelineManager::Pipeline menu_transfer_pipeline;
+        ImFont*                                       font;
+        core::vulkan::PipelineManager::UniquePipeline menu_transfer_pipeline;
 
         std::vector<std::string> owned_present_mode_strings;
         std::vector<const char*> raw_present_mode_strings;

@@ -201,7 +201,8 @@ namespace util
     template<class C, class T>
     struct member_type_helper<T C::*>
     {
-        using Type = T;
+        using Type  = T;
+        using CType = C;
     };
 
     template<class T>
@@ -211,4 +212,7 @@ namespace util
     // Helper type
     template<class T>
     using MemberTypeT = MemberType<T>::Type;
+
+    template<class T>
+    using MemberTypeContainer = MemberType<T>::CType;
 } // namespace util

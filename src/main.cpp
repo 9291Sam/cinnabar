@@ -232,7 +232,6 @@ struct TemporaryGameState : game::Game::GameState
                 .maybe_triangle_renderer {&this->triangle_renderer},
                 .maybe_skybox_renderer {&this->skybox_renderer},
                 .maybe_imgui_renderer {&this->imgui_renderer},
-                // .maybe_voxel_renderer {nullptr}
                 .maybe_voxel_renderer {&this->voxel_renderer}}},
             .camera {this->camera}};
     }
