@@ -425,7 +425,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     float selectionProbability = 0.0f;
     bool foundLight = false;
 
-    const u32 triesLeftToFindALight = min(88, numberOfPossibleEmissives);
+    const u32 triesLeftToFindALight = min(16, numberOfPossibleEmissives);
     uint i = 0;
     for (; i < triesLeftToFindALight; ++i)
     {
