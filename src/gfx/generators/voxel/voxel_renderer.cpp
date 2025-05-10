@@ -363,29 +363,16 @@ namespace gfx::generators::voxel
     void
     VoxelRenderer::setVoxelChunkData(const VoxelChunk& c, std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
     {
-        const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
-
-        GpuChunkData& gpuChunkData = this->gpu_chunk_data.modify(chunkId);
-        CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
-
-        // Since we're going to nuke whatever is there, might as well reserve the space for it
-        cpuChunkData.emissive_updates.reserve(
-            cpuChunkData.emissive_updates.size() + cpuChunkData.current_chunk_local_emissive_voxels.size());
-
-        for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
-        {
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
-        }
+        std::vector<ChunkLocalPosition> newEmissives {};
 
         if (input.empty())
         {
             log::warn("empty setVoxelChunkData");
             return;
         }
-        u16                               nextNonCompactedBrickIndex = 0;
-        std::vector<CombinedBrick>        nonCompactedBricks {};
-        decltype(GpuChunkData::brick_map) nonCompactedBrickMap {};
+        u16                        nextNonCompactedBrickIndex = 0;
+        std::vector<CombinedBrick> nonCompactedBricks {};
+        BrickMap                   nonCompactedBrickMap {};
 
         for (const auto& [cP, v] : input)
         {
@@ -393,8 +380,7 @@ namespace gfx::generators::voxel
             {
 // we have an emissive voxel
 #warning this radius is wrong!
-                cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                    .position {cP}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {96}});
+                newEmissives.push_back(cP);
             }
 
             if (v == Voxel::NullAirEmpty)
@@ -419,9 +405,9 @@ namespace gfx::generators::voxel
             nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
         }
 
-        std::vector<CombinedBrick>        compactedBricks {};
-        u16                               nextCompactedBrickIndex = 0;
-        decltype(GpuChunkData::brick_map) compactedBrickMap {};
+        std::vector<CombinedBrick> compactedBricks {};
+        u16                        nextCompactedBrickIndex = 0;
+        BrickMap                   compactedBrickMap {};
         for (u8 bCX = 0; bCX < 8; ++bCX)
         {
             for (u8 bCY = 0; bCY < 8; ++bCY)
@@ -461,7 +447,36 @@ namespace gfx::generators::voxel
             }
         }
 
-        // util::Timer t {"dump"};
+        this->setVoxelChunkData(c, compactedBrickMap, compactedBricks, newEmissives);
+    }
+
+    void VoxelRenderer::setVoxelChunkData(
+        const VoxelChunk&                   c,
+        const BrickMap&                     compactBrickMap,
+        std::span<const CombinedBrick>      compactedBricks,
+        std::span<const ChunkLocalPosition> newEmissiveLocations)
+    {
+        const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
+
+        GpuChunkData& gpuChunkData = this->gpu_chunk_data.modify(chunkId);
+        CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
+
+        // Since we're going to nuke whatever is there, might as well reserve the space for it
+        cpuChunkData.emissive_updates.reserve(
+            cpuChunkData.emissive_updates.size() + cpuChunkData.current_chunk_local_emissive_voxels.size());
+
+        for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
+        {
+            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
+                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
+        }
+
+        for (ChunkLocalPosition newEmissivePosition : newEmissiveLocations)
+        {
+#warning this radius is wrong!
+            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
+                .position {newEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {96}});
+        }
 
         if (!cpuChunkData.brick_allocation.isNull())
         {
@@ -472,10 +487,9 @@ namespace gfx::generators::voxel
 
         gpuChunkData = {
             .aligned_chunk_coordinate {gpuChunkData.aligned_chunk_coordinate},
-            .offset {util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation)}};
-        std::memcpy(&gpuChunkData.brick_map[0][0][0], &compactedBrickMap[0][0][0], sizeof(GpuChunkData::brick_map));
+            .offset {util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation)},
+            .brick_map {compactBrickMap}};
 
-        // log::trace("Compaction {} -> {}", nonCompactedBricks.size(), compactedBricks.size());
         if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(

@@ -144,7 +144,7 @@ struct BooleanBrickCompactResult
 
 struct BooleanBrick
 {
-    u32 data[16];
+    u32 data[16] = {};
 
     MUTABLE_MEMBER_FUNCTION void write(BrickLocalPosition p, bool b)
     {
@@ -176,20 +176,20 @@ struct BooleanBrick
 
     NODISCARD BooleanBrickCompactResult isCompact() CONST_MEMBER_FUNCTION
     {
-        const bool compare = ((data[0] & 1u) == 1u);
-
-        const u32 test = compare ? ~0u : 0u;
-
-        for (int i = 0; i < 16; ++i)
+        const u32 test = data[0];
+    
+        for (int i = 1; i < 16; ++i)
         {
-            if (test != data[i])
+            if (data[i] != test)
             {
                 return BooleanBrickCompactResult(false, false);
             }
         }
-
-        return BooleanBrickCompactResult(true, compare);
-    }
+    
+        // The compact value is whatever bit 0 of `test` represents (solid or empty)
+        const bool value = (test & 1u) != 0;
+        return BooleanBrickCompactResult(true, value);
+    }    
 
 };
 
@@ -201,7 +201,7 @@ struct MaterialBrickCompactResult
 
 struct MaterialBrick
 {
-    u16 data[8][8][8]; // voxels of type Voxel in C++
+    u16 data[8][8][8] = {}; // voxels of type Voxel in C++
 
 
     MUTABLE_MEMBER_FUNCTION void write(BrickLocalPosition p, u16 v) 
@@ -244,8 +244,8 @@ struct CombinedBrickReadResult
 
 struct CombinedBrick
 {
-    BooleanBrick  boolean_brick;
-    MaterialBrick material_brick;
+    BooleanBrick  boolean_brick = {};
+    MaterialBrick material_brick = {};
 
     MUTABLE_MEMBER_FUNCTION void write(BrickLocalPosition p, u16 v)
     {
@@ -263,29 +263,25 @@ struct CombinedBrick
         return res;
     }
 
-   NODISCARD CombinedBrickReadResult isCompact() CONST_MEMBER_FUNCTION
+    NODISCARD CombinedBrickReadResult isCompact() CONST_MEMBER_FUNCTION
     {
         const BooleanBrickCompactResult boolCompact = boolean_brick.isCompact();
-
+    
         if (!boolCompact.is_compact)
         {
             return CombinedBrickReadResult(0, false);
         }
-
-        if (!boolCompact.solid_or_empty)
-        {
-            return CombinedBrickReadResult(0, false);
-        }
-
+    
         const MaterialBrickCompactResult materialCompact = material_brick.isCompact();
-
+    
         if (materialCompact.is_compact)
         {
             return CombinedBrickReadResult(materialCompact.voxel, true);
         }
-
+    
         return CombinedBrickReadResult(0, false);
     }
+    
 
 };
 

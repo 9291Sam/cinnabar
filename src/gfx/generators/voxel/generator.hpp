@@ -2,6 +2,7 @@
 
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/shared_data_structures.slang"
 #include "util/util.hpp"
 #include <FastNoise/FastNoise.h>
 
@@ -14,6 +15,8 @@ namespace gfx::generators::voxel
         explicit WorldGenerator(u64 seed);
 
         [[nodiscard]] std::vector<std::pair<ChunkLocalPosition, Voxel>> generateChunk(AlignedChunkCoordinate) const;
+        [[nodiscard]] std::tuple<BrickMap, std::vector<CombinedBrick>, std::vector<ChunkLocalPosition>>
+            generateChunkPreDense(AlignedChunkCoordinate) const;
 
     private:
 

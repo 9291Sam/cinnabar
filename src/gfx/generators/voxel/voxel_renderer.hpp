@@ -37,7 +37,10 @@ namespace gfx::generators::voxel
         void       destroyVoxelChunk(VoxelChunk);
 
         void setVoxelChunkData(
-            const VoxelChunk&, BrickMap, std::vector<CombinedBrick>, std::vector<ChunkLocalPosition> currentEmissives);
+            const VoxelChunk&,
+            const BrickMap&,
+            std::span<const CombinedBrick>,
+            std::span<const ChunkLocalPosition> emissiveLocations);
         void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
 
         void preFrameUpdate();

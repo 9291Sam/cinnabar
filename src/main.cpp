@@ -21,6 +21,7 @@
 #include "slang_compiler.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -99,7 +100,8 @@ struct TemporaryGameState : game::Game::GameState
                     }
                     else
                     {
-                        newVoxels = wg.generateChunk(aC);
+                        const auto [brickMap, bricks, emissives] = wg.generateChunkPreDense(aC);
+                        this->voxel_renderer.setVoxelChunkData(chunk, brickMap, bricks, emissives);
                     }
 
                     if (!newVoxels.empty())
