@@ -465,6 +465,11 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         true,
         true);
 
+    if (all(firstMaterial.emission_metallic.xyz != float3(0.0)))
+    {
+        return lightColor;
+    }
+
 
     const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;
