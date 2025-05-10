@@ -425,7 +425,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     float selectionProbability = 0.0f;
     bool foundLight = false;
 
-    const u32 triesLeftToFindALight = min(1, numberOfPossibleEmissives);
+    const u32 triesLeftToFindALight = min(88, numberOfPossibleEmissives);
     uint i = 0;
     for (; i < triesLeftToFindALight; ++i)
     {
@@ -450,7 +450,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         return float3(0);
     }
-    const float approxProbability = exp(float(i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
+    const float approxProbability = exp(float(-i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
     
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
