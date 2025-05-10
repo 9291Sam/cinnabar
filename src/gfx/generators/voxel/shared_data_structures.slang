@@ -360,11 +360,19 @@ struct ChunkLocalEmissiveOffset
     }
 };
 
+#ifdef __cplusplus
+template<class T, std::size_t N>
+using Array = std::array<T, N>;
+#endif
+
+typedef Array<Array<Array<MaybeBrickOffsetOrMaterialId, 8>, 8>, 8> BrickMap;
+
+
 struct GpuChunkData
 {
     AlignedChunkCoordinate aligned_chunk_coordinate;
     u32 offset = ~0u;
-    MaybeBrickOffsetOrMaterialId brick_map[8][8][8] = {};
+    BrickMap brick_map = {};
     float3 padding;
     u32 number_of_emissives = 0;
     ChunkLocalEmissiveOffset emissive_data[1024];
@@ -374,7 +382,6 @@ struct GpuChunkData
         return float3(aligned_chunk_coordinate * 64);
     }
 };
-
 
 struct PBRVoxelMaterial
 {

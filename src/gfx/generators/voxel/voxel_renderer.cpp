@@ -11,6 +11,7 @@
 #include "util/allocators/range_allocator.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <cstddef>
 #include <glm/ext/vector_uint3_sized.hpp>
@@ -459,6 +460,8 @@ namespace gfx::generators::voxel
                 }
             }
         }
+
+        // util::Timer t {"dump"};
 
         if (!cpuChunkData.brick_allocation.isNull())
         {

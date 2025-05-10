@@ -36,7 +36,7 @@ namespace gfx::generators::voxel
         VoxelChunk createVoxelChunk(AlignedChunkCoordinate);
         void       destroyVoxelChunk(VoxelChunk);
 
-        // void setVoxelChunkData(const VoxelChunk&, )
+        void setVoxelChunkData(const VoxelChunk&, BrickMap coma, std::vector<CombinedBrick>);
         void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
 
         void preFrameUpdate();
@@ -61,7 +61,6 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::CpuCachedBuffer<GpuChunkData>     gpu_chunk_data;
         std::vector<CpuChunkData>                            cpu_chunk_data;
         gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode> chunk_hash_map;
-        // static_assert(sizeof(GpuChunkData) == 17440);
 
         util::RangeAllocator                            brick_allocator;
         gfx::core::vulkan::GpuOnlyBuffer<CombinedBrick> combined_bricks;
