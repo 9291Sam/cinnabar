@@ -483,12 +483,25 @@ namespace gfx::generators::voxel
             this->brick_allocator.free(std::move(cpuChunkData.brick_allocation));
         }
 
-        cpuChunkData.brick_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
+        if (!compactedBricks.empty())
+        {
+            cpuChunkData.brick_allocation = this->brick_allocator.allocate(static_cast<u32>(compactedBricks.size()));
+        }
+        else
+        {
+            cpuChunkData.brick_allocation = util::RangeAllocation {};
+        }
 
         gpuChunkData = {
             .aligned_chunk_coordinate {gpuChunkData.aligned_chunk_coordinate},
             .offset {util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation)},
             .brick_map {compactBrickMap}};
+
+        if (compactedBricks.empty())
+        {
+            assert::warn(
+                gpuChunkData.offset == ~0u, "Empty chunk has brick allocation offset of {}", gpuChunkData.offset);
+        }
 
         if (!compactedBricks.empty())
         {

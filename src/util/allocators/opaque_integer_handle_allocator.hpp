@@ -2,6 +2,7 @@
 
 #include "index_allocator.hpp"
 #include "util/logger.hpp"
+#include "util/util.hpp"
 #include <array>
 #include <compare>
 #include <cstring>
@@ -112,12 +113,15 @@ namespace util
     class UniqueOpaqueHandle : public Handle
     {
     public:
-        using TypeWithDeleter = util::MemberTypeContainer<decltype(PtrToMemberDeleter)>;
+        using DeleterType     = decltype(PtrToMemberDeleter);
+        using TypeWithDeleter = util::ContainerTypeT<DeleterType>;
+        using OwnerType =
+            std::conditional_t<IsConstMemberFunctionPointerV<DeleterType>, const TypeWithDeleter, TypeWithDeleter>;
     public:
         UniqueOpaqueHandle()
             : Handle {}
         {}
-        UniqueOpaqueHandle(Handle h, const TypeWithDeleter* owner_)
+        UniqueOpaqueHandle(Handle h, OwnerType* owner_)
             : Handle {std::move(h)}
             , owner {owner_}
         {}
@@ -128,7 +132,7 @@ namespace util
         UniqueOpaqueHandle& operator= (const UniqueOpaqueHandle&) = delete;
         UniqueOpaqueHandle& operator= (UniqueOpaqueHandle&&)      = default;
     private:
-        const TypeWithDeleter* owner;
+        OwnerType* owner;
     };
 
     template<class Handle>

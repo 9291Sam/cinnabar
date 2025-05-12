@@ -3,6 +3,7 @@
 #include "slang_compiler.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/threads.hpp"
+#include "util/util.hpp"
 #include <filesystem>
 #include <variant>
 #include <vulkan/vulkan.hpp>
@@ -48,23 +49,19 @@ namespace gfx::core::vulkan
         PipelineManager& operator= (const PipelineManager&) = delete;
         PipelineManager& operator= (PipelineManager&&)      = delete;
 
-        [[nodiscard]] Pipeline createPipeline(GraphicsPipelineDescriptor) const;
-        [[nodiscard]] Pipeline createPipeline(ComputePipelineDescriptor) const;
-
         void destroyPipeline(Pipeline) const;
 
         using UniquePipeline = util::UniqueOpaqueHandle<Pipeline, &PipelineManager::destroyPipeline>;
 
-        [[nodiscard]] UniquePipeline createPipelineUnique(GraphicsPipelineDescriptor d) const
-        {
-            return UniquePipeline {this->createPipeline(std::move(d)), this};
-        }
-
+        [[nodiscard]] UniquePipeline createPipelineUnique(GraphicsPipelineDescriptor) const;
+        [[nodiscard]] UniquePipeline createPipelineUnique(ComputePipelineDescriptor) const;
+        [[nodiscard]] Pipeline       createPipeline(GraphicsPipelineDescriptor) const;
+        [[nodiscard]] Pipeline       createPipeline(ComputePipelineDescriptor) const;
         /// The value returned is valid until the next call to reloadShaders or till the pipeline is destroyed,
         /// whichever is sooner
-        [[nodiscard]] vk::Pipeline getPipeline(const Pipeline&) const;
-        [[nodiscard]] bool         couldAnyShadersReload() const;
-        void                       reloadShaders() const;
+        [[nodiscard]] vk::Pipeline   getPipeline(const Pipeline&) const;
+        [[nodiscard]] bool           couldAnyShadersReload() const;
+        void                         reloadShaders() const;
 
 
     private:

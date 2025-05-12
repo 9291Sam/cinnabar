@@ -121,6 +121,16 @@ namespace gfx::core::vulkan
             });
     }
 
+    PipelineManager::UniquePipeline PipelineManager::createPipelineUnique(ComputePipelineDescriptor d) const
+    {
+        return UniquePipeline {this->createPipeline(std::move(d)), this};
+    }
+
+    PipelineManager::UniquePipeline PipelineManager::createPipelineUnique(GraphicsPipelineDescriptor d) const
+    {
+        return UniquePipeline {this->createPipeline(std::move(d)), this};
+    }
+
     vk::Pipeline PipelineManager::getPipeline(const Pipeline& p) const
     {
         return this->critical_section.lock(

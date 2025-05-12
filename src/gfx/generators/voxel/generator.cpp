@@ -368,8 +368,8 @@ namespace gfx::generators::voxel
                     {
                         for (u8 bPZ = 0; bPZ < 8; ++bPZ)
                         {
-                            const i32 i = (bCX * 8) + bPX;
-                            const i32 j = (bCZ * 8) + bPZ;
+                            const std::size_t i = static_cast<std::size_t>((bCX * 8) + bPX);
+                            const std::size_t j = static_cast<std::size_t>((bCZ * 8) + bPZ);
 
                             const i32 unscaledWorldHeight =
                                 static_cast<i32>(((*height)[j][i] * 32.0f) + ((*bumpHeight)[j][i] * 2.0f));

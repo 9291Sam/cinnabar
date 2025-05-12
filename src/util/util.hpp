@@ -192,27 +192,38 @@ namespace util
     template<typename T, class M>
     std::size_t getOffsetOfPointerToMember(M T::* member)
     {
+        // NOLINTNEXTLINE long happens to be the size of pointer to members
         return static_cast<std::size_t>(std::bit_cast<long>(member));
     }
 
-    template<class T>
-    struct member_type_helper;
+    template<typename T>
+    struct MemberTypeTraits;
 
-    template<class C, class T>
-    struct member_type_helper<T C::*>
+    template<typename Class, typename Member>
+    struct MemberTypeTraits<Member Class::*>
     {
-        using Type  = T;
-        using CType = C;
+        using MemberType    = Member;
+        using ContainerType = Class;
     };
 
-    template<class T>
-    struct MemberType : member_type_helper<std::remove_cvref_t<T>>
+    // Given a T C::*, returns T
+    template<typename T>
+    using MemberTypeT = typename MemberTypeTraits<std::remove_cvref_t<T>>::MemberType;
+
+    // Given a T C::*, returns C
+    template<typename T>
+    using ContainerTypeT = typename MemberTypeTraits<std::remove_cvref_t<T>>::ContainerType;
+
+    template<typename T>
+    struct IsConstMemberFunctionPointer : std::false_type
     {};
 
-    // Helper type
-    template<class T>
-    using MemberTypeT = MemberType<T>::Type;
+    // Specialization for const-qualified member functions
+    template<typename Class, typename Ret, typename... Args>
+    struct IsConstMemberFunctionPointer<Ret (Class::*)(Args...) const> : std::true_type
+    {};
 
-    template<class T>
-    using MemberTypeContainer = MemberType<T>::CType;
+    template<typename T>
+    constexpr inline bool IsConstMemberFunctionPointerV = IsConstMemberFunctionPointer<T>::value;
+
 } // namespace util
