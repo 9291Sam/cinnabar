@@ -35,7 +35,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
         // emissives blinking from overflow
         if (lenBefore > maxVectorLength)
         {
-            float scale = maxVectorLength / lenBefore;
+            float scale = fadeFactor * maxVectorLength / lenBefore;
             colors1024 *= scale;
             samples *= scale;
         }
