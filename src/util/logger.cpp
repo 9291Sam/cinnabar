@@ -57,12 +57,13 @@ namespace util
                 fmt::format("cinnabar_log {:%b %m-%d-%G %H-%M-%S} ", fmt::localtime(std::time(nullptr))), true),
         };
 
-        spdlog::set_default_logger(std::make_shared<spdlog::async_logger>(
-            "File and Stdout Logger",
-            std::make_move_iterator(sinks.begin()),
-            std::make_move_iterator(sinks.end()),
-            spdlog::thread_pool(),
-            spdlog::async_overflow_policy::block));
+        spdlog::set_default_logger(
+            std::make_shared<spdlog::async_logger>(
+                "File and Stdout Logger",
+                std::make_move_iterator(sinks.begin()),
+                std::make_move_iterator(sinks.end()),
+                spdlog::thread_pool(),
+                spdlog::async_overflow_policy::block));
 
         class SourceLocationFormatter : public spdlog::custom_flag_formatter
         {
@@ -140,10 +141,13 @@ namespace util
         spdlog::set_formatter(std::move(sourceLocationFormatter));
 
         spdlog::set_level(spdlog::level::trace);
+
+        log::info("Logger context startup");
     }
 
     GlobalLoggerContext::~GlobalLoggerContext()
     {
+        log::info("Logger context shutdown");
         spdlog::shutdown();
     }
 } // namespace util
