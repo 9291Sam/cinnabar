@@ -76,9 +76,24 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
 
                 if (prev == faceHashTableNullHash || prev == hash)
                 {
+                    const bool shouldTracesBeWorkGroupCoherent = true;
+
+                    u32 worldColorRandomSeed = reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + gpu_hashU32(u32(workgroup)) + rdSeed;
     
-                    const float3 calculatedColor = calculateWorldColor(worldStrikePosition, material, unpacked,
-                        reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive) + gpu_hashU32(u32(workgroup)) + rdSeed,
+                    if (!shouldTracesBeWorkGroupCoherent)
+                    {
+                        worldColorRandomSeed +=
+                        gpu_hashCombineU32(
+                            gpu_hashU32(threadId.x),
+                            gpu_hashU32(threadId.y)
+                        );
+                    }
+
+                    const float3 calculatedColor = calculateWorldColor(
+                        worldStrikePosition,
+                        material,
+                        unpacked,
+                        worldColorRandomSeed,
                         bool(global_gpu_data[UBO_GLOBAL_DATA].bool_enable_reflections));
                
                     const uint3 color1024 = uint3(calculatedColor * 1024);
