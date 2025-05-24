@@ -218,7 +218,6 @@ namespace util
     struct IsConstMemberFunctionPointer : std::false_type
     {};
 
-    // Specialization for const-qualified member functions
     template<typename Class, typename Ret, typename... Args>
     struct IsConstMemberFunctionPointer<Ret (Class::*)(Args...) const> : std::true_type
     {};

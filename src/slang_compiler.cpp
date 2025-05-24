@@ -103,6 +103,8 @@ namespace cfi
 
     void SaneSlangCompiler::loadNewSession()
     {
+        this->lifetime_extender.clear();
+
         this->session = nullptr;
 
         std::vector<const char*> cStringPaths {};

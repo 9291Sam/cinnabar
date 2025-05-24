@@ -28,6 +28,11 @@ namespace cfi
         explicit SaneSlangCompiler();
         ~SaneSlangCompiler();
 
+        SaneSlangCompiler(const SaneSlangCompiler&)             = delete;
+        SaneSlangCompiler(SaneSlangCompiler&&)                  = delete;
+        SaneSlangCompiler& operator= (const SaneSlangCompiler&) = delete;
+        SaneSlangCompiler& operator= (SaneSlangCompiler&&)      = delete;
+
         // Compile result or error string
         [[nodiscard]] std::expected<CompileResult, std::string> compile(std::filesystem::path);
 
