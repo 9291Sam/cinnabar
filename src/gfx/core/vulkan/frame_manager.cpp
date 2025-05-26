@@ -107,9 +107,9 @@ namespace gfx::core::vulkan
     }
 
     std::expected<void, Frame::ResizeNeeded> Frame::recordAndDisplay(
-        std::optional<vk::Fence>                                   previousFrameFence,
-        std::function<void(vk::CommandBuffer, vk::QueryPool, u32)> withCommandBuffer,
-        const BufferStager&                                        stager)
+        std::optional<vk::Fence>                                                          previousFrameFence,
+        std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)> withCommandBuffer,
+        const BufferStager&                                                               stager)
     {
         const auto [acquireImageResult, maybeNextImageIdx] =
             this->device->getDevice().acquireNextImageKHR(this->swapchain, TimeoutNs, *this->image_available, nullptr);
@@ -163,9 +163,6 @@ namespace gfx::core::vulkan
                 this->command_buffer->reset();
                 this->command_buffer->begin(commandBufferBeginInfo);
 
-                // HACK: flush all buffers on this
-                stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
-
                 // HACK: query pool shouldnt be nullable
                 bool shouldQueryPoolBeNull = false;
 
@@ -177,10 +174,17 @@ namespace gfx::core::vulkan
                     shouldQueryPoolBeNull                   = true;
                 }
 
+                // HACK: flush all buffers on this
+                std::function<void()> callback = [&]
+                {
+                    stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
+                };
+
                 withCommandBuffer(
                     *this->command_buffer,
                     shouldQueryPoolBeNull ? vk::QueryPool {} : *this->profiling_query_pool,
-                    maybeNextImageIdx);
+                    maybeNextImageIdx,
+                    std::move(callback));
 
                 this->command_buffer->end();
                 const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -260,8 +264,9 @@ namespace gfx::core::vulkan
     FrameManager::~FrameManager() noexcept = default;
 
     std::expected<void, Frame::ResizeNeeded> FrameManager::recordAndDisplay(
-        std::function<void(std::size_t, vk::QueryPool queryPool, vk::CommandBuffer, u32)> recordFunc,
-        const BufferStager&                                                               stager)
+        std::function<void(std::size_t, vk::QueryPool queryPool, vk::CommandBuffer, u32, std::function<void()>)>
+                            recordFunc,
+        const BufferStager& stager)
     {
         this->flying_frame_index += 1;
         this->flying_frame_index %= FramesInFlight;
@@ -272,9 +277,17 @@ namespace gfx::core::vulkan
                     this->nullable_previous_frame_finished_fence != nullptr
                         ? std::optional {**this->nullable_previous_frame_finished_fence}
                         : std::nullopt,
-                    [&](vk::CommandBuffer commandBuffer, vk::QueryPool queryPool, u32 swapchainIndex)
+                    [&](vk::CommandBuffer     commandBuffer,
+                        vk::QueryPool         queryPool,
+                        u32                   swapchainIndex,
+                        std::function<void()> bufferFlushCallback)
                     {
-                        recordFunc(this->flying_frame_index, queryPool, commandBuffer, swapchainIndex);
+                        recordFunc(
+                            this->flying_frame_index,
+                            queryPool,
+                            commandBuffer,
+                            swapchainIndex,
+                            std::move(bufferFlushCallback));
                     },
                     stager);
 

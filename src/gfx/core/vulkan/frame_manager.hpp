@@ -35,7 +35,7 @@ namespace gfx::core::vulkan
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
             std::optional<vk::Fence> previousFrameFence,
             // u32 is the swapchain image's index
-            std::function<void(vk::CommandBuffer, vk::QueryPool, u32)>,
+            std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)>,
             const BufferStager&);
 
         // uses a shared_ptr for implementation reasons
@@ -70,8 +70,10 @@ namespace gfx::core::vulkan
 
         // std::size_t is the flying frame index
         // u32 is the swapchain image's index
-        [[nodiscard]] std::expected<void, Frame::ResizeNeeded>
-        recordAndDisplay(std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32)>, const BufferStager&);
+        // the void function is a callback for flushing buffers
+        [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
+            std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32, std::function<void()>)>,
+            const BufferStager&);
     private:
         vk::Device                        device;
         std::shared_ptr<vk::UniqueFence>  nullable_previous_frame_finished_fence;

@@ -264,8 +264,8 @@ namespace gfx::core
             glfwGetCursorPos(this->window, &currentMousePositionDoubles.first, &currentMousePositionDoubles.second);
 
             const Delta currentMousePosition {
-                static_cast<float>(currentMousePositionDoubles.first),
-                static_cast<float>(currentMousePositionDoubles.second)};
+                .x {static_cast<float>(currentMousePositionDoubles.first)},
+                .y {static_cast<float>(currentMousePositionDoubles.second)}};
             const Delta previousMousePosition {this->previous_mouse_position.load(std::memory_order_acquire)};
 
             this->mouse_delta_pixels.store(
@@ -280,10 +280,11 @@ namespace gfx::core
             const glm::dvec2 newScroll = this->absolute_scroll_position.load();
             const glm::dvec2 oldScroll = this->previous_absolute_scroll_position.load();
 
-            this->scroll_delta.store(Delta {
-                .x {static_cast<float>(newScroll.x - oldScroll.x)},
-                .y {static_cast<float>(newScroll.y - oldScroll.y)},
-            });
+            this->scroll_delta.store(
+                Delta {
+                    .x {static_cast<float>(newScroll.x - oldScroll.x)},
+                    .y {static_cast<float>(newScroll.y - oldScroll.y)},
+                });
 
             this->previous_absolute_scroll_position.store(newScroll);
         }

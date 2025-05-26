@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/vulkan/frame_manager.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
@@ -82,8 +83,9 @@ namespace gfx
             u32        bool_moved_this_frame;
         };
 
-        gfx::core::vulkan::WriteOnlyBuffer<GlobalGpuData> global_gpu_data;
-        bool                                              are_reflections_enabled = true;
-        std::optional<glm::vec3>                          maybe_previous_frame_camera_position;
+        gfx::core::vulkan::WriteOnlyBuffer<GlobalGpuData>              global_gpu_data;
+        bool                                                           are_reflections_enabled = true;
+        std::optional<glm::vec3>                                       maybe_previous_frame_camera_position;
+        std::array<std::string_view, core::vulkan::MaxQueriesPerFrame> active_timestamp_names;
     };
 } // namespace gfx

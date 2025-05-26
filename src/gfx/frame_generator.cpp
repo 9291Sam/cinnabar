@@ -12,6 +12,7 @@
 #include "gfx/shader_common/bindings.slang"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include <ranges>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
@@ -71,7 +72,8 @@ namespace gfx
                 vk::QueryPool                 queryPool,
                 u32                           swapchainImageIdx,
                 gfx::core::vulkan::Swapchain& swapchain,
-                std::size_t)
+                std::size_t                   frameIdx,
+                std::function<void()>         bufferFlushCallback)
             {
                 if (queryPool != nullptr)
                 {
@@ -89,7 +91,7 @@ namespace gfx
 
                     std::string out {};
 
-                    for (u64 i : queryResultData)
+                    for (const auto [idx, i] : std::ranges::enumerate_view {queryResultData})
                     {
                         // HACK: get proper things from the array of string views
                         if (i == 0)
@@ -97,16 +99,16 @@ namespace gfx
                             continue;
                         }
 
-                        out += std::format("{}, ", i - queryResultData.front());
+                        out += std::format("{} {}, ", this->active_timestamp_names[idx], i - queryResultData.front());
                     }
 
                     if (!out.empty())
                     {
                         out.pop_back();
                         out.pop_back();
-                    }
 
-                    log::trace("{}", out);
+                        log::trace("{}", out);
+                    }
 
                     commandBuffer.resetQueryPool(queryPool, 0, gfx::core::vulkan::MaxQueriesPerFrame);
                 }
@@ -115,19 +117,34 @@ namespace gfx
 
                 auto writeTimeStamp = [&](std::string_view name)
                 {
-                    if (queryPool != nullptr)
+                    // We need the assert in both cases but this sucks whatever
+                    if (frameIdx == 0 || queryPool != nullptr)
                     {
                         assert::critical(
                             nextTimeStampIndex < core::vulkan::MaxQueriesPerFrame,
                             "Tried to write too many timestamps with {}",
                             name);
+                    }
 
+                    if (frameIdx == 0)
+                    {
+                        this->active_timestamp_names[nextTimeStampIndex] = name;
+                    }
+
+                    if (queryPool != nullptr)
+                    {
                         commandBuffer.writeTimestamp(
                             vk::PipelineStageFlagBits::eBottomOfPipe, queryPool, nextTimeStampIndex);
-
-                        nextTimeStampIndex += 1;
                     }
+
+                    nextTimeStampIndex += 1;
                 };
+
+                writeTimeStamp("frame base");
+
+                bufferFlushCallback();
+
+                writeTimeStamp("buffer flushes");
 
                 const u32 graphicsQueueIndex =
                     this->renderer->getDevice()
@@ -191,7 +208,7 @@ namespace gfx
                     {},
                     {});
 
-                writeTimeStamp("bufferWrites");
+                writeTimeStamp("voxel copy commands");
 
                 if (this->has_resize_ocurred)
                 {

@@ -52,9 +52,10 @@ namespace gfx::core
         Renderer& operator= (Renderer&&)      = delete;
 
         // Returns true if a resize occurred
-        // Command buffer, query pool,  swapchain idx, swapchain, frame idx
+        // Command buffer, query pool,  swapchain idx, swapchain, frame idx, buffer flush callback
         bool recordOnThread(
-            std::function<void(vk::CommandBuffer, vk::QueryPool, u32, vulkan::Swapchain&, std::size_t)>) const;
+            std::function<void(
+                vk::CommandBuffer, vk::QueryPool, u32, vulkan::Swapchain&, std::size_t, std::function<void()>)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;
 
         // TODO: don't actually expose these, just give the pass through functions that are required
