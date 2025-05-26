@@ -467,15 +467,19 @@ namespace gfx::generators::voxel
 
         for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
         {
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
+            cpuChunkData.emissive_updates.push_back(
+                EmissiveVoxelUpdateChange {
+                    .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
         }
 
         for (ChunkLocalPosition newEmissivePosition : newEmissiveLocations)
         {
 #warning this radius is wrong!
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {newEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {96}});
+            cpuChunkData.emissive_updates.push_back(
+                EmissiveVoxelUpdateChange {
+                    .position {newEmissivePosition},
+                    .change_type {EmissiveVoxelUpdateChangeType::Insert},
+                    .radius {96}});
         }
 
         if (!cpuChunkData.brick_allocation.isNull())

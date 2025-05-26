@@ -89,13 +89,14 @@ namespace gfx::core::vulkan
             for (auto [descriptorType, maxAmount, shaderBindingLocation] :
                  std::views::zip(SupportedDescriptors, SupportedDescriptorAmounts, ShaderBindingLocations))
             {
-                bindingLocations.push_back(vk::DescriptorSetLayoutBinding {
-                    .binding {shaderBindingLocation},
-                    .descriptorType {descriptorType},
-                    .descriptorCount {maxAmount},
-                    .stageFlags {vk::ShaderStageFlagBits::eAll},
-                    .pImmutableSamplers {nullptr},
-                });
+                bindingLocations.push_back(
+                    vk::DescriptorSetLayoutBinding {
+                        .binding {shaderBindingLocation},
+                        .descriptorType {descriptorType},
+                        .descriptorCount {maxAmount},
+                        .stageFlags {vk::ShaderStageFlagBits::eAll},
+                        .pImmutableSamplers {nullptr},
+                    });
             }
 
             std::vector<vk::DescriptorBindingFlags> bindingFlags {};

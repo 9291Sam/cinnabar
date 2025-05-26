@@ -5,78 +5,99 @@
 #include <optional>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_hpp_macros.hpp>
 
 namespace gfx::core::vulkan
 {
+    static constexpr vk::SemaphoreCreateInfo SemaphoreCreateInfo {
+        .sType {vk::StructureType::eSemaphoreCreateInfo}, .pNext {nullptr}, .flags {}};
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
         : device {&device_}
         , swapchain {swapchain_}
+        , image_available {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
+        , render_finished {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
+        , frame_in_flight {std::make_shared<vk::UniqueFence>(device_.getDevice().createFenceUnique(
+              vk::FenceCreateInfo {
+                  .sType {vk::StructureType::eFenceCreateInfo},
+                  .pNext {nullptr},
+                  .flags {vk::FenceCreateFlagBits::eSignaled},
+              }))}
+        , command_pool {device_.getDevice().createCommandPoolUnique(
+              vk::CommandPoolCreateInfo {
+                  .sType {vk::StructureType::eCommandPoolCreateInfo},
+                  .pNext {nullptr},
+                  .flags {
+                      vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+                  .queueFamilyIndex {device_ // NOLINT
+                                         .getFamilyOfQueueType(Device::QueueType::Graphics)
+                                         .value()},
+              })}
+        , profiling_query_pool {device_.getDevice().createQueryPoolUnique(
+              vk::QueryPoolCreateInfo {
+                  .sType {vk::StructureType::eQueryPoolCreateInfo},
+                  .pNext {nullptr},
+                  .flags {},
+                  .queryType {vk::QueryType::eTimestamp},
+                  .queryCount {MaxQueriesPerFrame},
+                  .pipelineStatistics {},
+              })}
+        , should_profiling_query_pool_reset {true}
     {
-        const vk::SemaphoreCreateInfo semaphoreCreateInfo {
-            .sType {vk::StructureType::eSemaphoreCreateInfo}, .pNext {nullptr}, .flags {}};
-
-        const vk::FenceCreateInfo fenceCreateInfo {
-            .sType {vk::StructureType::eFenceCreateInfo},
-            .pNext {nullptr},
-            .flags {vk::FenceCreateFlagBits::eSignaled},
-        };
-
-        const vk::CommandPoolCreateInfo commandPoolCreateInfo {
-            .sType {vk::StructureType::eCommandPoolCreateInfo},
-            .pNext {nullptr},
-            .flags {vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
-            .queueFamilyIndex {device_ // NOLINT
-                                   .getFamilyOfQueueType(Device::QueueType::Graphics)
-                                   .value()},
-        };
-
-        this->command_pool = this->device->getDevice().createCommandPoolUnique(commandPoolCreateInfo);
-
-        this->image_available = this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
-        this->render_finished = this->device->getDevice().createSemaphoreUnique(semaphoreCreateInfo);
-        this->frame_in_flight =
-            std::make_shared<vk::UniqueFence>(this->device->getDevice().createFenceUnique(fenceCreateInfo));
-
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
+            const std::string queryPoolName      = std::format("Frame #{} Query Pool", number);
             const std::string commandPoolName    = std::format("Frame #{} Command Pool", number);
             const std::string imageAvailableName = std::format("Frame #{} Image Available Semaphore", number);
             const std::string renderFinishedName = std::format("Frame #{} Render Finished Semaphore", number);
             const std::string frameInFlightName  = std::format("Frame #{} Frame In Flight Fence", number);
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eCommandPool},
-                .objectHandle {std::bit_cast<u64>(*this->command_pool)},
-                .pObjectName {commandPoolName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eSemaphore},
+                    .objectHandle {std::bit_cast<u64>(*this->image_available)},
+                    .pObjectName {imageAvailableName.c_str()},
+                });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eSemaphore},
-                .objectHandle {std::bit_cast<u64>(*this->image_available)},
-                .pObjectName {imageAvailableName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eSemaphore},
+                    .objectHandle {std::bit_cast<u64>(*this->render_finished)},
+                    .pObjectName {renderFinishedName.c_str()},
+                });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eSemaphore},
-                .objectHandle {std::bit_cast<u64>(*this->render_finished)},
-                .pObjectName {renderFinishedName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eFence},
+                    .objectHandle {std::bit_cast<u64>(**this->frame_in_flight)},
+                    .pObjectName {frameInFlightName.c_str()},
+                });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eFence},
-                .objectHandle {std::bit_cast<u64>(**this->frame_in_flight)},
-                .pObjectName {frameInFlightName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eCommandPool},
+                    .objectHandle {std::bit_cast<u64>(*this->command_pool)},
+                    .pObjectName {commandPoolName.c_str()},
+                });
+
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eQueryPool},
+                    .objectHandle {std::bit_cast<u64>(*this->profiling_query_pool)},
+                    .pObjectName {queryPoolName.c_str()},
+                });
         }
     }
 
@@ -86,9 +107,9 @@ namespace gfx::core::vulkan
     }
 
     std::expected<void, Frame::ResizeNeeded> Frame::recordAndDisplay(
-        std::optional<vk::Fence>                    previousFrameFence,
-        std::function<void(vk::CommandBuffer, u32)> withCommandBuffer,
-        const BufferStager&                         stager)
+        std::optional<vk::Fence>                                   previousFrameFence,
+        std::function<void(vk::CommandBuffer, vk::QueryPool, u32)> withCommandBuffer,
+        const BufferStager&                                        stager)
     {
         const auto [acquireImageResult, maybeNextImageIdx] =
             this->device->getDevice().acquireNextImageKHR(this->swapchain, TimeoutNs, *this->image_available, nullptr);
@@ -145,7 +166,21 @@ namespace gfx::core::vulkan
                 // HACK: flush all buffers on this
                 stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
 
-                withCommandBuffer(*this->command_buffer, maybeNextImageIdx);
+                // HACK: query pool shouldnt be nullable
+                bool shouldQueryPoolBeNull = false;
+
+                if (this->should_profiling_query_pool_reset)
+                {
+                    this->command_buffer->resetQueryPool(*this->profiling_query_pool, 0, MaxQueriesPerFrame);
+
+                    this->should_profiling_query_pool_reset = false;
+                    shouldQueryPoolBeNull                   = true;
+                }
+
+                withCommandBuffer(
+                    *this->command_buffer,
+                    shouldQueryPoolBeNull ? vk::QueryPool {} : *this->profiling_query_pool,
+                    maybeNextImageIdx);
 
                 this->command_buffer->end();
                 const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -199,6 +234,7 @@ namespace gfx::core::vulkan
 
         if (shouldResize)
         {
+            this->should_profiling_query_pool_reset = true;
             return std::unexpected(Frame::ResizeNeeded {});
         }
         else
@@ -224,7 +260,8 @@ namespace gfx::core::vulkan
     FrameManager::~FrameManager() noexcept = default;
 
     std::expected<void, Frame::ResizeNeeded> FrameManager::recordAndDisplay(
-        std::function<void(std::size_t, vk::CommandBuffer, u32)> recordFunc, const BufferStager& stager)
+        std::function<void(std::size_t, vk::QueryPool queryPool, vk::CommandBuffer, u32)> recordFunc,
+        const BufferStager&                                                               stager)
     {
         this->flying_frame_index += 1;
         this->flying_frame_index %= FramesInFlight;
@@ -235,9 +272,9 @@ namespace gfx::core::vulkan
                     this->nullable_previous_frame_finished_fence != nullptr
                         ? std::optional {**this->nullable_previous_frame_finished_fence}
                         : std::nullopt,
-                    [&](vk::CommandBuffer commandBuffer, u32 swapchainIndex)
+                    [&](vk::CommandBuffer commandBuffer, vk::QueryPool queryPool, u32 swapchainIndex)
                     {
-                        recordFunc(this->flying_frame_index, commandBuffer, swapchainIndex);
+                        recordFunc(this->flying_frame_index, queryPool, commandBuffer, swapchainIndex);
                     },
                     stager);
 

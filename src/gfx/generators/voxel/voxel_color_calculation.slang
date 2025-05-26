@@ -71,6 +71,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
             {
                 const u32 thisSlot = (startSlot + i) % faceHashTableCapacity;
                 
+                // TODO: can you do an atomic load from this and just check without having to do a compare exhcnage?
                 u32 prev;
                 InterlockedCompareExchange(in_voxel_hash_map[SBO_FACE_HASH_MAP][thisSlot].key, faceHashTableNullHash, hash, prev);
 

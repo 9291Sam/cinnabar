@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <functional>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core::vulkan
 {
@@ -14,6 +15,8 @@ namespace gfx::core::vulkan
     static constexpr u32         FramesInFlight = 3;
     static constexpr std::size_t TimeoutNs =
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<std::size_t> {5}).count();
+
+    static constexpr u32 MaxQueriesPerFrame = 32;
 
     class Frame
     {
@@ -32,7 +35,7 @@ namespace gfx::core::vulkan
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
             std::optional<vk::Fence> previousFrameFence,
             // u32 is the swapchain image's index
-            std::function<void(vk::CommandBuffer, u32)>,
+            std::function<void(vk::CommandBuffer, vk::QueryPool, u32)>,
             const BufferStager&);
 
         // uses a shared_ptr for implementation reasons
@@ -45,6 +48,9 @@ namespace gfx::core::vulkan
 
         vk::UniqueCommandPool   command_pool;
         vk::UniqueCommandBuffer command_buffer;
+
+        bool                should_profiling_query_pool_reset;
+        vk::UniqueQueryPool profiling_query_pool;
 
         const vulkan::Device* device;
         vk::SwapchainKHR      swapchain;
@@ -65,7 +71,7 @@ namespace gfx::core::vulkan
         // std::size_t is the flying frame index
         // u32 is the swapchain image's index
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded>
-        recordAndDisplay(std::function<void(std::size_t, vk::CommandBuffer, u32)>, const BufferStager&);
+        recordAndDisplay(std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32)>, const BufferStager&);
     private:
         vk::Device                        device;
         std::shared_ptr<vk::UniqueFence>  nullable_previous_frame_finished_fence;

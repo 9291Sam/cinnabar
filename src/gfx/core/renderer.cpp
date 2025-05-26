@@ -14,6 +14,7 @@
 #include <memory>
 #include <optional>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_handles.hpp>
 
 namespace gfx::core
 {
@@ -91,7 +92,7 @@ namespace gfx::core
     }
 
     bool Renderer::recordOnThread(
-        std::function<void(vk::CommandBuffer, u32, vulkan::Swapchain&, std::size_t)> recordFunc) const
+        std::function<void(vk::CommandBuffer, vk::QueryPool, u32, vulkan::Swapchain&, std::size_t)> recordFunc) const
     {
         bool resizeOcurred = false;
 
@@ -100,10 +101,17 @@ namespace gfx::core
             {
                 const std::expected<void, vulkan::Frame::ResizeNeeded> drawFrameResult =
                     lockedCriticalSection->frame_manager->recordAndDisplay(
-                        [&](std::size_t flyingFrameIdx, vk::CommandBuffer commandBuffer, u32 swapchainImageIdx)
+                        [&](std::size_t       flyingFrameIdx,
+                            vk::QueryPool     queryPool,
+                            vk::CommandBuffer commandBuffer,
+                            u32               swapchainImageIdx)
                         {
                             recordFunc(
-                                commandBuffer, swapchainImageIdx, *lockedCriticalSection->swapchain, flyingFrameIdx);
+                                commandBuffer,
+                                queryPool,
+                                swapchainImageIdx,
+                                *lockedCriticalSection->swapchain,
+                                flyingFrameIdx);
                         },
                         *this->stager);
 

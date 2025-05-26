@@ -1,4 +1,5 @@
 #include "frame_generator.hpp"
+#include "core/vulkan/frame_manager.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
@@ -10,7 +11,9 @@
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "gfx/shader_common/bindings.slang"
 #include "util/events.hpp"
+#include "util/logger.hpp"
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace gfx
@@ -65,10 +68,67 @@ namespace gfx
 
         this->has_resize_ocurred = this->renderer->recordOnThread(
             [&](vk::CommandBuffer             commandBuffer,
+                vk::QueryPool                 queryPool,
                 u32                           swapchainImageIdx,
                 gfx::core::vulkan::Swapchain& swapchain,
                 std::size_t)
             {
+                if (queryPool != nullptr)
+                {
+                    std::vector<u64> queryResultData {};
+                    queryResultData.resize(core::vulkan::MaxQueriesPerFrame);
+
+                    this->renderer->getDevice()->getDevice().getQueryPoolResults(
+                        queryPool,
+                        0,
+                        core::vulkan::MaxQueriesPerFrame,
+                        std::span {queryResultData}.size_bytes(),
+                        queryResultData.data(),
+                        sizeof(u64),
+                        vk::QueryResultFlagBits::e64);
+
+                    std::string out {};
+
+                    for (u64 i : queryResultData)
+                    {
+                        // HACK: get proper things from the array of string views
+                        if (i == 0)
+                        {
+                            continue;
+                        }
+
+                        out += std::format("{}, ", i - queryResultData.front());
+                    }
+
+                    if (!out.empty())
+                    {
+                        out.pop_back();
+                        out.pop_back();
+                    }
+
+                    log::trace("{}", out);
+
+                    commandBuffer.resetQueryPool(queryPool, 0, gfx::core::vulkan::MaxQueriesPerFrame);
+                }
+
+                u32 nextTimeStampIndex = 0;
+
+                auto writeTimeStamp = [&](std::string_view name)
+                {
+                    if (queryPool != nullptr)
+                    {
+                        assert::critical(
+                            nextTimeStampIndex < core::vulkan::MaxQueriesPerFrame,
+                            "Tried to write too many timestamps with {}",
+                            name);
+
+                        commandBuffer.writeTimestamp(
+                            vk::PipelineStageFlagBits::eBottomOfPipe, queryPool, nextTimeStampIndex);
+
+                        nextTimeStampIndex += 1;
+                    }
+                };
+
                 const u32 graphicsQueueIndex =
                     this->renderer->getDevice()
                         ->getFamilyOfQueueType(gfx::core::vulkan::Device::QueueType::Graphics)
@@ -131,6 +191,8 @@ namespace gfx
                     {},
                     {});
 
+                writeTimeStamp("bufferWrites");
+
                 if (this->has_resize_ocurred)
                 {
                     this->renderer->getWindow()->attachCursor();
@@ -142,23 +204,24 @@ namespace gfx
 
                     for (const vk::Image i : swapchainImages)
                     {
-                        swapchainMemoryBarriers.push_back(vk::ImageMemoryBarrier {
-                            .sType {vk::StructureType::eImageMemoryBarrier},
-                            .pNext {nullptr},
-                            .srcAccessMask {vk::AccessFlagBits::eNone},
-                            .dstAccessMask {vk::AccessFlagBits::eNone},
-                            .oldLayout {vk::ImageLayout::eUndefined},
-                            .newLayout {vk::ImageLayout::ePresentSrcKHR},
-                            .srcQueueFamilyIndex {graphicsQueueIndex},
-                            .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {i},
-                            .subresourceRange {vk::ImageSubresourceRange {
-                                .aspectMask {vk::ImageAspectFlagBits::eColor},
-                                .baseMipLevel {0},
-                                .levelCount {1},
-                                .baseArrayLayer {0},
-                                .layerCount {1}}},
-                        });
+                        swapchainMemoryBarriers.push_back(
+                            vk::ImageMemoryBarrier {
+                                .sType {vk::StructureType::eImageMemoryBarrier},
+                                .pNext {nullptr},
+                                .srcAccessMask {vk::AccessFlagBits::eNone},
+                                .dstAccessMask {vk::AccessFlagBits::eNone},
+                                .oldLayout {vk::ImageLayout::eUndefined},
+                                .newLayout {vk::ImageLayout::ePresentSrcKHR},
+                                .srcQueueFamilyIndex {graphicsQueueIndex},
+                                .dstQueueFamilyIndex {graphicsQueueIndex},
+                                .image {i},
+                                .subresourceRange {vk::ImageSubresourceRange {
+                                    .aspectMask {vk::ImageAspectFlagBits::eColor},
+                                    .baseMipLevel {0},
+                                    .levelCount {1},
+                                    .baseArrayLayer {0},
+                                    .layerCount {1}}},
+                            });
                     }
 
                     commandBuffer.pipelineBarrier(
@@ -381,6 +444,8 @@ namespace gfx
                     commandBuffer.endRendering();
                 }
 
+                writeTimeStamp("imgui");
+
                 // Voxel Prepass
                 {
                     const vk::RenderingAttachmentInfo colorAttachmentInfo {
@@ -490,6 +555,8 @@ namespace gfx
                             .layerCount {1}}},
                     }});
 
+                writeTimeStamp("voxel prepass");
+
                 // voxel color calculation
                 {
                     commandBuffer.bindDescriptorSets(
@@ -541,6 +608,8 @@ namespace gfx
                     }},
                     {},
                     {});
+
+                writeTimeStamp("voxel color calculation");
 
                 // Simple Color
                 {
@@ -663,6 +732,8 @@ namespace gfx
                             .baseArrayLayer {0},
                             .layerCount {1}}},
                     }});
+
+                writeTimeStamp("simple Color");
             });
 
         if (this->has_resize_ocurred)

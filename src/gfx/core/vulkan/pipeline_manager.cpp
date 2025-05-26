@@ -20,12 +20,13 @@ namespace gfx::core::vulkan
 
     PipelineManager::PipelineManager(const Device& device_, vk::PipelineLayout bindlessPipelineLayout)
         : device {device_.getDevice()}
-        , pipeline_cache {this->device.createPipelineCacheUnique(vk::PipelineCacheCreateInfo {
-              .sType {vk::StructureType::ePipelineCacheCreateInfo},
-              .pNext {nullptr},
-              .flags {},
-              .initialDataSize {0},
-              .pInitialData {nullptr}})}
+        , pipeline_cache {this->device.createPipelineCacheUnique(
+              vk::PipelineCacheCreateInfo {
+                  .sType {vk::StructureType::ePipelineCacheCreateInfo},
+                  .pNext {nullptr},
+                  .flags {},
+                  .initialDataSize {0},
+                  .pInitialData {nullptr}})}
         , bindless_pipeline_layout {bindlessPipelineLayout}
         , critical_section {util::Mutex {CriticalSection {
               .pipeline_handle_allocator {util::OpaqueHandleAllocator<Pipeline> {MaxPipelines}},
