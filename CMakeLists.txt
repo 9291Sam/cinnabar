@@ -34,6 +34,7 @@ CPMAddPackage("gh:g-truc/glm#1.0.1")
 CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
 CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
 CPMAddPackage("gh:ocornut/imgui#v1.91.8")
+CPMAddPackage("gh:epezent/implot#v0.16")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
@@ -103,10 +104,15 @@ add_library(imgui_build_target STATIC
     
     ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
 
+    ${implot_SOURCE_DIR}/implot.cpp
+    ${implot_SOURCE_DIR}/implot_items.cpp
+
+
     ${plutosvg_SOURCE_DIR}/source/plutosvg.c
 )
 target_include_directories(imgui_build_target SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_include_directories(imgui_build_target SYSTEM PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(imgui_build_target SYSTEM PUBLIC ${implot_SOURCE_DIR})
 target_include_directories(imgui_build_target SYSTEM PUBLIC ${FREETYPE_INCLUDE_DIRS})
 target_include_directories(imgui_build_target SYSTEM PUBLIC ${plutosvg_SOURCE_DIR}/source)
 target_compile_definitions(imgui_build_target PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)

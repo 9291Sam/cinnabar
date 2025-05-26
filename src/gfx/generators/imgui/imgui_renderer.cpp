@@ -8,6 +8,7 @@
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "implot.h"
 #include "util/events.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
@@ -72,6 +73,7 @@ namespace gfx::generators::imgui
             this->renderer->getDevice()->getDevice().createDescriptorPoolUnique(descriptorPoolCreateInfo);
 
         ImGui::CreateContext();
+        ImPlot::CreateContext();
 
         // Thank you karnage for this absolute nastiness
         auto getFn = [this](const char* name)
@@ -214,8 +216,10 @@ namespace gfx::generators::imgui
 
     ImguiRenderer::~ImguiRenderer()
     {
-        // this->renderer->getPipelineManager()->destroyPipeline(std::move(this->menu_transfer_pipeline));
         ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImPlot::DestroyContext();
+        ImGui::DestroyContext();
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -395,8 +399,6 @@ FPS: {}{} / {}ms
                 this->present_mode_combo_box_value = static_cast<int>(activePresentModeIterator - presentModes.begin());
             }
 
-            // ImGui::BeginCom
-
             if (ImGui::Combo(
                     "Present Mode",
                     &this->present_mode_combo_box_value,
@@ -438,6 +440,41 @@ FPS: {}{} / {}ms
             {
                 util::send<bool>("SETTING_ENABLE_REFLECTIONS", this->are_reflections_enabled);
             }
+
+            static const char*         labels1[] = {"Frogs", "Hogs", "Dogs", "Logs"};
+            static float               data1[]   = {0.15f, 0.30f, 0.2f, 0.05f};
+            static ImPlotPieChartFlags flags     = 0;
+            ImGui::SetNextItemWidth(250);
+            ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
+
+#define CHECKBOX_FLAG(flags, flag) ImGui::CheckboxFlags(#flag, (unsigned int*)&flags, flag)
+
+            CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
+            // CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
+            // CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
+
+            if (ImPlot::BeginPlot("##Pie1", ImVec2(125, 125), ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+            {
+                ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxesLimits(0, 1, 0, 1);
+                ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, flags);
+                ImPlot::EndPlot();
+            }
+
+            ImGui::SameLine();
+
+            static const char* labels2[] = {"A", "B", "C", "D", "E"};
+            static int         data2[]   = {1, 1, 2, 3, 5};
+
+            ImPlot::PushColormap(ImPlotColormap_Pastel);
+            if (ImPlot::BeginPlot("##Pie2", ImVec2(125, 125), ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+            {
+                ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxesLimits(0, 1, 0, 1);
+                ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, "%.0f", 180, flags);
+                ImPlot::EndPlot();
+            }
+            ImPlot::PopColormap();
 
             ImGui::PopStyleVar();
             ImGui::PopFont();
