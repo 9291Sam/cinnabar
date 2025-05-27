@@ -106,6 +106,7 @@ add_library(imgui_build_target STATIC
 
     ${implot_SOURCE_DIR}/implot.cpp
     ${implot_SOURCE_DIR}/implot_items.cpp
+    ${implot_SOURCE_DIR}/implot_demo.cpp
 
 
     ${plutosvg_SOURCE_DIR}/source/plutosvg.c
@@ -200,9 +201,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
 
     if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         # Add debug symbols that lldb can actually read
-        # target_compile_options(cinnabar PUBLIC -glldb)
-        # target_compile_options(cinnabar PUBLIC -gdwarf-4)
-        # target_compile_options(cinnabar PUBLIC -g3)
+        # target_compile_options(cinnabar PUBLIC -glldb) 
         
         # target_compile_options(cinnabar PUBLIC -fsanitize=address)
         # target_link_options(cinnabar PUBLIC -fsanitize=address)

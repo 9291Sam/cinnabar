@@ -12,6 +12,7 @@
 #include "util/events.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <algorithm>
 #include <atomic>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -231,6 +232,7 @@ namespace gfx::generators::imgui
         ImGui::NewFrame();
 
         // ImGui::ShowDemoWindow();
+        // ImPlot::ShowDemoWindow();
 
         const ImGuiViewport* const viewport = ImGui::GetMainViewport();
 
@@ -441,40 +443,113 @@ FPS: {}{} / {}ms
                 util::send<bool>("SETTING_ENABLE_REFLECTIONS", this->are_reflections_enabled);
             }
 
-            static const char*         labels1[] = {"Frogs", "Hogs", "Dogs", "Logs"};
-            static float               data1[]   = {0.15f, 0.30f, 0.2f, 0.05f};
-            static ImPlotPieChartFlags flags     = 0;
-            ImGui::SetNextItemWidth(250);
-            ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
-
-#define CHECKBOX_FLAG(flags, flag) ImGui::CheckboxFlags(#flag, (unsigned int*)&flags, flag)
-
-            CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
-            // CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
-            // CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
-
-            if (ImPlot::BeginPlot("##Pie1", ImVec2(125, 125), ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+            if (std::optional timestampNames =
+                    util::receive<std::array<std::string_view, core::vulkan::MaxQueriesPerFrame>>(
+                        "GPU_TIMESTAMP_NAMES"))
             {
+                std::ranges::transform(
+                    timestampNames->cbegin(),
+                    timestampNames->cend(),
+                    this->owned_gpu_timestamp_names.begin(),
+                    [](std::string_view name)
+                    {
+                        return std::string {name};
+                    });
+
+                std::ranges::transform(
+                    this->owned_gpu_timestamp_names.cbegin(),
+                    this->owned_gpu_timestamp_names.cend(),
+                    this->raw_gpu_timestamp_names.begin(),
+                    [](const std::string& name)
+                    {
+                        return name.c_str();
+                    });
+            }
+
+            if (std::optional timestamps =
+                    util::receive<std::array<u64, core::vulkan::MaxQueriesPerFrame>>("GPU_PER_FRAME_TIMESTAMPS"))
+            {
+                u64 total = std::accumulate(timestamps->cbegin(), timestamps->cend(), u64 {0});
+
+                std::ranges::transform(
+                    timestamps->cbegin(),
+                    timestamps->cend(),
+                    this->most_recent_timestamps.begin(),
+                    [&](u64 v)
+                    {
+                        return static_cast<f32>(v) / static_cast<f32>(total);
+                    });
+            }
+
+            const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
+
+            ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
+            ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, ImVec2(0, 0));
+            ImPlot::PushStyleVar(ImPlotStyleVar_LegendInnerPadding, ImVec2(0, 0));
+            ImPlot::PushStyleVar(ImPlotStyleVar_LegendSpacing, ImVec2(0, 0));
+            ImPlot::PushStyleColor(ImPlotCol_FrameBg, {0, 0, 0, 0});
+            ImPlot::PushStyleColor(ImPlotCol_PlotBg, {0, 0, 0, 0});
+            // ImPlot::PushColormap(ImPlotColormap_Pastel);
+
+            const ImPlotStyle& imPlotStyle = ImPlot::GetStyle();
+
+            const f32 plotTitleSize = imPlotStyle.LabelPadding.y;
+
+            u32 numberOfTextElements = 0;
+
+            for (int i = this->most_recent_timestamps.size() - 1; i > 0; --i)
+            {
+                if (this->most_recent_timestamps[i] != 0)
+                {
+                    numberOfTextElements = i;
+                    break;
+                }
+            }
+
+            if (ImPlot::BeginPlot(
+                    "Gpu Frame Times##Pie1",
+                    ImVec2(
+                        plotSizePx,
+                        plotSizePx + plotTitleSize
+                            + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
+                            + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
+                            + (numberOfTextElements * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
+                    ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+            {
+                ImPlot::SetupLegend(ImPlotLocation_South | ImPlotLocation_Center, ImPlotLegendFlags_Outside);
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
                 ImPlot::SetupAxesLimits(0, 1, 0, 1);
-                ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, flags);
+                ImPlot::PlotPieChart(
+                    this->raw_gpu_timestamp_names.data() + 1,
+                    this->most_recent_timestamps.data() + 1,
+                    numberOfTextElements,
+                    0.5,
+                    0.5,
+                    0.5,
+                    "",
+                    0,
+                    ImPlotPieChartFlags_Normalize);
                 ImPlot::EndPlot();
             }
 
-            ImGui::SameLine();
+            ImGui::SameLine(0, 0);
 
             static const char* labels2[] = {"A", "B", "C", "D", "E"};
             static int         data2[]   = {1, 1, 2, 3, 5};
 
-            ImPlot::PushColormap(ImPlotColormap_Pastel);
-            if (ImPlot::BeginPlot("##Pie2", ImVec2(125, 125), ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+            if (ImPlot::BeginPlot(
+                    "fff##Pie2",
+                    ImVec2(plotSizePx, plotSizePx + plotTitleSize + ImGui::CalcTextSize("fff", nullptr, true).y),
+                    ImPlotFlags_NoLegend | ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
             {
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
                 ImPlot::SetupAxesLimits(0, 1, 0, 1);
-                ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, "%.0f", 180, flags);
+                ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.49, "%.0f", 180, ImPlotPieChartFlags_Normalize);
                 ImPlot::EndPlot();
             }
-            ImPlot::PopColormap();
+            // ImPlot::PopColormap();
+            ImPlot::PopStyleColor(2);
+            ImPlot::PopStyleVar(4);
 
             ImGui::PopStyleVar();
             ImGui::PopFont();

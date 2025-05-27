@@ -1,5 +1,3 @@
-
-
 #include "game/game.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
@@ -56,7 +54,7 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        const i32 dim = 8;
+        const i32 dim = 3; // 8
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {

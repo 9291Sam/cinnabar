@@ -3,6 +3,7 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/descriptor_manager.hpp"
+#include "gfx/core/vulkan/frame_manager.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/generators/imgui/imgui_renderer.hpp"
@@ -72,7 +73,7 @@ namespace gfx
                 vk::QueryPool                 queryPool,
                 u32                           swapchainImageIdx,
                 gfx::core::vulkan::Swapchain& swapchain,
-                std::size_t                   frameIdx,
+                std::size_t                   flyingFrameIdx,
                 std::function<void()>         bufferFlushCallback)
             {
                 if (queryPool != nullptr)
@@ -89,7 +90,9 @@ namespace gfx
                         sizeof(u64),
                         vk::QueryResultFlagBits::e64);
 
-                    std::string out {};
+                    // std::string out {};
+
+                    usize lastElementIdx = 0;
 
                     for (const auto [idx, i] : std::ranges::enumerate_view {queryResultData})
                     {
@@ -99,16 +102,30 @@ namespace gfx
                             continue;
                         }
 
-                        out += std::format("{} {}, ", this->active_timestamp_names[idx], i - queryResultData.front());
+                        lastElementIdx = idx;
                     }
 
-                    if (!out.empty())
+                    std::array<u64, core::vulkan::MaxQueriesPerFrame> timeStampDeltas {};
+                    std::ranges::fill(timeStampDeltas, 0);
+
+                    for (usize i = 1; i <= lastElementIdx; ++i)
                     {
-                        out.pop_back();
-                        out.pop_back();
+                        const u64 prev = queryResultData[i - 1];
+                        const u64 curr = queryResultData[i];
 
-                        log::trace("{}", out);
+                        timeStampDeltas[i] = (curr - prev);
+
+                        // out += std::format("{} {}, ", this->active_timestamp_names[i], curr - prev);
                     }
+
+                    util::send<std::array<u64, core::vulkan::MaxQueriesPerFrame>>(
+                        "GPU_PER_FRAME_TIMESTAMPS", timeStampDeltas);
+
+                    // if (!out.empty())
+                    // {
+                    //     out.pop_back();
+                    //     out.pop_back();
+                    // }
 
                     commandBuffer.resetQueryPool(queryPool, 0, gfx::core::vulkan::MaxQueriesPerFrame);
                 }
@@ -118,7 +135,7 @@ namespace gfx
                 auto writeTimeStamp = [&](std::string_view name)
                 {
                     // We need the assert in both cases but this sucks whatever
-                    if (frameIdx == 0 || queryPool != nullptr)
+                    if (this->renderer->getFrameNumber() == 0 || queryPool != nullptr)
                     {
                         assert::critical(
                             nextTimeStampIndex < core::vulkan::MaxQueriesPerFrame,
@@ -126,7 +143,7 @@ namespace gfx
                             name);
                     }
 
-                    if (frameIdx == 0)
+                    if (this->renderer->getFrameNumber() == 0)
                     {
                         this->active_timestamp_names[nextTimeStampIndex] = name;
                     }
@@ -751,6 +768,12 @@ namespace gfx
                     }});
 
                 writeTimeStamp("simple Color");
+
+                if (this->renderer->getFrameNumber() == 0)
+                {
+                    util::send<std::array<std::string_view, core::vulkan::MaxQueriesPerFrame>>(
+                        "GPU_TIMESTAMP_NAMES", this->active_timestamp_names);
+                }
             });
 
         if (this->has_resize_ocurred)
