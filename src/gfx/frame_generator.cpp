@@ -73,8 +73,8 @@ namespace gfx
                 vk::QueryPool                 queryPool,
                 u32                           swapchainImageIdx,
                 gfx::core::vulkan::Swapchain& swapchain,
-                std::size_t                   flyingFrameIdx,
-                std::function<void()>         bufferFlushCallback)
+                std::size_t,
+                std::function<void()> bufferFlushCallback)
             {
                 if (queryPool != nullptr)
                 {
@@ -701,20 +701,28 @@ namespace gfx
                         generators.maybe_voxel_renderer->recordColorTransfer(commandBuffer);
                     }
 
+                    writeTimeStamp("voxel color transfer");
+
                     if (generators.maybe_triangle_renderer)
                     {
                         generators.maybe_triangle_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
+
+                    writeTimeStamp("triangles color transfer");
 
                     if (generators.maybe_skybox_renderer)
                     {
                         generators.maybe_skybox_renderer->renderIntoCommandBuffer(commandBuffer, camera);
                     }
 
+                    writeTimeStamp("skybox render");
+
                     if (generators.maybe_imgui_renderer)
                     {
                         generators.maybe_imgui_renderer->renderImageCopyIntoCommandBuffer(commandBuffer);
                     }
+
+                    writeTimeStamp("imgui copy");
 
                     commandBuffer.endRendering();
                 }
@@ -766,8 +774,6 @@ namespace gfx
                             .baseArrayLayer {0},
                             .layerCount {1}}},
                     }});
-
-                writeTimeStamp("simple Color");
 
                 if (this->renderer->getFrameNumber() == 0)
                 {

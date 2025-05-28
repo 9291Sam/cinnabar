@@ -38,13 +38,15 @@ namespace gfx::generators::imgui
         ImFont*                                       font;
         core::vulkan::PipelineManager::UniquePipeline menu_transfer_pipeline;
 
-        std::vector<std::string>                                  owned_present_mode_strings;
-        std::vector<const char*>                                  raw_present_mode_strings;
-        std::vector<std::string>                                  owned_animation_name_strings;
-        std::vector<const char*>                                  raw_animation_name_strings;
-        std::array<std::string, core::vulkan::MaxQueriesPerFrame> owned_gpu_timestamp_names;
-        std::array<const char*, core::vulkan::MaxQueriesPerFrame> raw_gpu_timestamp_names;
-        std::array<f32, core::vulkan::MaxQueriesPerFrame>         most_recent_timestamps;
+        std::vector<std::string>                                          owned_present_mode_strings;
+        std::vector<const char*>                                          raw_present_mode_strings;
+        std::vector<std::string>                                          owned_animation_name_strings;
+        std::vector<const char*>                                          raw_animation_name_strings;
+        std::array<std::string, core::vulkan::MaxQueriesPerFrame>         owned_gpu_timestamp_names {};
+        std::array<const char*, core::vulkan::MaxQueriesPerFrame>         raw_gpu_timestamp_names {};
+        std::array<std::array<f32, core::vulkan::MaxQueriesPerFrame>, 32> frame_moving_average_data {};
+        std::array<f32, core::vulkan::MaxQueriesPerFrame>                 most_recent_timestamp_average {};
+        usize                                                             next_average_to_place_values_in = 0;
 
         voxel::GpuRaytracedLight light;
 

@@ -6,7 +6,6 @@
 #include "gfx/core/vulkan/instance.hpp"
 #include "gfx/core/vulkan/swapchain.hpp"
 #include "gfx/core/window.hpp"
-#include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "implot.h"
 #include "util/events.hpp"
@@ -45,6 +44,7 @@ namespace gfx::generators::imgui
                   .name {"Menu Color Transfer"},
               })}
         , light {.position_and_half_intensity_distance {11.5, 17.5, 32.4, 8.0}, .color_and_power {1.0, 1.0, 1.0, 0.25}}
+        , next_average_to_place_values_in {0}
     {
         util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
 
@@ -474,82 +474,104 @@ FPS: {}{} / {}ms
                 std::ranges::transform(
                     timestamps->cbegin(),
                     timestamps->cend(),
-                    this->most_recent_timestamps.begin(),
+                    this->frame_moving_average_data[this->next_average_to_place_values_in].begin(),
                     [&](u64 v)
                     {
                         return static_cast<f32>(v) / static_cast<f32>(total);
                     });
+
+                this->next_average_to_place_values_in += 1;
+                this->next_average_to_place_values_in %= this->frame_moving_average_data.size();
             }
 
-            const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
-
-            ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
-            ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, ImVec2(0, 0));
-            ImPlot::PushStyleVar(ImPlotStyleVar_LegendInnerPadding, ImVec2(0, 0));
-            ImPlot::PushStyleVar(ImPlotStyleVar_LegendSpacing, ImVec2(0, 0));
-            ImPlot::PushStyleColor(ImPlotCol_FrameBg, {0, 0, 0, 0});
-            ImPlot::PushStyleColor(ImPlotCol_PlotBg, {0, 0, 0, 0});
-            // ImPlot::PushColormap(ImPlotColormap_Pastel);
-
-            const ImPlotStyle& imPlotStyle = ImPlot::GetStyle();
-
-            const f32 plotTitleSize = imPlotStyle.LabelPadding.y;
-
-            u32 numberOfTextElements = 0;
-
-            for (int i = this->most_recent_timestamps.size() - 1; i > 0; --i)
+            // Fun fact, there's a memory safety issue in implot :)
+            if (!this->owned_gpu_timestamp_names[0].empty())
             {
-                if (this->most_recent_timestamps[i] != 0)
+                for (usize timestampIndex = 0; timestampIndex < core::vulkan::MaxQueriesPerFrame; ++timestampIndex)
                 {
-                    numberOfTextElements = i;
-                    break;
+                    f32 sum = 0.0f;
+
+                    for (const auto& frameIndex : this->frame_moving_average_data)
+                    {
+                        sum += frameIndex[timestampIndex];
+                    }
+
+                    this->most_recent_timestamp_average[timestampIndex] =
+                        sum / static_cast<f32>(this->frame_moving_average_data.size());
                 }
+
+                const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
+
+                ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
+                ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, ImVec2(0, 0));
+                ImPlot::PushStyleVar(ImPlotStyleVar_LegendInnerPadding, ImVec2(0, 0));
+                ImPlot::PushStyleVar(ImPlotStyleVar_LegendSpacing, ImVec2(0, 0));
+                ImPlot::PushStyleColor(ImPlotCol_FrameBg, {0, 0, 0, 0});
+                ImPlot::PushStyleColor(ImPlotCol_PlotBg, {0, 0, 0, 0});
+                ImPlot::PushStyleColor(ImPlotCol_LegendBg, {0, 0, 0, 0});
+                ImPlot::PushStyleColor(ImPlotCol_LegendBorder, {0, 0, 0, 0});
+                ImPlot::PushColormap(ImPlotColormap_Dark);
+
+                const ImPlotStyle& imPlotStyle = ImPlot::GetStyle();
+
+                const f32 plotTitleSize = imPlotStyle.LabelPadding.y;
+
+                i32 numberOfTextElements = 0;
+
+                for (usize i = this->most_recent_timestamp_average.size() - 1; i > 0; --i)
+                {
+                    if (this->most_recent_timestamp_average[i] != 0)
+                    {
+                        numberOfTextElements = static_cast<i32>(i);
+                        break;
+                    }
+                }
+
+                if (ImPlot::BeginPlot(
+                        "Gpu Frame Times##Pie1",
+                        ImVec2(
+                            plotSizePx,
+                            plotSizePx + plotTitleSize
+                                + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
+                                + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
+                                + (numberOfTextElements * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
+                        ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+                {
+                    ImPlot::SetupLegend(ImPlotLocation_South | ImPlotLocation_Center, ImPlotLegendFlags_Outside);
+                    ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                    ImPlot::SetupAxesLimits(0, 1, 0, 1);
+                    ImPlot::PlotPieChart(
+                        this->raw_gpu_timestamp_names.data() + 1,
+                        this->most_recent_timestamp_average.data() + 1,
+                        numberOfTextElements,
+                        0.5,
+                        0.5,
+                        0.5,
+                        "",
+                        0,
+                        ImPlotPieChartFlags_Normalize);
+                    ImPlot::EndPlot();
+                }
+
+                ImGui::SameLine(0, 0);
+
+                static const char* labels2[] = {"A", "B", "C", "D", "E"};
+                static int         data2[]   = {1, 1, 2, 3, 5};
+
+                if (ImPlot::BeginPlot(
+                        "fff##Pie2",
+                        ImVec2(plotSizePx, plotSizePx + plotTitleSize + ImGui::CalcTextSize("fff", nullptr, true).y),
+                        ImPlotFlags_NoLegend | ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+                {
+                    ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                    ImPlot::SetupAxesLimits(0, 1, 0, 1);
+                    ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.49, "%.0f", 180, ImPlotPieChartFlags_Normalize);
+                    ImPlot::EndPlot();
+                }
+                ImPlot::PopColormap();
+                ImPlot::PopStyleColor(4);
+                ImPlot::PopStyleVar(4);
             }
-
-            if (ImPlot::BeginPlot(
-                    "Gpu Frame Times##Pie1",
-                    ImVec2(
-                        plotSizePx,
-                        plotSizePx + plotTitleSize
-                            + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
-                            + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
-                            + (numberOfTextElements * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
-                    ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
-            {
-                ImPlot::SetupLegend(ImPlotLocation_South | ImPlotLocation_Center, ImPlotLegendFlags_Outside);
-                ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                ImPlot::SetupAxesLimits(0, 1, 0, 1);
-                ImPlot::PlotPieChart(
-                    this->raw_gpu_timestamp_names.data() + 1,
-                    this->most_recent_timestamps.data() + 1,
-                    numberOfTextElements,
-                    0.5,
-                    0.5,
-                    0.5,
-                    "",
-                    0,
-                    ImPlotPieChartFlags_Normalize);
-                ImPlot::EndPlot();
-            }
-
-            ImGui::SameLine(0, 0);
-
-            static const char* labels2[] = {"A", "B", "C", "D", "E"};
-            static int         data2[]   = {1, 1, 2, 3, 5};
-
-            if (ImPlot::BeginPlot(
-                    "fff##Pie2",
-                    ImVec2(plotSizePx, plotSizePx + plotTitleSize + ImGui::CalcTextSize("fff", nullptr, true).y),
-                    ImPlotFlags_NoLegend | ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
-            {
-                ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                ImPlot::SetupAxesLimits(0, 1, 0, 1);
-                ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.49, "%.0f", 180, ImPlotPieChartFlags_Normalize);
-                ImPlot::EndPlot();
-            }
-            // ImPlot::PopColormap();
-            ImPlot::PopStyleColor(2);
-            ImPlot::PopStyleVar(4);
 
             ImGui::PopStyleVar();
             ImGui::PopFont();
