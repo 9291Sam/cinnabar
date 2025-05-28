@@ -76,7 +76,7 @@ struct VoxelTraceResult
     int3            chunk_local_voxel_position;
     float3             voxel_normal;
     float3             local_voxel_uvw;
-    float            t;
+    f32            t;
     uint             steps;
     PBRVoxelMaterial material;
 };
@@ -98,7 +98,7 @@ VoxelTraceResult strikeBlockImmediate(u16 material, float3 rayPos, float3 rayDir
 
    
     float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
-    float d         = max(mini.x, max(mini.y, mini.z));
+    f32 d         = max(mini.x, max(mini.y, mini.z));
     float3  intersect = rayPos + rayDir * d;
     float3  uv3d      = intersect - mapPos;
 
@@ -142,7 +142,7 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
         if (loadVoxelFromBrick(brick, int3(mapPos)))
         {
             float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
-            float d         = max(mini.x, max(mini.y, mini.z));
+            f32 d         = max(mini.x, max(mini.y, mini.z));
             float3  intersect = rayPos + rayDir * d;
             float3  uv3d      = intersect - mapPos;
 
@@ -182,7 +182,7 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
     return VoxelTraceResult_getMiss(i);
 }
 
-VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, float max_dist)
+VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, f32 max_dist)
 {
     rayPos /= 8.0;
     max_dist /= 8.0;
@@ -202,7 +202,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
         if (brick.getMaterial() != 0)
         {
             float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
-            float d         = max(mini.x, max(mini.y, mini.z));
+            f32 d         = max(mini.x, max(mini.y, mini.z));
             float3  intersect = rayPos + rayDir * d;
             float3  uv3d      = intersect - mapPos;
             
@@ -223,11 +223,11 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, fl
 
             extra_steps += result.steps;
 
-            float strikeT = d * 8.0;
+            f32 strikeT = d * 8.0;
 
             if (result.intersect_occur)
             {
-                const float strikeT =
+                const f32 strikeT =
                     distance(rayPos * 8.0, floor(mapPos) * 8.0 + result.chunk_local_fragment_position);
 
                 // if (strikeT > max_dist * 8.0)
@@ -287,27 +287,27 @@ VoxelTraceResult traceDDARay(uint chunkId, float3 start, float3 end)
 
 
 
-float distributionGGX(float3 N, float3 H, float roughness)
+float distributionGGX(float3 N, float3 H, f32 roughness)
 {
-    float a2    = roughness * roughness * roughness * roughness;
-    float NdotH = max(dot(N, H), 0.0);
-    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    f32 a2    = roughness * roughness * roughness * roughness;
+    f32 NdotH = max(dot(N, H), 0.0);
+    f32 denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
     return a2 / (PI * denom * denom);
 }
 
-float geometrySchlickGGX(float NdotV, float roughness)
+float geometrySchlickGGX(f32 NdotV, f32 roughness)
 {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
+    f32 r = (roughness + 1.0);
+    f32 k = (r * r) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
-float geometrySmith(float3 N, float3 V, float3 L, float roughness)
+float geometrySmith(float3 N, float3 V, float3 L, f32 roughness)
 {
     return geometrySchlickGGX(max(dot(N, L), 0.0), roughness) * geometrySchlickGGX(max(dot(N, V), 0.0), roughness);
 }
 
-float3 fresnelSchlick(float cosTheta, float3 F0)
+float3 fresnelSchlick(f32 cosTheta, float3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }float3 calculateSampleColor(
@@ -324,18 +324,18 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     // HACK! I mean it looks pretty
     material.albedo_roughness.w = max(material.albedo_roughness.w, material.emission_metallic.w / 2);
     
-    const float nDotL = dot(N, L);
+    const f32 nDotL = dot(N, L);
 
     if (dot(N, V) <= 0.0)
     {
         return float3(0, 0, 0);
     }
 
-    const float distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
-    float r = max(light.position_and_half_intensity_distance.w, 0.001);
-    float p = light.color_and_power.w;
-    float d = distanceToLight / r;
-    float lightIntensity = p / (d * d + 1);  // Smooth falloff, stable
+    const f32 distanceToLight = length(light.position_and_half_intensity_distance.xyz - worldPos);
+    f32 r = max(light.position_and_half_intensity_distance.w, 0.001);
+    f32 p = light.color_and_power.w;
+    f32 d = distanceToLight / r;
+    f32 lightIntensity = p / (d * d + 1);  // Smooth falloff, stable
 
 
     float3 H = normalize(V + L);
@@ -343,14 +343,14 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
     // Use linear-space albedo approximation for F0 (should ideally already be in linear space)
     float3 F0 = lerp(float3(0.04), pow(material.albedo_roughness.xyz, 2.2), material.emission_metallic.w);
 
-    float NDF = distributionGGX(N, H, material.albedo_roughness.w);
-    float G   = geometrySmith(N, V, L, material.albedo_roughness.w);
+    f32 NDF = distributionGGX(N, H, material.albedo_roughness.w);
+    f32 G   = geometrySmith(N, V, L, material.albedo_roughness.w);
     float3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
     float3 kD = (1.0 - F) * (1.0 - material.emission_metallic.w);
 
     float3 numerator   = NDF * G * F;
-    float denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
+    f32 denominator  = 4.0 * max(dot(N, V), 0.001) * max(dot(N, L), 0.001);
     float3 specular    = numerator / max(denominator, 0.1);
     specular = includeSpecular ? min(specular, float3(5.0)) : float3(0.0);
 
@@ -367,7 +367,7 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 
 
 
-VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, float dist)
+VoxelTraceResult traceSingleRayInChunk(uint chunkId, Ray ray, f32 dist)
 {
     return traceDDARay(chunkId, ray.origin, ray.origin + ray.direction * dist);
 }
@@ -390,8 +390,8 @@ float RandomValue(inout uint state)
 float RandomValueNormalDistribution(inout uint state)
 {
     // Thanks to https://stackoverflow.com/a/6178290
-    float theta = 2 * 3.1415926 * RandomValue(state);
-    float rho = sqrt(-2 * log(RandomValue(state)));
+    f32 theta = 2 * 3.1415926 * RandomValue(state);
+    f32 rho = sqrt(-2 * log(RandomValue(state)));
     return rho * cos(theta);
 }
 
@@ -399,9 +399,9 @@ float RandomValueNormalDistribution(inout uint state)
 float3 RandomDirection(inout uint state)
 {
     // Thanks to https://math.stackexchange.com/a/1585996
-    float x = RandomValueNormalDistribution(state);
-    float y = RandomValueNormalDistribution(state);
-    float z = RandomValueNormalDistribution(state);
+    f32 x = RandomValueNormalDistribution(state);
+    f32 y = RandomValueNormalDistribution(state);
+    f32 z = RandomValueNormalDistribution(state);
     return normalize(float3(x, y, z));
 }
 
@@ -422,7 +422,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
         return float3(0);
     }
 
-    float selectionProbability = 0.0f;
+    f32 selectionProbability = 0.0f;
     bool foundLight = false;
 
     const u32 triesLeftToFindALight = min(16, numberOfPossibleEmissives);
@@ -450,7 +450,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         return float3(0);
     }
-    const float approxProbability = 1.0 / float(numberOfPossibleEmissives / (i + 1));// exp(float(-i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
+    const f32 approxProbability = 1.0 / float(numberOfPossibleEmissives / (i + 1));// exp(f32(-i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
     
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
@@ -474,7 +474,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     const float3 start = firstWorldStrikePosition + 0.05 * unpacked.normal;
     const float3 end = light.position_and_half_intensity_distance.xyz;
     const float3 dir = normalize(end - start);
-    const float len = distance(end, start);
+    const f32 len = distance(end, start);
 
     float3 calculatedColor = float3(0.0);
 
@@ -534,7 +534,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 }
 
 
-VoxelTraceResult traceWorld(Ray ray, float max_t)
+VoxelTraceResult traceWorld(Ray ray, f32 max_t)
 {
     ray.origin /= 64.0f;
     max_t /= 64.0f;
@@ -555,7 +555,7 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
         if (maybeChunkId != ~0)
         {
             float3  mini      = ((mapPos - ray.origin) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
-            float d         = max(mini.x, max(mini.y, mini.z));
+            f32 d         = max(mini.x, max(mini.y, mini.z));
             float3  intersect = ray.origin + ray.direction * d;
             float3  uv3d      = intersect - mapPos;
 
@@ -574,9 +574,9 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
             // max_t
             // comp between start and worldPosition start strike along the dir
             // subtract that to get the t
-            const float tTraversed = distance(worldPositionStartStrike, ray.origin * 64.0f);
-            const float tTotal = max_t * 64.0f;
-            const float tLeft = tTotal - tTraversed;
+            const f32 tTraversed = distance(worldPositionStartStrike, ray.origin * 64.0f);
+            const f32 tTotal = max_t * 64.0f;
+            const f32 tLeft = tTotal - tTraversed;
 
             // TODO: make less shit
             const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), tLeft);
@@ -585,10 +585,10 @@ VoxelTraceResult traceWorld(Ray ray, float max_t)
 
             if (result.intersect_occur)
             {
-                // const float strikeT =
+                // const f32 strikeT =
                 //     distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
 
-                const float strikeT = distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
+                const f32 strikeT = distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
 
 
                 if (strikeT > max_t * 64.0f)

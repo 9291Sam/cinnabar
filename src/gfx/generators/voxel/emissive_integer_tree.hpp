@@ -25,7 +25,7 @@ namespace gfx::generators::voxel
 
         /// Insert an element into the tree
         /// Returns true if the insert was successful
-        bool insert(WorldPosition, float radius, bool warnIfAlreadyExisting = true);
+        bool insert(WorldPosition, f32 radius, bool warnIfAlreadyExisting = true);
 
         /// try remove the element, return false if there was no element in the tree
         void erase(WorldPosition);
@@ -43,6 +43,6 @@ namespace gfx::generators::voxel
             }
         };
 
-        boost::container::flat_map<glm::vec3, float, OrdVec3> data;
+        boost::container::flat_map<glm::vec3, f32, OrdVec3> data;
     };
 } // namespace gfx::generators::voxel

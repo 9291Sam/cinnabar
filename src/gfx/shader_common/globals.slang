@@ -26,10 +26,10 @@ struct GlobalGpuData
     float4  camera_right_vector;
     float4  camera_up_vector;
     float4  camera_position;
-    float fov_y;
-    float tan_half_fov_y;
-    float aspect_ratio;
-    float time_alive;
+    f32 fov_y;
+    f32 tan_half_fov_y;
+    f32 aspect_ratio;
+    f32 time_alive;
     uint2 framebuffer_size;
     uint bool_enable_reflections;
     uint bool_moved_this_frame;
@@ -37,7 +37,7 @@ struct GlobalGpuData
 
 [[vk::binding(3)]] ConstantBuffer<GlobalGpuData> global_gpu_data[];
 
-float3 plasma_quintic(float x)
+float3 plasma_quintic(f32 x)
 {
     x       = clamp(x, 0.0, 1.0);
     float4 x1 = float4(1.0, x, x * x, x * x * x);

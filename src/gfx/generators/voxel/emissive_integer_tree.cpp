@@ -11,11 +11,11 @@ namespace gfx::generators::voxel
 {
     namespace
     {
-        bool doesCubeIntersectSphere(glm::vec3 sphereCenter, float radius, glm::vec3 cubeMin, glm::vec3 cubeMax)
+        bool doesCubeIntersectSphere(glm::vec3 sphereCenter, f32 radius, glm::vec3 cubeMin, glm::vec3 cubeMax)
         {
-            const float closestX = std::clamp(sphereCenter.x, cubeMin.x, cubeMax.x);
-            const float closestY = std::clamp(sphereCenter.y, cubeMin.y, cubeMax.y);
-            const float closestZ = std::clamp(sphereCenter.z, cubeMin.z, cubeMax.z);
+            const f32 closestX = std::clamp(sphereCenter.x, cubeMin.x, cubeMax.x);
+            const f32 closestY = std::clamp(sphereCenter.y, cubeMin.y, cubeMax.y);
+            const f32 closestZ = std::clamp(sphereCenter.z, cubeMin.z, cubeMax.z);
 
             const glm::vec3 closestPointBetweenSphereAndCube(closestX, closestY, closestZ);
 
@@ -26,7 +26,7 @@ namespace gfx::generators::voxel
 
     EmissiveIntegerTree::~EmissiveIntegerTree() = default;
 
-    bool EmissiveIntegerTree::insert(WorldPosition p, float r, bool warnIfAlreadyExisting)
+    bool EmissiveIntegerTree::insert(WorldPosition p, f32 r, bool warnIfAlreadyExisting)
     {
         const decltype(this->data)::const_iterator it = this->data.find(p);
 

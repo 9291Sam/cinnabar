@@ -56,7 +56,7 @@ namespace game
                 log::info("Installed new GameState \"{}\"", this->maybe_current_game_state->identify());
             }
 
-            const float deltaTime = this->renderer->getWindow()->getDeltaTimeSeconds();
+            const f32 deltaTime = this->renderer->getWindow()->getDeltaTimeSeconds();
 
             assert::critical(
                 this->maybe_current_game_state != nullptr, "Tried to iterate Game's update loop without a GameState!");

@@ -39,17 +39,17 @@ namespace gfx
         return this->rotation * Transform::RightVector;
     }
 
-    void Transform::pitchBy(float pitch)
+    void Transform::pitchBy(f32 pitch)
     {
         this->rotation = glm::rotate(this->rotation, pitch, Transform::RightVector);
     }
 
-    void Transform::yawBy(float yaw)
+    void Transform::yawBy(f32 yaw)
     {
         this->rotation = glm::rotate(this->rotation, yaw, Transform::UpVector);
     }
 
-    void Transform::rollBy(float roll)
+    void Transform::rollBy(f32 roll)
     {
         this->rotation = glm::rotate(this->rotation, roll, Transform::ForwardVector);
     }

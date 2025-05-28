@@ -49,10 +49,9 @@ namespace util
         {
             return static_cast<u32>(this->next_available_block - this->free_block_list.size());
         }
-        [[nodiscard]] float getPercentAllocated() const
+        [[nodiscard]] f32 getPercentAllocated() const
         {
-            return static_cast<float>(this->getNumberAllocated())
-                 / static_cast<float>(this->max_number_of_blocks);
+            return static_cast<f32>(this->getNumberAllocated()) / static_cast<f32>(this->max_number_of_blocks);
         }
 
         IndexType allocateOrPanic(std::source_location loc = std::source_location::current())

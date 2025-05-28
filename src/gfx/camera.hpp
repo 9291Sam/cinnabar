@@ -1,6 +1,7 @@
 #pragma once
 
 #include "transform.hpp"
+#include "util/util.hpp"
 #include <glm/trigonometric.hpp>
 
 namespace gfx
@@ -11,11 +12,11 @@ namespace gfx
     public:
         struct CameraDescriptor
         {
-            float     aspect_ratio {};
+            f32       aspect_ratio {};
             glm::vec3 position {0.0f, 0.0f, 0.0f};
-            float     fov_y = glm::radians(70.0f);
-            float     pitch = 0.0f;
-            float     yaw   = 0.0f;
+            f32       fov_y = glm::radians(70.0f);
+            f32       pitch = 0.0f;
+            f32       yaw   = 0.0f;
         };
     public:
 
@@ -36,27 +37,27 @@ namespace gfx
         [[nodiscard]] glm::vec3 getRightVector() const;
         [[nodiscard]] glm::vec3 getUpVector() const;
         [[nodiscard]] glm::vec3 getPosition() const;
-        [[nodiscard]] float     getAspectRatio() const;
-        [[nodiscard]] float     getFovYRadians() const;
-        [[nodiscard]] float     getPitch() const;
-        [[nodiscard]] float     getYaw() const;
+        [[nodiscard]] f32       getAspectRatio() const;
+        [[nodiscard]] f32       getFovYRadians() const;
+        [[nodiscard]] f32       getPitch() const;
+        [[nodiscard]] f32       getYaw() const;
 
         [[nodiscard]] gfx::Transform getTransform() const;
 
         void setPosition(glm::vec3);
         void addPosition(glm::vec3);
-        void addPitch(float);
-        void addYaw(float);
+        void addPitch(f32);
+        void addYaw(f32);
 
         explicit operator std::string () const;
 
     private:
         void updateTransformFromRotations();
 
-        float pitch;
-        float yaw;
-        float fov_y;
-        float aspect_ratio;
+        f32 pitch;
+        f32 yaw;
+        f32 fov_y;
+        f32 aspect_ratio;
 
         Transform transform;
     };

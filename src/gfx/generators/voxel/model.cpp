@@ -240,8 +240,8 @@ namespace gfx::generators::voxel
 
         for (usize i = 0; i < newFrames.size() - 1; ++i)
         {
-            const float shouldBeNextFrameStart = newFrames.at(i).start_time + newFrames.at(i).duration;
-            const float nextFrameStart         = newFrames.at(i + 1).start_time;
+            const f32 shouldBeNextFrameStart = newFrames.at(i).start_time + newFrames.at(i).duration;
+            const f32 nextFrameStart         = newFrames.at(i + 1).start_time;
 
             assert::critical(
                 util::isApproxEqual(shouldBeNextFrameStart, nextFrameStart),
@@ -280,8 +280,9 @@ namespace gfx::generators::voxel
         {
             std::vector<AnimatedVoxelModel::AnimatedVoxelModelFrame> frames {};
 
-            frames.push_back(AnimatedVoxelModel::AnimatedVoxelModelFrame {
-                .start_time {0.0f}, .duration {INFINITY}, .model {std::move(staticModel)}});
+            frames.push_back(
+                AnimatedVoxelModel::AnimatedVoxelModelFrame {
+                    .start_time {0.0f}, .duration {INFINITY}, .model {std::move(staticModel)}});
 
             return frames;
         }
@@ -303,7 +304,7 @@ namespace gfx::generators::voxel
 
     AnimatedVoxelModel AnimatedVoxelModel::fromGif(const util::Gif& gif)
     {
-        std::span<const float> allFrameStartTimes = gif.getAllStartTimes();
+        std::span<const f32> allFrameStartTimes = gif.getAllStartTimes();
 
         std::vector<AnimatedVoxelModelFrame> frames {};
         frames.resize(allFrameStartTimes.size());
@@ -351,10 +352,10 @@ namespace gfx::generators::voxel
                 // }
             }
 
-            const float thisFrameStartTime = allFrameStartTimes[i];
+            const f32 thisFrameStartTime = allFrameStartTimes[i];
             // HACK: assume 30fps last frame of a gif, we lack information
             // TODO: FIX
-            const float nextFrameStartTime =
+            const f32 nextFrameStartTime =
                 (i < allFrameStartTimes.size() - 1) ? allFrameStartTimes[i + 1] : allFrameStartTimes[i] + (1.0f / 30);
 
             frames.at(i) = AnimatedVoxelModelFrame {
@@ -385,13 +386,13 @@ namespace gfx::generators::voxel
         return this->frames.at(frameNumber).getModel();
     }
 
-    AnimatedVoxelModel::ConstSpanType AnimatedVoxelModel::getFrame(float time, std::optional<Looping> looping) const
+    AnimatedVoxelModel::ConstSpanType AnimatedVoxelModel::getFrame(f32 time, std::optional<Looping> looping) const
     {
         return this->getFrame(this->getFrameNumberAtTime(time, looping));
     }
 
     AnimatedVoxelModel::FrameNumber
-    AnimatedVoxelModel::getFrameNumberAtTime(float time, std::optional<Looping> looping) const
+    AnimatedVoxelModel::getFrameNumberAtTime(f32 time, std::optional<Looping> looping) const
     {
         if (looping.has_value())
         {
@@ -405,13 +406,13 @@ namespace gfx::generators::voxel
             return 0;
         }
 
-        const std::vector<float>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
+        const std::vector<f32>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
 
         if (it == this->frame_start_times.cend())
         {
             log::critical("invalid time: {}", time);
 
-            for (float f : this->frame_start_times)
+            for (f32 f : this->frame_start_times)
             {
                 log::debug("{}", f);
             }
@@ -426,7 +427,7 @@ namespace gfx::generators::voxel
         return static_cast<FrameNumber>(this->frames.size());
     }
 
-    float AnimatedVoxelModel::getTotalTime() const
+    f32 AnimatedVoxelModel::getTotalTime() const
     {
         return this->total_time;
     }

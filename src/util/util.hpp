@@ -23,6 +23,8 @@ using f64   = double;         // NOLINT
 using b8    = u8;             // NOLINT
 using b32   = u32;            // NOLINT
 
+static_assert(sizeof(bool) == sizeof(b8));
+
 namespace util
 {
     template<class T>
@@ -99,10 +101,10 @@ namespace util
     std::string bytesAsSiNamed(std::size_t, SuffixType = SuffixType::Full);
     std::string bytesAsSiNamed(long double bytes, SuffixType = SuffixType::Full);
 
-    inline bool isApproxEqual(const float a, const float b, float similarity = 0.00001f)
+    inline bool isApproxEqual(const f32 a, const f32 b, f32 similarity = 0.00001f)
     {
-        const float maxMagnitude = std::max(std::abs(a), std::abs(b));
-        const float epsilon      = maxMagnitude * similarity;
+        const f32 maxMagnitude = std::max(std::abs(a), std::abs(b));
+        const f32 epsilon      = maxMagnitude * similarity;
 
         return abs(a - b) < epsilon;
     }

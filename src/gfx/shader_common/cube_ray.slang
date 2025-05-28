@@ -2,10 +2,10 @@
 
 #define CINNABAR_EPSILON 0.00001
 
-bool isApproxEqual(const float a, const float b)
+bool isApproxEqual(const f32 a, const f32 b)
 {
-    const float maxMagnitude = max(abs(a), abs(b));
-    const float epsilon      = maxMagnitude * CINNABAR_EPSILON * 0.1;
+    const f32 maxMagnitude = max(abs(a), abs(b));
+    const f32 epsilon      = maxMagnitude * CINNABAR_EPSILON * 0.1;
 
     return abs(a - b) < epsilon;
 }
@@ -22,10 +22,10 @@ struct IntersectionResult
     }
     
     bool  intersection_occurred;
-    float maybe_distance;
+    f32 maybe_distance;
     float3  maybe_hit_point;
     float3  maybe_normal;
-    float t_far;
+    f32 t_far;
 
     static IntersectionResult getMiss()
     {
@@ -39,7 +39,7 @@ struct Ray
     float3 origin;
     float3 direction;
 
-    float3 at(float t)
+    float3 at(f32 t)
     {
         return this.origin + this.direction * t;
     }
@@ -48,11 +48,11 @@ struct Ray
 struct Cube
 {
     float3  center;
-    float edge_length;
+    f32 edge_length;
 
     IntersectionResult tryIntersect(Ray ray)
     {
-        float tmin, tmax, tymin, tymax, tzmin, tzmax;
+        f32 tmin, tmax, tymin, tymax, tzmin, tzmax;
 
         float3 invdir = 1 / ray.direction;
 
@@ -102,7 +102,7 @@ struct Cube
 
         if (tmin > tmax)
         {
-            float temp = tmax;
+            f32 temp = tmax;
             tmax       = tmin;
             tmin       = temp;
         }

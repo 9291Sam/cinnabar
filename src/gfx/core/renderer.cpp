@@ -206,7 +206,7 @@ namespace gfx::core
         return this->frame_number.load(std::memory_order_seq_cst);
     }
 
-    float Renderer::getTimeAlive() const noexcept
+    f32 Renderer::getTimeAlive() const noexcept
     {
         return this->time_alive.load(std::memory_order_seq_cst);
     }

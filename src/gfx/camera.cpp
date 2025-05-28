@@ -17,9 +17,9 @@ namespace gfx
         , transform {.translation {cameraDescriptor.position}}
     {}
 
-    glm::mat4 InfiniteReversedPerspective(float fov, float aspectRatio, float nearPlane)
+    glm::mat4 InfiniteReversedPerspective(f32 fov, f32 aspectRatio, f32 nearPlane)
     {
-        float f = 1.0f / tan(fov * 0.5f);
+        f32 f = 1.0f / tan(fov * 0.5f);
 
         glm::mat4 result = glm::mat4(0.0f);
         result[0][0]     = f / aspectRatio;
@@ -67,22 +67,22 @@ namespace gfx
         return this->transform.translation;
     }
 
-    float Camera::getAspectRatio() const
+    f32 Camera::getAspectRatio() const
     {
         return this->aspect_ratio;
     }
 
-    float Camera::getFovYRadians() const
+    f32 Camera::getFovYRadians() const
     {
         return this->fov_y;
     }
 
-    float Camera::getPitch() const
+    f32 Camera::getPitch() const
     {
         return this->pitch;
     }
 
-    float Camera::getYaw() const
+    f32 Camera::getYaw() const
     {
         return this->yaw;
     }
@@ -102,15 +102,15 @@ namespace gfx
         this->transform.translation += positionToAdd;
     }
 
-    void Camera::addPitch(float pitchToAdd)
+    void Camera::addPitch(f32 pitchToAdd)
     {
         this->pitch += pitchToAdd;
         this->updateTransformFromRotations();
-        // const float pitchBefore =
+        // const f32 pitchBefore =
         // glm::eulerAngles(this->transform.rotation).p; if (pitchBefore +
-        // pitchToAdd > glm::half_pi<float>())
+        // pitchToAdd > glm::half_pi<f32>())
         // {
-        //     this->transform.pitchBy(glm::half_pi<float>() - pitchBefore);
+        //     this->transform.pitchBy(glm::half_pi<f32>() - pitchBefore);
 
         //     util::logTrace("Yawing by {:.8f}", yawToAdd);
         // }
@@ -120,7 +120,7 @@ namespace gfx
         // }
     }
 
-    void Camera::addYaw(float yawToAdd)
+    void Camera::addYaw(f32 yawToAdd)
     {
         this->yaw += yawToAdd;
         this->updateTransformFromRotations();
@@ -135,8 +135,8 @@ namespace gfx
     {
         glm::quat q {1.0f, 0.0f, 0.0f, 0.0f};
 
-        this->pitch = std::clamp(this->pitch, -glm::half_pi<float>(), glm::half_pi<float>());
-        this->yaw   = glm::mod(this->yaw, glm::two_pi<float>());
+        this->pitch = std::clamp(this->pitch, -glm::half_pi<f32>(), glm::half_pi<f32>());
+        this->yaw   = glm::mod(this->yaw, glm::two_pi<f32>());
 
         q *= glm::angleAxis(this->pitch, -Transform::RightVector);
 

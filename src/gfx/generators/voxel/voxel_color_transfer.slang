@@ -43,7 +43,7 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
                          node.r_1024,
                          node.g_1024,
                          node.b_1024)
-                   / (float(node.getSamples()) * 1024);
+                   / (f32(node.getSamples()) * 1024);
 
             break;
         }

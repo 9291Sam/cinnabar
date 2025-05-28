@@ -74,10 +74,10 @@ namespace gfx
             glm::vec4  camera_right_vector;
             glm::vec4  camera_up_vector;
             glm::vec4  camera_position;
-            float      fov_y;
-            float      tan_half_fov_y;
-            float      aspect_ratio;
-            float      time_alive;
+            f32        fov_y;
+            f32        tan_half_fov_y;
+            f32        aspect_ratio;
+            f32        time_alive;
             glm::uvec2 framebuffer_size;
             u32        bool_enable_reflections;
             u32        bool_moved_this_frame;

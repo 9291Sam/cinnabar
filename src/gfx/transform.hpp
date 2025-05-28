@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/util.hpp"
 #include <glm/gtx/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -27,9 +28,9 @@ namespace gfx
         [[nodiscard]] glm::vec3 getRightVector() const;
 
         void rotateBy(glm::quat);
-        void pitchBy(float pitch);
-        void yawBy(float yaw);
-        void rollBy(float roll);
+        void pitchBy(f32 pitch);
+        void yawBy(f32 yaw);
+        void rollBy(f32 roll);
 
         explicit operator std::string () const;
     };

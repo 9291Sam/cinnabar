@@ -1,4 +1,7 @@
 
+
+#include "util/util.hpp"
+
 //// BEGIN gif_read.hpp
 
 //
@@ -8,8 +11,6 @@
 //  Created by Kyle Halladay on 3/31/19.
 //  Copyright © 2019 Kyle Halladay. All rights reserved.
 //
-
-// currently only tested / used on OSX 10.14.3
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
@@ -51,7 +52,7 @@ namespace gif_read
         // returns an array of unsigned byte RGBA pixel data for a texture with the dimensions
         // defined by the getWidth() and getHeight() function calls. Alpha will always be 255
         const uint8* getFrame(uint32 frameIndex) const;
-        const uint8* getFrameAtTime(float time, bool looping = true) const;
+        const uint8* getFrameAtTime(f32 time, bool looping = true) const;
 
     private:
         struct GIFImpl* _impl = nullptr;
@@ -77,15 +78,15 @@ namespace gif_read
         uint32 getWidth() const;
         uint32 getHeight() const;
         uint32 getNumFrames() const;
-        float  getDurationInSeconds() const;
+        f32    getDurationInSeconds() const;
 
         uint32 createIterator();
         bool   isIteratorValid(uint32 iterator);
         void   destroyIterator(uint32 iterator);
 
         // returns true if time has advanced enough to get a new frame
-        bool tickSingleIterator(uint32 interator, float deltaTime);
-        void tick(float deltaTime); // ticks all iterators
+        bool tickSingleIterator(uint32 interator, f32 deltaTime);
+        void tick(f32 deltaTime); // ticks all iterators
 
         const uint8* getFirstFrame() const;
         const uint8* getCurrentFrame(uint32 interator) const;
@@ -821,7 +822,7 @@ namespace gif_read
         return _impl->images[frameIndex];
     }
 
-    const uint8* GIF::getFrameAtTime(float time, bool looping) const
+    const uint8* GIF::getFrameAtTime(f32 time, bool looping) const
     {
         GT_CHECK(time >= 0, "Attempting to get a gif frame at a negative time (%f)", time);
         GifFileData& gif     = _impl->file;
@@ -880,7 +881,7 @@ namespace gif_read
 {
     struct StreamingGIFIter
     {
-        float  currentTime     = 0.0f;
+        f32    currentTime     = 0.0f;
         uint16 currentFrameIdx = 0;
         uint8* currentFrame    = nullptr;
     };
@@ -933,7 +934,7 @@ namespace gif_read
         return _impl->file.numFrames;
     }
 
-    float StreamingGIF::getDurationInSeconds() const
+    f32 StreamingGIF::getDurationInSeconds() const
     {
         return _impl->file.totalRunTime * 100;
     }
@@ -1015,7 +1016,7 @@ namespace gif_read
             gif.header);
     }
 
-    bool StreamingGIF::tickSingleIterator(uint32 iterator, float deltaTime)
+    bool StreamingGIF::tickSingleIterator(uint32 iterator, f32 deltaTime)
     {
         if (!isIteratorValid(iterator))
         {
@@ -1101,7 +1102,7 @@ namespace gif_read
     // calls to tick() to catch up. This is intentional, to prevent CPU hitches
     // from causing atypical CPU usage when encountering a hitch in a
     // running game
-    void StreamingGIF::tick(float deltaTime)
+    void StreamingGIF::tick(f32 deltaTime)
     {
         GT_CHECK(deltaTime > 0, "Passed negative time to StreamingGif::Tick()");
         deltaTime = deltaTime > 0 ? deltaTime : 0;
@@ -1228,11 +1229,11 @@ namespace util
 
         this->extent = {static_cast<u32>(width), static_cast<u32>(height)};
 
-        std::unordered_map<const u8*, float> discoveredFramesToTimesMap;
+        std::unordered_map<const u8*, f32> discoveredFramesToTimesMap;
 
-        static constexpr float ProbeTimeGranularity = 0.001f;
+        static constexpr f32 ProbeTimeGranularity = 0.001f;
 
-        float thisProbeTime = 0.0f;
+        f32 thisProbeTime = 0.0f;
         while (discoveredFramesToTimesMap.size() < numberOfFrames)
         {
             const u8* discoveredFramePointer = gifLoader.getFrameAtTime(thisProbeTime, false);
@@ -1256,7 +1257,7 @@ namespace util
 
         const usize sizeBytesOneFrame = width * height * sizeof(Color);
 
-        for (const float frameStartTime : this->frame_start_times)
+        for (const f32 frameStartTime : this->frame_start_times)
         {
             const u8* rawFrameData = gifLoader.getFrameAtTime(frameStartTime);
 
@@ -1278,19 +1279,19 @@ namespace util
     }
 
     std::mdspan<const Gif::Color, std::dextents<usize, 2>>
-    Gif::getFrameAtTime(float time, std::optional<Looping> looping) const
+    Gif::getFrameAtTime(f32 time, std::optional<Looping> looping) const
     {
         return this->getFrame(this->getFrameNumberAtTime(time, looping));
     }
 
-    util::Gif::FrameNumber Gif::getFrameNumberAtTime(float time, std::optional<Looping> looping) const
+    util::Gif::FrameNumber Gif::getFrameNumberAtTime(f32 time, std::optional<Looping> looping) const
     {
         if (looping.has_value())
         {
             time = std::fmod(time, this->total_time);
         }
 
-        const std::vector<float>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
+        const std::vector<f32>::const_iterator it = std::ranges::lower_bound(this->frame_start_times, time);
 
         return static_cast<FrameNumber>(it - this->frame_start_times.cbegin());
     }
@@ -1300,14 +1301,14 @@ namespace util
         return this->extent;
     }
 
-    float Gif::getTotalTime() const
+    f32 Gif::getTotalTime() const
     {
         return this->total_time;
     }
 
-    std::span<const float> Gif::getAllStartTimes() const
+    std::span<const f32> Gif::getAllStartTimes() const
     {
-        return std::span<const float> {this->frame_start_times.data(), this->frame_start_times.size()};
+        return std::span<const f32> {this->frame_start_times.data(), this->frame_start_times.size()};
     }
 
 } // namespace util

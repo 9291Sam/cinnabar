@@ -223,9 +223,9 @@ namespace gfx::generators::voxel
         // const i32 integerScale = static_cast<i32>(gpu_calculateChunkVoxelSizeUnits(lod));
         const i32 integerScale = lodres;
 
-        auto gen2D = [&](float scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<float, 64>, 64>>
+        auto gen2D = [&](f32 scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<f32, 64>, 64>>
         {
-            std::unique_ptr<std::array<std::array<float, 64>, 64>> res {new std::array<std::array<float, 64>, 64>};
+            std::unique_ptr<std::array<std::array<f32, 64>, 64>> res {new std::array<std::array<f32, 64>, 64>};
 
             this->fractal->GenUniformGrid2D(
                 res->data()->data(),
@@ -240,11 +240,11 @@ namespace gfx::generators::voxel
         };
 
         // auto gen3D =
-        //     [&](float       scale,
-        //         std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>>
+        //     [&](f32       scale,
+        //         std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<f32, 64>, 64>, 64>>
         // {
-        //     std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>> res {
-        //         new std::array<std::array<std::array<float, 64>, 64>, 64>};
+        //     std::unique_ptr<std::array<std::array<std::array<f32, 64>, 64>, 64>> res {
+        //         new std::array<std::array<std::array<f32, 64>, 64>, 64>};
 
         //     this->fractal->GenUniformGrid3D(
         //         res->data()->data()->data(), root.x, root.z, root.y, 64, 64, 64, scale, static_cast<int>(localSeed));
@@ -252,12 +252,12 @@ namespace gfx::generators::voxel
         //     return res;
         // };
 
-        auto height         = gen2D(static_cast<float>(integerScale) * 0.001f, this->seed + 487484);
-        auto bumpHeight     = gen2D(static_cast<float>(integerScale) * 0.01f, this->seed + 7373834);
-        auto mountainHeight = gen2D(static_cast<float>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
-        // auto mainRock    = gen3D(static_cast<float>(integerScale) * 0.001f, this->seed - 747875);
-        // auto pebblesRock = gen3D(static_cast<float>(integerScale) * 0.01f, this->seed -
-        // 52649274); auto pebbles        = gen3D(static_cast<float>(integerScale) * 0.05f, this->seed - 948);
+        auto height         = gen2D(static_cast<f32>(integerScale) * 0.001f, this->seed + 487484);
+        auto bumpHeight     = gen2D(static_cast<f32>(integerScale) * 0.01f, this->seed + 7373834);
+        auto mountainHeight = gen2D(static_cast<f32>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
+        // auto mainRock    = gen3D(static_cast<f32>(integerScale) * 0.001f, this->seed - 747875);
+        // auto pebblesRock = gen3D(static_cast<f32>(integerScale) * 0.01f, this->seed -
+        // 52649274); auto pebbles        = gen3D(static_cast<f32>(integerScale) * 0.05f, this->seed - 948);
 
         std::vector<std::pair<ChunkLocalPosition, Voxel>> out {};
         out.reserve(32768);
@@ -315,9 +315,9 @@ namespace gfx::generators::voxel
         // const i32 integerScale = static_cast<i32>(gpu_calculateChunkVoxelSizeUnits(lod));
         const i32 integerScale = lodres;
 
-        auto gen2D = [&](float scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<float, 64>, 64>>
+        auto gen2D = [&](f32 scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<f32, 64>, 64>>
         {
-            std::unique_ptr<std::array<std::array<float, 64>, 64>> res {new std::array<std::array<float, 64>, 64>};
+            std::unique_ptr<std::array<std::array<f32, 64>, 64>> res {new std::array<std::array<f32, 64>, 64>};
 
             this->fractal->GenUniformGrid2D(
                 res->data()->data(),
@@ -332,11 +332,11 @@ namespace gfx::generators::voxel
         };
 
         // auto gen3D =
-        //     [&](float       scale,
-        //         std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>>
+        //     [&](f32       scale,
+        //         std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<f32, 64>, 64>, 64>>
         // {
-        //     std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>> res {
-        //         new std::array<std::array<std::array<float, 64>, 64>, 64>};
+        //     std::unique_ptr<std::array<std::array<std::array<f32, 64>, 64>, 64>> res {
+        //         new std::array<std::array<std::array<f32, 64>, 64>, 64>};
 
         //     this->fractal->GenUniformGrid3D(
         //         res->data()->data()->data(), root.x, root.z, root.y, 64, 64, 64, scale, static_cast<int>(localSeed));
@@ -344,12 +344,12 @@ namespace gfx::generators::voxel
         //     return res;
         // };
 
-        auto height     = gen2D(static_cast<float>(integerScale) * 0.001f, this->seed + 487484);
-        auto bumpHeight = gen2D(static_cast<float>(integerScale) * 0.01f, this->seed + 7373834);
-        // auto mountainHeight = gen2D(static_cast<float>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
-        // auto mainRock    = gen3D(static_cast<float>(integerScale) * 0.001f, this->seed - 747875);
-        // auto pebblesRock = gen3D(static_cast<float>(integerScale) * 0.01f, this->seed -
-        // 52649274); auto pebbles        = gen3D(static_cast<float>(integerScale) * 0.05f, this->seed - 948);
+        auto height     = gen2D(static_cast<f32>(integerScale) * 0.001f, this->seed + 487484);
+        auto bumpHeight = gen2D(static_cast<f32>(integerScale) * 0.01f, this->seed + 7373834);
+        // auto mountainHeight = gen2D(static_cast<f32>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
+        // auto mainRock    = gen3D(static_cast<f32>(integerScale) * 0.001f, this->seed - 747875);
+        // auto pebblesRock = gen3D(static_cast<f32>(integerScale) * 0.01f, this->seed -
+        // 52649274); auto pebbles        = gen3D(static_cast<f32>(integerScale) * 0.05f, this->seed - 948);
 
         BrickMap                        brickMap {};
         std::vector<CombinedBrick>      combinedBricks;

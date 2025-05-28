@@ -64,7 +64,7 @@ struct VertexOutput
 VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 {
     const uint chunkId = vertexIndex / 36;
-    const float voxel_size      = 64.0;
+    const f32 voxel_size      = 64.0;
 
     const float3 box_corner_negative = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner();
     const float3 center_location = box_corner_negative + voxel_size / 2.0;
@@ -86,7 +86,7 @@ VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 struct FragmentOutput
 {
     float4 out_position_and_id : COLOR0;
-    float depth : SV_DepthGreaterEqual;
+    f32 depth : SV_DepthGreaterEqual;
 };
 
 [shader("fragment")]
@@ -140,7 +140,7 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
 
 
     const float4  clipPos = mul(global_gpu_data[UBO_GLOBAL_DATA].view_projection_matrix, float4(worldStrikePosition, float(1.0)));
-    const float depth   = (clipPos.z / clipPos.w);
+    const f32 depth   = (clipPos.z / clipPos.w);
     out.depth        = max(depth, 0.000000000001);
 
     return out;

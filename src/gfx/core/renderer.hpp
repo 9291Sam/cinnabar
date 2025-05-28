@@ -67,7 +67,7 @@ namespace gfx::core
         [[nodiscard]] const Window*                    getWindow() const noexcept;
         [[nodiscard]] const vulkan::BufferStager&      getStager() const noexcept;
         [[nodiscard]] u32                              getFrameNumber() const noexcept;
-        [[nodiscard]] float                            getTimeAlive() const noexcept;
+        [[nodiscard]] f32                              getTimeAlive() const noexcept;
 
         void setDesiredPresentMode(vk::PresentModeKHR) const noexcept;
 
@@ -92,8 +92,8 @@ namespace gfx::core
 
         util::Mutex<std::unique_ptr<RenderingCriticalSection>> critical_section;
 
-        mutable std::atomic<float> time_alive;
-        mutable std::atomic<u32>   frame_number;
+        mutable std::atomic<f32> time_alive;
+        mutable std::atomic<u32> frame_number;
 
         mutable std::atomic<std::optional<vk::PresentModeKHR>> desired_present_mode;
         mutable std::atomic<bool>                              should_resize_occur;

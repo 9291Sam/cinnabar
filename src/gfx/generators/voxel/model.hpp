@@ -42,8 +42,8 @@ namespace gfx::generators::voxel
     public:
         struct AnimatedVoxelModelFrame
         {
-            float            start_time;
-            float            duration;
+            f32              start_time;
+            f32              duration;
             StaticVoxelModel model;
         };
 
@@ -67,17 +67,17 @@ namespace gfx::generators::voxel
         AnimatedVoxelModel& operator= (AnimatedVoxelModel&&) noexcept;
 
         [[nodiscard]] ConstSpanType getFrame(FrameNumber) const;
-        [[nodiscard]] ConstSpanType getFrame(float time, std::optional<Looping> = {}) const;
-        [[nodiscard]] FrameNumber   getFrameNumberAtTime(float, std::optional<Looping> = {}) const;
+        [[nodiscard]] ConstSpanType getFrame(f32 time, std::optional<Looping> = {}) const;
+        [[nodiscard]] FrameNumber   getFrameNumberAtTime(f32, std::optional<Looping> = {}) const;
         [[nodiscard]] FrameNumber   getNumberOfFrames() const;
-        [[nodiscard]] float         getTotalTime() const;
+        [[nodiscard]] f32           getTotalTime() const;
         [[nodiscard]] glm::u32vec3  getExtent() const;
 
     private:
-        std::vector<float>            frame_start_times;
+        std::vector<f32>              frame_start_times;
         std::vector<StaticVoxelModel> frames;
         glm::u32vec3                  extent;
-        float                         total_time;
+        f32                           total_time;
     };
 
 } // namespace gfx::generators::voxel

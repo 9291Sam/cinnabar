@@ -13,7 +13,7 @@ for d in jsonData:
     name = d.get("name")
     voxel_name = f"Voxel::{name}"
     
-    # Ensure float values always have a decimal point and 'f' suffix
+    # Ensure f32 values always have a decimal point and 'f' suffix
     color = [f"{c}f" if "." in str(c) else f"{c}.0f" for c in d.get("color", [0.0, 0.0, 0.0])]
     metallic = f"{d.get('metalness', 0.0)}f" if "." in str(d.get("metalness", 0.0)) else f"{d.get('metalness', 0.0)}.0f"
     roughness = f"{d.get('roughness', 1.0)}f" if "." in str(d.get("roughness", 1.0)) else f"{d.get('roughness', 1.0)}.0f"

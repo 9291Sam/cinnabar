@@ -243,13 +243,13 @@ namespace gfx::generators::imgui
         ImGui::SetNextWindowPos(ImVec2 {std::ceil(viewport->Size.x - desiredConsoleSize.x), 0});
         ImGui::SetNextWindowSize(desiredConsoleSize);
 
-        const float deltaTime = renderer->getWindow()->getDeltaTimeSeconds();
+        const f32 deltaTime = renderer->getWindow()->getDeltaTimeSeconds();
 
-        auto getDeltaTimeEmoji = [](const float dt) -> std::string_view
+        auto getDeltaTimeEmoji = [](const f32 dt) -> std::string_view
         {
             using namespace std::literals;
 
-            const float fps = 1.0f / dt;
+            const f32 fps = 1.0f / dt;
 
             if (fps >= 60)
             {
@@ -274,7 +274,7 @@ namespace gfx::generators::imgui
                     ImGuiWindowFlags_NoMove |          // NOLINT
                     ImGuiWindowFlags_NoDecoration))    // NOLINT
         {
-            static constexpr float WindowPadding = 5.0f;
+            static constexpr f32 WindowPadding = 5.0f;
 
             // assert::critical(this->font != nullptr, "oopers");
 

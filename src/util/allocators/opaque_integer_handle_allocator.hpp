@@ -159,7 +159,7 @@ namespace util
             return this->allocator.getNumberAllocated();
         }
 
-        [[nodiscard]] float getPercentAllocated() const
+        [[nodiscard]] f32 getPercentAllocated() const
         {
             return this->getPercentAllocated();
         }

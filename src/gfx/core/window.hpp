@@ -23,8 +23,8 @@ namespace gfx::core
     public:
         struct Delta
         {
-            float x;
-            float y;
+            f32 x;
+            f32 y;
         };
 
         using GlfwKeyType = int;
@@ -73,7 +73,7 @@ namespace gfx::core
         [[nodiscard]] bool         isActionActive(Action, bool ignoreCursorAttached = false) const;
         [[nodiscard]] Delta        getScreenSpaceMouseDelta() const;
         [[nodiscard]] Delta        getScrollDelta() const;
-        [[nodiscard]] float        getDeltaTimeSeconds() const;
+        [[nodiscard]] f32          getDeltaTimeSeconds() const;
         [[nodiscard]] vk::Extent2D getFramebufferSize() const;
 
         // Neither of these functions are threadsafe
@@ -108,7 +108,7 @@ namespace gfx::core
         std::map<Action, InteractionMethod>        action_interaction_map;
 
         std::chrono::time_point<std::chrono::steady_clock> last_frame_end_time;
-        std::atomic<std::chrono::duration<float>>          last_frame_duration;
+        std::atomic<std::chrono::duration<f32>>            last_frame_duration;
 
         std::array<std::atomic<bool>, 8> mouse_buttons_pressed_state; // NOLINT
         mutable std::atomic<std::size_t> mouse_ignore_frames;

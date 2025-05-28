@@ -41,7 +41,7 @@ struct TemporaryGameState : game::Game::GameState
         , voxel_renderer {this->game->getRenderer()}
     {
         std::mt19937                           gen {std::random_device {}()};
-        std::uniform_real_distribution<float>  dist {-16.0f, 16.0f};
+        std::uniform_real_distribution<f32>    dist {-16.0f, 16.0f};
         gfx::generators::voxel::WorldGenerator wg {12812389021980};
 
         for (int i = 0; i < 38; ++i)
@@ -134,15 +134,14 @@ struct TemporaryGameState : game::Game::GameState
 
     game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
     {
-        const float deltaTime        = updateArgs.delta_time;
-        const bool  hasResizeOcurred = updateArgs.has_resize_ocurred;
+        const f32  deltaTime        = updateArgs.delta_time;
+        const bool hasResizeOcurred = updateArgs.has_resize_ocurred;
 
         const gfx::core::Renderer* renderer = this->game->getRenderer();
 
         const vk::Extent2D frameBufferSize = renderer->getWindow()->getFramebufferSize();
 
-        const float aspectRatio =
-            static_cast<float>(frameBufferSize.width) / static_cast<float>(frameBufferSize.height);
+        const f32 aspectRatio = static_cast<f32>(frameBufferSize.width) / static_cast<f32>(frameBufferSize.height);
 
         if (hasResizeOcurred)
         {
@@ -168,7 +167,7 @@ struct TemporaryGameState : game::Game::GameState
 
         glm::vec3 newPosition = previousPosition;
 
-        const float moveScale = 32.0f;
+        const f32 moveScale = 32.0f;
 
         // Adjust the new position based on input for movement directions
         if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::PlayerMoveForward))
@@ -200,7 +199,7 @@ struct TemporaryGameState : game::Game::GameState
 
         camera.setPosition(newPosition);
 
-        const float rotateSpeedScale = 6.0f;
+        const f32 rotateSpeedScale = 6.0f;
 
         auto getMouseDeltaRadians = [&]
         {
@@ -229,7 +228,7 @@ struct TemporaryGameState : game::Game::GameState
             .camera {this->camera}};
     }
 
-    static constexpr float FovY = glm::radians(70.0f);
+    static constexpr f32 FovY = glm::radians(70.0f);
 
     game::Game* game;
 

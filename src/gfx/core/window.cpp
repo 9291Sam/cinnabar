@@ -119,8 +119,8 @@ namespace gfx::core
             const Delta        mouseDeltaPixels      = this->mouse_delta_pixels.load(std::memory_order_acquire);
 
             return Delta {
-                .x {mouseDeltaPixels.x / static_cast<float>(framebufferSizePixels.width)},
-                .y {mouseDeltaPixels.y / static_cast<float>(framebufferSizePixels.height)},
+                .x {mouseDeltaPixels.x / static_cast<f32>(framebufferSizePixels.width)},
+                .y {mouseDeltaPixels.y / static_cast<f32>(framebufferSizePixels.height)},
             };
         }
         else
@@ -156,7 +156,7 @@ namespace gfx::core
         }
     }
 
-    float Window::getDeltaTimeSeconds() const
+    f32 Window::getDeltaTimeSeconds() const
     {
         return this->last_frame_duration.load(std::memory_order_acquire).count();
     }
@@ -264,8 +264,8 @@ namespace gfx::core
             glfwGetCursorPos(this->window, &currentMousePositionDoubles.first, &currentMousePositionDoubles.second);
 
             const Delta currentMousePosition {
-                .x {static_cast<float>(currentMousePositionDoubles.first)},
-                .y {static_cast<float>(currentMousePositionDoubles.second)}};
+                .x {static_cast<f32>(currentMousePositionDoubles.first)},
+                .y {static_cast<f32>(currentMousePositionDoubles.second)}};
             const Delta previousMousePosition {this->previous_mouse_position.load(std::memory_order_acquire)};
 
             this->mouse_delta_pixels.store(
@@ -282,8 +282,8 @@ namespace gfx::core
 
             this->scroll_delta.store(
                 Delta {
-                    .x {static_cast<float>(newScroll.x - oldScroll.x)},
-                    .y {static_cast<float>(newScroll.y - oldScroll.y)},
+                    .x {static_cast<f32>(newScroll.x - oldScroll.x)},
+                    .y {static_cast<f32>(newScroll.y - oldScroll.y)},
                 });
 
             this->previous_absolute_scroll_position.store(newScroll);

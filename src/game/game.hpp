@@ -19,8 +19,8 @@ namespace game
 
         struct GameStateUpdateArgs
         {
-            float delta_time;
-            bool  has_resize_ocurred;
+            f32  delta_time;
+            bool has_resize_ocurred;
         };
 
         struct GameState
