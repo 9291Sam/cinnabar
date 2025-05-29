@@ -13,6 +13,7 @@
 #include "gfx/shader_common/bindings.slang"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/task_generator.hpp"
 #include <ranges>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -22,7 +23,7 @@ namespace gfx
 {
     FrameGenerator::FrameGenerator(const core::Renderer* renderer_)
         : renderer {renderer_}
-        , has_resize_ocurred {true}
+        , has_resize_occurred {true}
         , frame_descriptors {this->createFrameDescriptors()}
         , global_gpu_data {
               this->renderer,
@@ -33,7 +34,8 @@ namespace gfx
               UBO_GLOBAL_DATA}
     {}
 
-    bool FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera)
+    FrameGenerator::FrameGenerateReturn
+    FrameGenerator::renderFrame(FrameGenerateArgs generators, gfx::Camera camera, util::TimestampStamper profiler)
     {
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
@@ -63,12 +65,17 @@ namespace gfx
 
         this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
 
+        profiler.stamp("enqueue global transfer");
+
         if (generators.maybe_voxel_renderer != nullptr)
         {
             generators.maybe_voxel_renderer->preFrameUpdate();
         }
 
-        this->has_resize_ocurred = this->renderer->recordOnThread(
+        profiler.stamp("voxel pre frame update");
+
+        this->has_resize_occurred = this->renderer->recordOnThread(
+            &profiler,
             [&](vk::CommandBuffer             commandBuffer,
                 vk::QueryPool                 queryPool,
                 u32                           swapchainImageIdx,
@@ -227,7 +234,7 @@ namespace gfx
 
                 writeTimeStamp("voxel copy commands");
 
-                if (this->has_resize_ocurred)
+                if (this->has_resize_occurred)
                 {
                     this->renderer->getWindow()->attachCursor();
 
@@ -780,14 +787,18 @@ namespace gfx
                     util::send<std::array<std::string_view, core::vulkan::MaxQueriesPerFrame>>(
                         "GPU_TIMESTAMP_NAMES", this->active_timestamp_names);
                 }
+
+                profiler.stamp("record command buffer");
             });
 
-        if (this->has_resize_ocurred)
+        if (this->has_resize_occurred)
         {
             this->frame_descriptors.reset();
 
             this->frame_descriptors = this->createFrameDescriptors();
         }
+
+        profiler.stamp("resize frame descriptors");
 
         if (this->renderer->getPipelineManager()->couldAnyShadersReload())
         {
@@ -796,7 +807,10 @@ namespace gfx
             this->renderer->getPipelineManager()->reloadShaders();
         }
 
-        return this->has_resize_ocurred;
+        profiler.stamp("reload shaders");
+
+        return FrameGenerateReturn {
+            .has_resize_occurred {this->has_resize_occurred}, .render_thread_profile {std::move(profiler)}};
     }
 
     FrameGenerator::FrameDescriptors FrameGenerator::createFrameDescriptors()

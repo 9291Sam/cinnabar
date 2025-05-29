@@ -62,12 +62,6 @@ namespace gfx::core::vulkan
             }
         }
 
-        log::info(
-            "Selected {} as present mode with a swapchain size of {}x{}",
-            vk::to_string(this->active_present_mode),
-            this->extent.width,
-            this->extent.height);
-
         const vk::SurfaceCapabilitiesKHR surfaceCapabilities =
             device.getPhysicalDevice().getSurfaceCapabilitiesKHR(surface);
         const u32 numberOfSwapchainImages = std::min(
@@ -99,13 +93,14 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eSwapchainKHR},
-                .objectHandle {std::bit_cast<u64>(*this->swapchain)},
-                .pObjectName {"Swapchain"},
-            });
+            device->setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eSwapchainKHR},
+                    .objectHandle {std::bit_cast<u64>(*this->swapchain)},
+                    .pObjectName {"Swapchain"},
+                });
         }
 
         this->image_views.reserve(this->images.size());
@@ -142,21 +137,23 @@ namespace gfx::core::vulkan
                 std::string imageName = std::format("Swapchain Image #{}", idx);
                 std::string viewName  = std::format("View #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eImage},
-                    .objectHandle {std::bit_cast<u64>(i)},
-                    .pObjectName {imageName.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eImage},
+                        .objectHandle {std::bit_cast<u64>(i)},
+                        .pObjectName {imageName.c_str()},
+                    });
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eImageView},
-                    .objectHandle {std::bit_cast<u64>(*imageView)},
-                    .pObjectName {viewName.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eImageView},
+                        .objectHandle {std::bit_cast<u64>(*imageView)},
+                        .pObjectName {viewName.c_str()},
+                    });
             }
 
             this->dense_image_views.push_back(*imageView);
@@ -165,7 +162,12 @@ namespace gfx::core::vulkan
             idx += 1;
         }
 
-        log::debug("Created swapchain with {} images", this->images.size());
+        log::info(
+            "Selected {} as present mode with {} swapchain images and size of {}x{}",
+            vk::to_string(this->active_present_mode),
+            this->images.size(),
+            this->extent.width,
+            this->extent.height);
     }
 
     std::span<const vk::ImageView> Swapchain::getViews() const noexcept

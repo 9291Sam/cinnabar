@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/task_generator.hpp"
 #include "util/util.hpp"
 #include <chrono>
 #include <cstddef>
@@ -33,6 +34,7 @@ namespace gfx::core::vulkan
         Frame& operator= (Frame&&)      = delete;
 
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
+            util::TimestampStamper*  maybeRenderThreadProfiler,
             std::optional<vk::Fence> previousFrameFence,
             // u32 is the swapchain image's index
             std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)>,
@@ -72,6 +74,7 @@ namespace gfx::core::vulkan
         // u32 is the swapchain image's index
         // the void function is a callback for flushing buffers
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
+            util::TimestampStamper* maybeRenderThreadProfiler,
             std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32, std::function<void()>)>,
             const BufferStager&);
     private:

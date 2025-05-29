@@ -93,6 +93,7 @@ namespace gfx::core
     }
 
     bool Renderer::recordOnThread(
+        util::TimestampStamper* maybeRenderThreadProfiler,
         std::function<void(
             vk::CommandBuffer, vk::QueryPool, u32, vulkan::Swapchain&, std::size_t, std::function<void()>)> recordFunc)
         const
@@ -104,6 +105,7 @@ namespace gfx::core
             {
                 const std::expected<void, vulkan::Frame::ResizeNeeded> drawFrameResult =
                     lockedCriticalSection->frame_manager->recordAndDisplay(
+                        maybeRenderThreadProfiler,
                         [&](std::size_t           flyingFrameIdx,
                             vk::QueryPool         queryPool,
                             vk::CommandBuffer     commandBuffer,
@@ -132,6 +134,11 @@ namespace gfx::core
                     lockedCriticalSection = this->makeCriticalSection();
 
                     resizeOcurred = true;
+                }
+
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("resize block");
                 }
             });
 

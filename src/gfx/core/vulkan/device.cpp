@@ -107,13 +107,6 @@ namespace gfx::core::vulkan
             }
         };
 
-        log::debug(
-            "Discovered queues! | Graphics: {} | Async Compute: {} | Async "
-            "Transfer: {}",
-            getStringOfFamily(graphicsFamily),
-            getStringOfFamily(asyncComputeFamily),
-            getStringOfFamily(asyncTransferFamily));
-
         std::vector<vk::DeviceQueueCreateInfo> queuesToCreate {};
 
         std::vector<f32> queuePriorities {};
@@ -127,14 +120,15 @@ namespace gfx::core::vulkan
         {
             numberOfGraphicsQueues = queueFamilyProperties.at(*graphicsFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*graphicsFamily},
-                .queueCount {numberOfGraphicsQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*graphicsFamily},
+                    .queueCount {numberOfGraphicsQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
         else
         {
@@ -145,36 +139,40 @@ namespace gfx::core::vulkan
         {
             numberOfAsyncComputeQueues = queueFamilyProperties.at(*asyncComputeFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*asyncComputeFamily},
-                .queueCount {numberOfAsyncComputeQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*asyncComputeFamily},
+                    .queueCount {numberOfAsyncComputeQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
 
         if (asyncTransferFamily.has_value())
         {
             numberOfAsyncTransferQueues = queueFamilyProperties.at(*asyncTransferFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*asyncTransferFamily},
-                .queueCount {numberOfAsyncTransferQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*asyncTransferFamily},
+                    .queueCount {numberOfAsyncTransferQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
 
         log::debug(
-            "Instantiating queues! | Graphics: {} | Async Compute: {} | Async "
-            "Transfer: {}",
+            "Instantiating queues! | Graphics: {} @ {} | Async Compute: {} @ {} | Async Transfer: {} @ {}",
             numberOfGraphicsQueues,
+            getStringOfFamily(graphicsFamily),
             numberOfAsyncComputeQueues,
-            numberOfAsyncTransferQueues);
+            getStringOfFamily(asyncComputeFamily),
+            numberOfAsyncTransferQueues,
+            getStringOfFamily(asyncTransferFamily));
 
         this->queue_family_numbers =
             std::array {numberOfGraphicsQueues, numberOfAsyncComputeQueues, numberOfAsyncTransferQueues};
@@ -188,6 +186,21 @@ namespace gfx::core::vulkan
             "VK_KHR_portability_subset",
 #endif // __APPLE__
         };
+
+        for (const char* requestedExtension : requiredExtensions)
+        {
+            for (const vk::ExtensionProperties& availableExtension :
+                 this->physical_device.enumerateDeviceExtensionProperties())
+            {
+                if (std::strcmp(availableExtension.extensionName.data(), requestedExtension) == 0)
+                {
+                    goto next_extension;
+                }
+            }
+
+            panic("Required extension {} was not available!", requestedExtension);
+        next_extension: {}
+        }
 
         vk::PhysicalDeviceVulkan12Features features12 {};
         features12.sType                                         = vk::StructureType::ePhysicalDeviceVulkan12Features;
@@ -247,23 +260,19 @@ namespace gfx::core::vulkan
             .pEnabledFeatures {nullptr},
         };
 
-        for (const char* e : requiredExtensions)
-        {
-            log::debug("Requesting device extension {}", e);
-        }
-
         this->device = this->physical_device.createDeviceUnique(deviceCreateInfo);
         VULKAN_HPP_DEFAULT_DISPATCHER.init(instance, *this->device);
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            this->device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eDevice},
-                .objectHandle {std::bit_cast<u64>(*this->device)},
-                .pObjectName {"Device"},
-            });
+            this->device->setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eDevice},
+                    .objectHandle {std::bit_cast<u64>(*this->device)},
+                    .pObjectName {"Device"},
+                });
         }
 
         std::vector<util::Mutex<vk::Queue>> graphicsQueues {};
@@ -278,13 +287,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Graphics Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             graphicsQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -298,13 +308,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Async Compute Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             asyncComputeQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -318,13 +329,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Async Transfer Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             asyncTransferQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -334,7 +346,20 @@ namespace gfx::core::vulkan
         this->queues[static_cast<std::size_t>(QueueType::AsyncCompute)]  = std::move(asyncComputeQueues);
         this->queues[static_cast<std::size_t>(QueueType::AsyncTransfer)] = std::move(asyncTransferQueues);
 
-        log::debug("Created device");
+        std::string deviceExtensionsRequestedString {};
+
+        for (const char* str : requiredExtensions)
+        {
+            deviceExtensionsRequestedString += std::format("{}, ", str);
+        }
+
+        if (!deviceExtensionsRequestedString.empty())
+        {
+            deviceExtensionsRequestedString.pop_back();
+            deviceExtensionsRequestedString.pop_back();
+        }
+
+        log::debug("Created device with extensions {}", deviceExtensionsRequestedString);
     }
 
     std::optional<u32> Device::getFamilyOfQueueType(QueueType t) const noexcept

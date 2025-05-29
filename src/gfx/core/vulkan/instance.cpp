@@ -97,8 +97,6 @@ namespace gfx::core::vulkan
 
             panic("Required extension {} was not available!", requestedExtension);
         next_extension: {}
-
-            log::debug("Requesting instance extension {}", requestedExtension);
         }
 
         static vk::PFN_DebugUtilsMessengerCallbackEXT debugMessengerCallback =
@@ -182,7 +180,20 @@ namespace gfx::core::vulkan
         }
 #endif // CINNABAR_DEBUG_BUILD
 
-        log::debug("Created instance");
+        std::string instanceExtensionsRequestedString {};
+
+        for (const char* str : extensions)
+        {
+            instanceExtensionsRequestedString += std::format("{}, ", str);
+        }
+
+        if (!instanceExtensionsRequestedString.empty())
+        {
+            instanceExtensionsRequestedString.pop_back();
+            instanceExtensionsRequestedString.pop_back();
+        }
+
+        log::debug("Created instance with extensions {}", instanceExtensionsRequestedString);
     }
 
     u32 Instance::getVulkanVersion() const noexcept

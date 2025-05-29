@@ -17,6 +17,8 @@
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/task_generator.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <cpptrace/cpptrace.hpp>
 #include <cpptrace/from_current.hpp>
@@ -40,6 +42,7 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_renderer {this->game->getRenderer()}
     {
+        log::trace("initalized renderers");
         std::mt19937                           gen {std::random_device {}()};
         std::uniform_real_distribution<f32>    dist {-16.0f, 16.0f};
         gfx::generators::voxel::WorldGenerator wg {12812389021980};
@@ -49,7 +52,9 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        const i32 dim = 3; // 8
+        util::Timer worldGenerationTimer {"worldGenerationTimer"};
+
+        const i32 dim = 8;
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {
@@ -106,6 +111,8 @@ struct TemporaryGameState : game::Game::GameState
                 }
             }
         }
+
+        log::info("generated world in {}ms", worldGenerationTimer.end(false) / 1000);
     }
     ~TemporaryGameState() override
     {
@@ -134,8 +141,10 @@ struct TemporaryGameState : game::Game::GameState
 
     game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
     {
+        util::TimestampStamper stamper;
+
         const f32  deltaTime        = updateArgs.delta_time;
-        const bool hasResizeOcurred = updateArgs.has_resize_ocurred;
+        const bool hasResizeOcurred = updateArgs.has_resize_occurred;
 
         const gfx::core::Renderer* renderer = this->game->getRenderer();
 
@@ -218,6 +227,8 @@ struct TemporaryGameState : game::Game::GameState
         camera.addYaw(xDelta * rotateSpeedScale);
         camera.addPitch(yDelta * rotateSpeedScale);
 
+        stamper.stamp("camera processing");
+
         return game::Game::GameStateUpdateResult {
             .should_terminate {false},
             .generators {gfx::FrameGenerator::FrameGenerateArgs {
@@ -225,7 +236,8 @@ struct TemporaryGameState : game::Game::GameState
                 .maybe_skybox_renderer {&this->skybox_renderer},
                 .maybe_imgui_renderer {&this->imgui_renderer},
                 .maybe_voxel_renderer {&this->voxel_renderer}}},
-            .camera {this->camera}};
+            .camera {this->camera},
+            .render_thread_profile {std::move(stamper)}};
     }
 
     static constexpr f32 FovY = glm::radians(70.0f);

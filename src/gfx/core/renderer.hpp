@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/task_generator.hpp"
 #include "util/util.hpp"
 #include <functional>
 #include <memory>
@@ -54,6 +55,7 @@ namespace gfx::core
         // Returns true if a resize occurred
         // Command buffer, query pool,  swapchain idx, swapchain, frame idx, buffer flush callback
         bool recordOnThread(
+            util::TimestampStamper* maybeRenderThreadProfiler,
             std::function<void(
                 vk::CommandBuffer, vk::QueryPool, u32, vulkan::Swapchain&, std::size_t, std::function<void()>)>) const;
         [[nodiscard]] bool shouldWindowClose() const noexcept;

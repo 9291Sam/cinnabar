@@ -10,6 +10,8 @@
 #include "implot.h"
 #include "util/events.hpp"
 #include "util/logger.hpp"
+#include "util/task_generator.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <algorithm>
 #include <atomic>
@@ -46,6 +48,7 @@ namespace gfx::generators::imgui
         , light {.position_and_half_intensity_distance {11.5, 17.5, 32.4, 8.0}, .color_and_power {1.0, 1.0, 1.0, 0.25}}
         , next_average_to_place_values_in {0}
     {
+        util::Timer t {""};
         util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
 
         const std::array availableDescriptors {
@@ -170,7 +173,7 @@ namespace gfx::generators::imgui
 
                     std::vector<std::byte> buffer = util::loadEntireFileFromPath(unifontPath);
 
-                    log::debug("Loaded Text font. Size: {}", buffer.size());
+                    // log::trace("Loaded Text font. Size: {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
                         buffer.data(), // NOLINT
@@ -199,7 +202,7 @@ namespace gfx::generators::imgui
 
                     std::vector<std::byte> buffer = util::loadEntireFileFromPath(emojiPath);
 
-                    log::trace("Loaded Emojis. Size: {}", buffer.size());
+                    // log::trace("Loaded Emojis. Size: {}", buffer.size());
 
                     this->font = io.Fonts->AddFontFromMemoryTTF(
                         buffer.data(), // NOLINT
@@ -213,6 +216,8 @@ namespace gfx::generators::imgui
 
                 ImGui_ImplVulkan_CreateFontsTexture();
             });
+
+        log::trace("Initalized ImGui in {}ms", t.end(false) / 1000);
     }
 
     ImguiRenderer::~ImguiRenderer()
@@ -484,6 +489,29 @@ FPS: {}{} / {}ms
                 this->next_average_to_place_values_in %= this->frame_moving_average_data.size();
             }
 
+            if (std::optional renderThreadProfile =
+                    util::receive<std::vector<util::TimeStamp>>("RENDER_THREAD_PROFILE"))
+            {
+                if (this->owned_cpu_profile_names.empty())
+                {
+                    for (util::TimeStamp s : *renderThreadProfile)
+                    {
+                        this->owned_cpu_profile_names.push_back(std::string {s.name});
+                        this->raw_cpu_profile_names.push_back(this->owned_cpu_profile_names.back().c_str());
+                    }
+                }
+
+                if (this->cpu_most_recent_timestamp_average.size() < renderThreadProfile->size())
+                {
+                    this->cpu_most_recent_timestamp_average.resize(renderThreadProfile->size());
+                }
+
+                for (usize i = 0; i < renderThreadProfile->size(); ++i)
+                {
+                    this->cpu_most_recent_timestamp_average[i] = (*renderThreadProfile)[i].duration;
+                }
+            }
+
             // Fun fact, there's a memory safety issue in implot :)
             if (!this->owned_gpu_timestamp_names[0].empty())
             {
@@ -500,6 +528,7 @@ FPS: {}{} / {}ms
                         sum / static_cast<f32>(this->frame_moving_average_data.size());
                 }
 
+            TODO:
                 const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
@@ -555,17 +584,30 @@ FPS: {}{} / {}ms
 
                 ImGui::SameLine(0, 0);
 
-                static const char* labels2[] = {"A", "B", "C", "D", "E"};
-                static int         data2[]   = {1, 1, 2, 3, 5};
-
                 if (ImPlot::BeginPlot(
-                        "fff##Pie2",
-                        ImVec2(plotSizePx, plotSizePx + plotTitleSize + ImGui::CalcTextSize("fff", nullptr, true).y),
-                        ImPlotFlags_NoLegend | ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
+                        "Cpu Render Thread##Pie2",
+                        ImVec2(
+                            plotSizePx,
+                            plotSizePx + plotTitleSize
+                                + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
+                                + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
+                                + (static_cast<i32>(this->raw_cpu_profile_names.size())
+                                   * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
+                        ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
                 {
+                    ImPlot::SetupLegend(ImPlotLocation_South | ImPlotLocation_Center, ImPlotLegendFlags_Outside);
                     ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
                     ImPlot::SetupAxesLimits(0, 1, 0, 1);
-                    ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.49, "%.0f", 180, ImPlotPieChartFlags_Normalize);
+                    ImPlot::PlotPieChart(
+                        this->raw_cpu_profile_names.data(),
+                        this->cpu_most_recent_timestamp_average.data(),
+                        static_cast<i32>(this->raw_cpu_profile_names.size()),
+                        0.5,
+                        0.5,
+                        0.49,
+                        "",
+                        0,
+                        ImPlotPieChartFlags_Normalize);
                     ImPlot::EndPlot();
                 }
                 ImPlot::PopColormap();

@@ -2,6 +2,7 @@
 
 #include "gfx/core/renderer.hpp"
 #include "gfx/frame_generator.hpp"
+#include "util/task_generator.hpp"
 #include <atomic>
 #include <concepts>
 
@@ -15,12 +16,13 @@ namespace game
             bool                                   should_terminate;
             gfx::FrameGenerator::FrameGenerateArgs generators;
             gfx::Camera                            camera;
+            util::TimestampStamper                 render_thread_profile;
         };
 
         struct GameStateUpdateArgs
         {
             f32  delta_time;
-            bool has_resize_ocurred;
+            bool has_resize_occurred;
         };
 
         struct GameState
@@ -78,6 +80,6 @@ namespace game
         mutable std::atomic<GameStateConstructionFunction> maybe_game_state_construction_function;
 
         std::unique_ptr<GameState> maybe_current_game_state;
-        bool                       has_resize_ocurred;
+        bool                       has_resize_occurred;
     };
 } // namespace game

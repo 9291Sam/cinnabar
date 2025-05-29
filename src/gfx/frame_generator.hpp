@@ -5,6 +5,7 @@
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/image.hpp"
+#include "util/task_generator.hpp"
 
 namespace gfx
 {
@@ -37,6 +38,11 @@ namespace gfx
             generators::voxel::VoxelRenderer*       maybe_voxel_renderer;
         };
 
+        struct FrameGenerateReturn
+        {
+            bool                   has_resize_occurred {};
+            util::TimestampStamper render_thread_profile;
+        };
 
     public:
         explicit FrameGenerator(const core::Renderer*);
@@ -47,11 +53,10 @@ namespace gfx
         FrameGenerator& operator= (const FrameGenerator&) = delete;
         FrameGenerator& operator= (FrameGenerator&&)      = delete;
 
-        /// Return value is whether or not a resize ocurred
-        [[nodiscard]] bool renderFrame(FrameGenerateArgs, gfx::Camera);
+        [[nodiscard]] FrameGenerateReturn renderFrame(FrameGenerateArgs, gfx::Camera, util::TimestampStamper);
     private:
         const core::Renderer* renderer;
-        bool                  has_resize_ocurred;
+        bool                  has_resize_occurred;
 
         struct FrameDescriptors
         {

@@ -107,6 +107,7 @@ namespace gfx::core::vulkan
     }
 
     std::expected<void, Frame::ResizeNeeded> Frame::recordAndDisplay(
+        util::TimestampStamper*                                                           maybeRenderThreadProfiler,
         std::optional<vk::Fence>                                                          previousFrameFence,
         std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)> withCommandBuffer,
         const BufferStager&                                                               stager)
@@ -132,6 +133,11 @@ namespace gfx::core::vulkan
             Device::QueueType::Graphics,
             [&](vk::Queue queue)
             {
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("acquire queue");
+                }
+
                 this->device->getDevice().resetFences(**this->frame_in_flight);
                 this->device->getDevice().resetCommandPool(*this->command_pool);
 
@@ -163,6 +169,11 @@ namespace gfx::core::vulkan
                 this->command_buffer->reset();
                 this->command_buffer->begin(commandBufferBeginInfo);
 
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("setup command buffer");
+                }
+
                 // HACK: query pool shouldnt be nullable
                 bool shouldQueryPoolBeNull = false;
 
@@ -187,6 +198,12 @@ namespace gfx::core::vulkan
                     std::move(callback));
 
                 this->command_buffer->end();
+
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("post command buffer");
+                }
+
                 const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
                 const vk::SubmitInfo queueSubmitInfo {
@@ -203,9 +220,19 @@ namespace gfx::core::vulkan
 
                 queue.submit(queueSubmitInfo, **this->frame_in_flight);
 
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("queue submit");
+                }
+
                 if (previousFrameFence.has_value())
                 {
                     std::ignore = this->device->getDevice().waitForFences(*previousFrameFence, vk::True, TimeoutNs);
+                }
+
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("previous frame fence wait");
                 }
 
                 const vk::PresentInfoKHR presentInfo {
@@ -221,6 +248,11 @@ namespace gfx::core::vulkan
 
                 const vk::Result presentResult = vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
                     queue, reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
+
+                if (maybeRenderThreadProfiler != nullptr)
+                {
+                    maybeRenderThreadProfiler->stamp("present");
+                }
 
                 switch (presentResult) // NOLINT
                 {
@@ -264,6 +296,7 @@ namespace gfx::core::vulkan
     FrameManager::~FrameManager() noexcept = default;
 
     std::expected<void, Frame::ResizeNeeded> FrameManager::recordAndDisplay(
+        util::TimestampStamper* maybeRenderThreadProfiler,
         std::function<void(std::size_t, vk::QueryPool queryPool, vk::CommandBuffer, u32, std::function<void()>)>
                             recordFunc,
         const BufferStager& stager)
@@ -274,6 +307,7 @@ namespace gfx::core::vulkan
         std::expected<void, Frame::ResizeNeeded> result =
             this->flying_frames.at(this->flying_frame_index)
                 .recordAndDisplay(
+                    maybeRenderThreadProfiler,
                     this->nullable_previous_frame_finished_fence != nullptr
                         ? std::optional {**this->nullable_previous_frame_finished_fence}
                         : std::nullopt,
