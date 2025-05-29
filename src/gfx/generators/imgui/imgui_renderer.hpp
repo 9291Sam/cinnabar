@@ -48,9 +48,10 @@ namespace gfx::generators::imgui
         std::array<f32, core::vulkan::MaxQueriesPerFrame>                 most_recent_timestamp_average {};
         usize                                                             next_average_to_place_values_in = 0;
 
-        std::vector<std::string> owned_cpu_profile_names;
-        std::vector<const char*> raw_cpu_profile_names;
-        std::vector<f32>         cpu_most_recent_timestamp_average;
+        std::vector<const char*>         raw_cpu_profile_names;
+        usize                            next_average_cpu_timestamp = 0;
+        std::array<std::vector<f32>, 32> cpu_timestamp_moving_average;
+        std::vector<f32>                 cpu_averaged_timestamp;
 
         voxel::GpuRaytracedLight light;
 

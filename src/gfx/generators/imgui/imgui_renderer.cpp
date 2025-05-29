@@ -344,39 +344,6 @@ FPS: {}{} / {}ms
                 renderer->getWindow()->attachCursor();
             }
 
-            // if (this->raw_animation_name_strings.empty())
-            // {
-            //     // TODO: have a version that warns on error
-            //     std::optional v = util::receive<std::vector<std::string>>("AllAnimationNames");
-
-            //     assert::critical(v.has_value(), "oop");
-
-            //     this->owned_animation_name_strings = std::move(*v);
-
-            //     int iters = 0;
-            //     for (const std::string& s : this->owned_animation_name_strings)
-            //     {
-            //         if (s == "Cornel Box")
-            //         {
-            //             this->animation_combo_box_value = iters;
-            //             util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
-            //         }
-            //         this->raw_animation_name_strings.push_back(s.c_str());
-
-            //         iters++;
-            //     }
-            // }
-
-            // if (ImGui::Combo(
-            //         "Animation",
-            //         &this->animation_combo_box_value,
-            //         raw_animation_name_strings.data(),
-            //         static_cast<int>(raw_animation_name_strings.size())))
-            // {
-            //     util::send<u32>("SetAnimationNumber", static_cast<u32>(this->animation_combo_box_value));
-            //     util::send<f32>("SetAnimationTime", 0.0f);
-            // }
-
             if (ImGui::Button("Restart Hash Map"))
             {
                 util::send<bool>("CLEAR_FACE_HASH_MAP", true);
@@ -492,24 +459,29 @@ FPS: {}{} / {}ms
             if (std::optional renderThreadProfile =
                     util::receive<std::vector<util::TimeStamp>>("RENDER_THREAD_PROFILE"))
             {
-                if (this->owned_cpu_profile_names.empty())
+                if (this->raw_cpu_profile_names.empty())
                 {
                     for (util::TimeStamp s : *renderThreadProfile)
                     {
-                        this->owned_cpu_profile_names.push_back(std::string {s.name});
-                        this->raw_cpu_profile_names.push_back(this->owned_cpu_profile_names.back().c_str());
+                        this->raw_cpu_profile_names.push_back(s.name);
                     }
                 }
 
-                if (this->cpu_most_recent_timestamp_average.size() < renderThreadProfile->size())
+                if (this->cpu_timestamp_moving_average[this->next_average_cpu_timestamp].size()
+                    < renderThreadProfile->size())
                 {
-                    this->cpu_most_recent_timestamp_average.resize(renderThreadProfile->size());
+                    this->cpu_timestamp_moving_average[this->next_average_cpu_timestamp].resize(
+                        renderThreadProfile->size());
                 }
 
                 for (usize i = 0; i < renderThreadProfile->size(); ++i)
                 {
-                    this->cpu_most_recent_timestamp_average[i] = (*renderThreadProfile)[i].duration;
+                    this->cpu_timestamp_moving_average[this->next_average_cpu_timestamp][i] =
+                        (*renderThreadProfile)[i].duration;
                 }
+
+                this->next_average_cpu_timestamp += 1;
+                this->next_average_cpu_timestamp %= this->cpu_timestamp_moving_average.size();
             }
 
             // Fun fact, there's a memory safety issue in implot :)
@@ -528,7 +500,27 @@ FPS: {}{} / {}ms
                         sum / static_cast<f32>(this->frame_moving_average_data.size());
                 }
 
-            TODO:
+                if (this->cpu_averaged_timestamp.size() == 0)
+                {
+                    this->cpu_averaged_timestamp.resize(64); // HACK
+                }
+
+                for (usize timestampIndex = 0; timestampIndex < 32; ++timestampIndex)
+                {
+                    f32 sum = 0.0f;
+
+                    for (const auto& frameIndex : this->cpu_timestamp_moving_average)
+                    {
+                        if (timestampIndex < frameIndex.size())
+                        {
+                            sum += frameIndex[timestampIndex];
+                        }
+                    }
+
+                    this->cpu_averaged_timestamp[timestampIndex] =
+                        sum / static_cast<f32>(this->cpu_timestamp_moving_average.size());
+                }
+
                 const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
@@ -600,7 +592,7 @@ FPS: {}{} / {}ms
                     ImPlot::SetupAxesLimits(0, 1, 0, 1);
                     ImPlot::PlotPieChart(
                         this->raw_cpu_profile_names.data(),
-                        this->cpu_most_recent_timestamp_average.data(),
+                        this->cpu_averaged_timestamp.data(),
                         static_cast<i32>(this->raw_cpu_profile_names.size()),
                         0.5,
                         0.5,

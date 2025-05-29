@@ -802,6 +802,7 @@ namespace gfx
 
         if (this->renderer->getPipelineManager()->couldAnyShadersReload())
         {
+            log::trace("idling!");
             this->renderer->getDevice()->getDevice().waitIdle();
 
             this->renderer->getPipelineManager()->reloadShaders();

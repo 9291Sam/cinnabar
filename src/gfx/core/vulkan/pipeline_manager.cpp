@@ -3,11 +3,13 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <algorithm>
 #include <deque>
 #include <expected>
 #include <filesystem>
+#include <map>
 #include <ranges>
 #include <span>
 #include <variant>
@@ -145,6 +147,9 @@ namespace gfx::core::vulkan
 
     bool PipelineManager::couldAnyShadersReload() const
     {
+        // OPTIMIZATION: each call to std::filesystem::last_write_time takes like 20-50us, this becomes significant fast
+        std::map<std::filesystem::path, std::filesystem::file_time_type> writeTimeCache {};
+
         return this->critical_section.lock(
             [&](CriticalSection& criticalSection)
             {
@@ -157,7 +162,18 @@ namespace gfx::core::vulkan
 
                         for (const auto& [path, time] : pipelineStorage.dependent_files)
                         {
-                            if (time != std::filesystem::last_write_time(path))
+                            decltype(writeTimeCache)::const_iterator maybeIt = writeTimeCache.find(path);
+
+                            if (maybeIt == writeTimeCache.cend())
+                            {
+                                auto [it, inserted] =
+                                    writeTimeCache.insert({path, std::filesystem::last_write_time(path)});
+
+                                maybeIt = it;
+                                assert::critical(inserted, "oops");
+                            }
+
+                            if (time != maybeIt->second)
                             {
                                 canAnyReload |= true;
                             }
