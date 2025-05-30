@@ -65,8 +65,6 @@ namespace gfx
 
         this->renderer->getStager().enqueueTransfer(this->global_gpu_data, 0, {&thisFrameGlobalGpuData, 1});
 
-        profiler.stamp("enqueue global transfer");
-
         if (generators.maybe_voxel_renderer != nullptr)
         {
             generators.maybe_voxel_renderer->preFrameUpdate();
@@ -787,8 +785,6 @@ namespace gfx
                     util::send<std::array<std::string_view, core::vulkan::MaxQueriesPerFrame>>(
                         "GPU_TIMESTAMP_NAMES", this->active_timestamp_names);
                 }
-
-                profiler.stamp("record command buffer");
             });
 
         if (this->has_resize_occurred)
@@ -797,8 +793,6 @@ namespace gfx
 
             this->frame_descriptors = this->createFrameDescriptors();
         }
-
-        profiler.stamp("resize frame descriptors");
 
         if (this->renderer->getPipelineManager()->couldAnyShadersReload())
         {

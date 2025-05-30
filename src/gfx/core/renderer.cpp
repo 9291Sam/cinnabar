@@ -135,11 +135,6 @@ namespace gfx::core
 
                     resizeOcurred = true;
                 }
-
-                if (maybeRenderThreadProfiler != nullptr)
-                {
-                    maybeRenderThreadProfiler->stamp("resize block");
-                }
             });
 
         this->window->endFrame();

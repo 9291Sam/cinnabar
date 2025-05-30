@@ -142,18 +142,41 @@ namespace gfx::generators::voxel
             }
         }
 
-        // bool flip = false;
-        // Add a light source at the center of the ceiling
-        for (uint32_t x = size.x / 3; x < 2 * size.x / 3; ++x)
-        {
-            for (uint32_t z = size.z / 3; z < 2 * size.z / 3; ++z)
-            {
-                // if (flip)
-                // {
-                voxels[x, size.y - 1, z] = light;
-                // }
+        // // bool flip = false;
+        // // Add a light source at the center of the ceiling
+        // for (uint32_t x = size.x / 3; x < 2 * size.x / 3; ++x)
+        // {
+        //     for (uint32_t z = size.z / 3; z < 2 * size.z / 3; ++z)
+        //     {
+        //         // if (flip)
+        //         // {
+        //         voxels[x, size.y - 1, z] = light;
+        //         // }
 
-                // flip = !flip;
+        //         // flip = !flip;
+        //     }
+        // }
+
+        // Add a light source in a plus sign pattern at the center of the ceiling
+        uint32_t centerX   = size.x / 2;
+        uint32_t centerZ   = size.z / 2;
+        uint32_t armLength = size.x / 6; // Adjust this to change the size of the plus sign
+
+        // Horizontal line of the plus
+        for (uint32_t x = centerX - armLength; x <= centerX + armLength; ++x)
+        {
+            if (x < size.x)
+            {
+                voxels[x, size.y - 1, centerZ] = light;
+            }
+        }
+
+        // Vertical line of the plus
+        for (uint32_t z = centerZ - armLength; z <= centerZ + armLength; ++z)
+        {
+            if (z < size.z)
+            {
+                voxels[centerX, size.y - 1, z] = light;
             }
         }
 

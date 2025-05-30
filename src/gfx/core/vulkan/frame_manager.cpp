@@ -169,11 +169,6 @@ namespace gfx::core::vulkan
                 this->command_buffer->reset();
                 this->command_buffer->begin(commandBufferBeginInfo);
 
-                if (maybeRenderThreadProfiler != nullptr)
-                {
-                    maybeRenderThreadProfiler->stamp("setup command buffer");
-                }
-
                 // HACK: query pool shouldnt be nullable
                 bool shouldQueryPoolBeNull = false;
 
@@ -201,7 +196,7 @@ namespace gfx::core::vulkan
 
                 if (maybeRenderThreadProfiler != nullptr)
                 {
-                    maybeRenderThreadProfiler->stamp("post command buffer");
+                    maybeRenderThreadProfiler->stamp("record command buffer");
                 }
 
                 const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -232,7 +227,7 @@ namespace gfx::core::vulkan
 
                 if (maybeRenderThreadProfiler != nullptr)
                 {
-                    maybeRenderThreadProfiler->stamp("previous frame fence wait");
+                    maybeRenderThreadProfiler->stamp("previous frame wait");
                 }
 
                 const vk::PresentInfoKHR presentInfo {
