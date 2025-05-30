@@ -29,6 +29,8 @@ namespace gfx::core::vulkan
                   .flags {},
                   .initialDataSize {0},
                   .pInitialData {nullptr}})}
+        , sane_slang_compiler {util::Mutex<cfi::SaneSlangCompiler> {cfi::SaneSlangCompiler {
+              std::vector<std::filesystem::path> {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")}}}}
         , bindless_pipeline_layout {bindlessPipelineLayout}
         , critical_section {util::Mutex {CriticalSection {
               .pipeline_handle_allocator {util::OpaqueHandleAllocator<Pipeline> {MaxPipelines}},
