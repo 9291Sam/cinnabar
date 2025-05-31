@@ -17,7 +17,6 @@ typedef float32_t f32;
 typedef float64_t f64;
 
 
-
 struct GlobalGpuData
 {
     column_major float4x4  view_matrix;

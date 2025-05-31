@@ -72,11 +72,22 @@ namespace gfx::core::vulkan
 
         vk::PipelineLayout bindless_pipeline_layout;
 
+        using DependentFileStorage = std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>>;
+
+        struct PipelineCompilationResult
+        {
+            std::optional<vk::UniquePipeline> maybe_new_pipeline;
+            std::string                       warnings_and_errors;
+            DependentFileStorage              dependent_files;
+        };
+
         struct PipelineInternalStorage
         {
-            std::variant<GraphicsPipelineDescriptor, ComputePipelineDescriptor>            descriptor;
-            vk::UniquePipeline                                                             pipeline;
-            std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
+            std::variant<GraphicsPipelineDescriptor, ComputePipelineDescriptor> descriptor;
+            DependentFileStorage                                                dependent_files;
+
+            std::optional<vk::UniquePipeline>                                       current_pipeline;
+            std::optional<util::MaybeAsynchronousObject<PipelineCompilationResult>> maybe_new_pipeline;
         };
 
         struct CriticalSection
@@ -87,18 +98,9 @@ namespace gfx::core::vulkan
 
         util::Mutex<CriticalSection> critical_section;
 
-        /// Moves from the variable on success
-        std::expected<PipelineInternalStorage, std::string> tryCompilePipeline(GraphicsPipelineDescriptor&) const;
-        /// Moves from the variable on success
-        std::expected<PipelineInternalStorage, std::string> tryCompilePipeline(ComputePipelineDescriptor&) const;
-
-        std::pair<PipelineInternalStorage, std::optional<std::string>>
-            tryRecompilePipeline(PipelineInternalStorage) const;
-
-        struct FormShaderModuleFromShaderSourceResult
-        {
-            vk::UniqueShaderModule                                                         module;
-            std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> dependent_files;
-        };
+        util::MaybeAsynchronousObject<PipelineCompilationResult>
+            startPipelineCompilation(GraphicsPipelineDescriptor) const;
+        util::MaybeAsynchronousObject<PipelineCompilationResult>
+            startPipelineCompilation(ComputePipelineDescriptor) const;
     };
 } // namespace gfx::core::vulkan

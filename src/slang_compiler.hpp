@@ -4,6 +4,7 @@
 #include <atomic>
 #include <expected>
 #include <filesystem>
+#include <future>
 #include <set>
 #include <string>
 #include <vector>
@@ -31,8 +32,7 @@ namespace cfi
         SaneSlangCompiler& operator= (SaneSlangCompiler&&)      = default;
 
         [[nodiscard]]
-        std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string> compile(std::filesystem::path path);
-
+        std::pair<std::optional<CompileResult>, std::string> compile(std::filesystem::path path);
 
     private:
         std::filesystem::path              temporary_dir;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <concepts>
 #include <cstddef>
 #include <cstring>
@@ -7,9 +8,11 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <ratio>
 #include <shared_mutex>
 #include <span>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 namespace util
@@ -49,8 +52,7 @@ namespace util
             return *this;
         }
 
-        decltype(auto) lock(std::invocable<T&...> auto func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        decltype(auto) lock(std::invocable<T&...> auto func) const noexcept(noexcept(std::apply(func, this->tuple)))
         {
             if (this->mutex == nullptr)
             {
@@ -61,9 +63,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock<std::mutex> lock {*this->mutex, std::defer_lock};
@@ -78,8 +79,7 @@ namespace util
             }
         }
 
-        bool tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        bool tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
             requires std::same_as<void, std::invoke_result_t<decltype(func), T&...>>
         {
             std::unique_lock<std::mutex> lock {*this->mutex, std::defer_lock};
@@ -155,17 +155,15 @@ namespace util
         RecursiveMutex& operator= (const RecursiveMutex&)     = delete;
         RecursiveMutex& operator= (RecursiveMutex&&) noexcept = default;
 
-        decltype(auto) lock(std::invocable<T&...> auto func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        decltype(auto) lock(std::invocable<T&...> auto func) const noexcept(noexcept(std::apply(func, this->tuple)))
         {
             std::unique_lock lock {*this->mutex};
 
             return std::apply(func, this->tuple);
         }
 
-        auto tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock<std::recursive_mutex> lock {*this->mutex, std::defer_lock};
@@ -180,8 +178,7 @@ namespace util
             }
         }
 
-        bool tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        bool tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
             requires std::same_as<void, std::invoke_result_t<decltype(func), T&...>>
         {
             std::unique_lock<std::recursive_mutex> lock {*this->mutex, std::defer_lock};
@@ -242,9 +239,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryWriteLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryWriteLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock lock {*this->rwlock, std::defer_lock};
@@ -267,9 +263,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryReadLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryReadLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::shared_lock lock {*this->rwlock, std::defer_lock};
@@ -325,15 +320,16 @@ namespace util
                 writeBlockSize += (src.size_bytes() % threadDelegationSize);
             }
 
-            futures.push_back(std::async(
-                std::launch::async,
-                [=]
-                {
-                    std::memcpy(
-                        dst + writeBlockStartOffset,        // NOLINT
-                        src.data() + writeBlockStartOffset, // NOLINT
-                        writeBlockSize);
-                }));
+            futures.push_back(
+                std::async(
+                    std::launch::async,
+                    [=]
+                    {
+                        std::memcpy(
+                            dst + writeBlockStartOffset,        // NOLINT
+                            src.data() + writeBlockStartOffset, // NOLINT
+                            writeBlockSize);
+                    }));
         }
 
         for (std::future<void>& f : futures)
@@ -343,5 +339,74 @@ namespace util
 
         return dst;
     }
+
+    template<class T>
+        requires std::is_move_constructible_v<T>
+    class MaybeAsynchronousObject
+    {
+    public:
+        MaybeAsynchronousObject() = default;
+        explicit MaybeAsynchronousObject(std::future<T> future)
+            : storage {std::move(future)}
+        {}
+
+        explicit MaybeAsynchronousObject(T t)
+            : storage {std::move(t)}
+        {}
+
+        ~MaybeAsynchronousObject() = default;
+
+        MaybeAsynchronousObject(const MaybeAsynchronousObject&)                 = delete;
+        MaybeAsynchronousObject(MaybeAsynchronousObject&&) noexcept             = default;
+        MaybeAsynchronousObject& operator= (const MaybeAsynchronousObject&)     = delete;
+        MaybeAsynchronousObject& operator= (MaybeAsynchronousObject&&) noexcept = default;
+
+        [[nodiscard]] bool isReadyNonUpdating() const
+        {
+            return std::get_if<T>(&this->storage) != nullptr;
+        }
+
+        [[nodiscard]] bool isReady()
+        {
+            this->updateState();
+
+            return this->isReadyNonUpdating();
+        }
+
+        T* tryGet()
+        {
+            this->updateState();
+
+            return std::get_if<T>(&this->storage);
+        }
+
+        T& get()
+        {
+            this->updateState();
+
+            if (!this->isReady())
+            {
+                std::get_if<std::future<T>>(&this->storage)->wait();
+
+                this->updateState();
+            }
+
+            return *std::get_if<T>(&this->storage);
+        }
+
+    private:
+        void updateState()
+        {
+            if (std::future<T>* maybeFuture = std::get_if<std::future<T>>(&this->storage))
+            {
+                if (maybeFuture->wait_for(std::chrono::years {}) == std::future_status::ready)
+                {
+                    this->storage = maybeFuture->get();
+                }
+            }
+        }
+
+        std::variant<std::future<T>, T> storage;
+    };
 
 } // namespace util

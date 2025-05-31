@@ -3,10 +3,12 @@
 #include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <algorithm>
 #include <expected>
 #include <filesystem>
+#include <future>
 #include <map>
 #include <ranges>
 #include <span>
@@ -37,26 +39,8 @@ namespace gfx::core::vulkan
 
     PipelineManager::Pipeline PipelineManager::createPipeline(GraphicsPipelineDescriptor graphicsDescriptor) const
     {
-        std::expected<PipelineManager::PipelineInternalStorage, std::string> shouldBeInternalRepresentation =
-            this->tryCompilePipeline(graphicsDescriptor);
-
-        if (!shouldBeInternalRepresentation.has_value())
-        {
-            const std::string& errorString = shouldBeInternalRepresentation.error();
-            std::string_view   errorView   = errorString;
-
-            while (errorView.starts_with('\n'))
-            {
-                errorView.remove_prefix(1);
-            }
-
-            while (errorView.ends_with('\n'))
-            {
-                errorView.remove_suffix(1);
-            }
-
-            panic("Failed to compile pipeline on startup!\n{}", errorView);
-        }
+        util::MaybeAsynchronousObject<PipelineCompilationResult> pipelineCompilationHandle =
+            this->startPipelineCompilation(graphicsDescriptor);
 
         return this->critical_section.lock(
             [&](CriticalSection& criticalSection)
@@ -66,7 +50,11 @@ namespace gfx::core::vulkan
                 const u16 newHandleValue =
                     criticalSection.pipeline_handle_allocator.getValueOfHandle(newPipelineHandle);
 
-                criticalSection.pipeline_storage[newHandleValue] = std::move(*shouldBeInternalRepresentation);
+                criticalSection.pipeline_storage[newHandleValue] = PipelineInternalStorage {
+                    .descriptor {std::move(graphicsDescriptor)},
+                    .dependent_files {},
+                    .current_pipeline {},
+                    .maybe_new_pipeline {std::move(pipelineCompilationHandle)}};
 
                 return newPipelineHandle;
             });
@@ -74,26 +62,8 @@ namespace gfx::core::vulkan
 
     PipelineManager::Pipeline PipelineManager::createPipeline(ComputePipelineDescriptor computeDescriptor) const
     {
-        std::expected<PipelineManager::PipelineInternalStorage, std::string> shouldBeInternalRepresentation =
-            this->tryCompilePipeline(computeDescriptor);
-
-        if (!shouldBeInternalRepresentation.has_value())
-        {
-            const std::string& errorString = shouldBeInternalRepresentation.error();
-            std::string_view   errorView   = errorString;
-
-            while (errorView.starts_with('\n'))
-            {
-                errorView.remove_prefix(1);
-            }
-
-            while (errorView.ends_with('\n'))
-            {
-                errorView.remove_suffix(1);
-            }
-
-            panic("Failed to compile pipeline on startup!\n{}", errorView);
-        }
+        util::MaybeAsynchronousObject<PipelineCompilationResult> pipelineCompilationHandle =
+            this->startPipelineCompilation(computeDescriptor);
 
         return this->critical_section.lock(
             [&](CriticalSection& criticalSection)
@@ -103,7 +73,11 @@ namespace gfx::core::vulkan
                 const u16 newHandleValue =
                     criticalSection.pipeline_handle_allocator.getValueOfHandle(newPipelineHandle);
 
-                criticalSection.pipeline_storage[newHandleValue] = std::move(*shouldBeInternalRepresentation);
+                criticalSection.pipeline_storage[newHandleValue] = PipelineInternalStorage {
+                    .descriptor {std::move(computeDescriptor)},
+                    .dependent_files {},
+                    .current_pipeline {},
+                    .maybe_new_pipeline {std::move(pipelineCompilationHandle)}};
 
                 return newPipelineHandle;
             });
@@ -139,7 +113,87 @@ namespace gfx::core::vulkan
             {
                 const u16 handleValue = criticalSection.pipeline_handle_allocator.getValueOfHandle(p);
 
-                return *criticalSection.pipeline_storage[handleValue].pipeline;
+                PipelineInternalStorage& pipelineStorage = criticalSection.pipeline_storage[handleValue];
+
+                if (!pipelineStorage.current_pipeline.has_value())
+                {
+                    // we have a first compile of a pipeline, let's wait for it
+                    util::Timer t {"ff"};
+
+                    pipelineStorage.maybe_new_pipeline->get();
+
+                    log::trace("waited {}us for pipeline compilation", t.end(false));
+                }
+
+                // we've completed compilation of a new pipeline, let's try and update current_pipeline
+                if (pipelineStorage.maybe_new_pipeline.has_value() && pipelineStorage.maybe_new_pipeline->isReady())
+                {
+                    util::MaybeAsynchronousObject<PipelineCompilationResult> justCompiledPipeline =
+                        *std::exchange(pipelineStorage.maybe_new_pipeline, std::nullopt);
+
+                    // ensure the new pipeline is actually valid
+                    PipelineCompilationResult& newPipelineCompilationResult = justCompiledPipeline.get();
+
+                    if (newPipelineCompilationResult.maybe_new_pipeline.has_value())
+                    {
+                        // excellent, the new pipeline is real!
+
+                        // slightly hacky, but just slam it in there, it's fine
+                        pipelineStorage.current_pipeline = std::move(newPipelineCompilationResult.maybe_new_pipeline);
+                        pipelineStorage.dependent_files  = std::move(newPipelineCompilationResult.dependent_files);
+
+                        std::string_view name {};
+
+                        if (GraphicsPipelineDescriptor* g =
+                                std::get_if<GraphicsPipelineDescriptor>(&pipelineStorage.descriptor))
+                        {
+                            name = g->name;
+                        }
+                        else if (
+                            ComputePipelineDescriptor* c =
+                                std::get_if<ComputePipelineDescriptor>(&pipelineStorage.descriptor))
+                        {
+                            name = c->name;
+                        }
+                        else
+                        {
+                            panic("unhandled variant");
+                        }
+
+                        if (newPipelineCompilationResult.warnings_and_errors.empty())
+                        {
+                            log::debug("Dynamically Reloaded Pipeline: {}", name);
+                        }
+                        else
+                        {
+                            log::warn(
+                                "Dynamically Reloaded Pipeline: {} with warnings {}",
+                                name,
+                                newPipelineCompilationResult.warnings_and_errors);
+                        }
+                    }
+                    else
+                    {
+                        // welp compilation failed, lets just keep the old one
+
+                        if (pipelineStorage.current_pipeline.has_value())
+                        {
+                            log::error(
+                                "Dynamic Pipeline Recompilation Failure: {}",
+                                newPipelineCompilationResult.warnings_and_errors);
+                        }
+                        else
+                        {
+                            // shit there is no old pipeline to keep, all we can do it panic
+
+                            panic(
+                                "Failed to compile pipeline on first attempt! {}",
+                                newPipelineCompilationResult.warnings_and_errors);
+                        }
+                    }
+                }
+
+                return *pipelineStorage.current_pipeline.value();
             });
     }
 
@@ -192,7 +246,7 @@ namespace gfx::core::vulkan
                     {
                         PipelineInternalStorage& pipelineStorage = criticalSection.pipeline_storage[handleValue];
 
-                        bool shouldThisPipelineReload = std::ranges::any_of(
+                        bool canThisPipelineReload = std::ranges::any_of(
                             pipelineStorage.dependent_files,
                             [](const auto& pair)
                             {
@@ -201,395 +255,368 @@ namespace gfx::core::vulkan
                                 return time != std::filesystem::last_write_time(path);
                             });
 
-                        if (shouldThisPipelineReload)
+                        if (canThisPipelineReload && !pipelineStorage.maybe_new_pipeline.has_value())
                         {
-                            auto [newInternalStorage, maybeErrorString] =
-                                this->tryRecompilePipeline(std::move(pipelineStorage));
-
-                            pipelineStorage = std::move(newInternalStorage);
-
-                            std::string_view pipelineName {};
-
                             if (GraphicsPipelineDescriptor* g =
                                     std::get_if<GraphicsPipelineDescriptor>(&pipelineStorage.descriptor))
                             {
-                                pipelineName = g->name;
+                                pipelineStorage.maybe_new_pipeline = this->startPipelineCompilation(*g);
                             }
                             else if (
                                 ComputePipelineDescriptor* c =
                                     std::get_if<ComputePipelineDescriptor>(&pipelineStorage.descriptor))
                             {
-                                pipelineName = c->name;
+                                pipelineStorage.maybe_new_pipeline = this->startPipelineCompilation(*c);
                             }
                             else
                             {
                                 panic("unhandled variant");
-                            }
-
-                            if (maybeErrorString.has_value())
-                            {
-                                // This is a race, but I don't give a shit, I want my console empty
-                                for (auto& [path, time] : pipelineStorage.dependent_files)
-                                {
-                                    time = std::filesystem::last_write_time(path);
-                                }
-
-                                log::error(
-                                    "Dynamic Pipeline {} recompilation failure:\n{}", pipelineName, *maybeErrorString);
-                            }
-                            else
-                            {
-                                log::debug("Reloaded {}", pipelineName);
                             }
                         }
                     });
             });
     }
 
-    std::expected<PipelineManager::PipelineInternalStorage, std::string>
-    PipelineManager::tryCompilePipeline(GraphicsPipelineDescriptor& descriptor) const
+    util::MaybeAsynchronousObject<PipelineManager::PipelineCompilationResult>
+    PipelineManager::startPipelineCompilation(GraphicsPipelineDescriptor descriptor) const
     {
-        vk::UniqueShaderModule                                                         vertexShader;
-        vk::UniqueShaderModule                                                         fragmentShader;
-        std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
+        std::future<PipelineCompilationResult> resultFuture = std::async(
+            std::launch::async,
+            [descriptor, this]() -> PipelineCompilationResult
+            {
+                vk::UniqueShaderModule vertexShader;
+                vk::UniqueShaderModule fragmentShader;
 
-        assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
+                assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> maybeCompiledCode =
-            this->sane_slang_compiler.lock(
-                [&](cfi::SaneSlangCompiler& c)
+                std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> slangCompilationResult =
+                    this->sane_slang_compiler.lock(
+                        [&](cfi::SaneSlangCompiler& c)
+                        {
+                            return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
+                        });
+
+                if (!slangCompilationResult.first.has_value())
                 {
-                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
-                });
+                    // well shit slang failed to compile, bail
 
-        if (!maybeCompiledCode.first.has_value())
-        {
-            return std::unexpected(std::move(maybeCompiledCode.second));
-        }
-        else if (!maybeCompiledCode.second.empty())
-        {
-            log::warn("Compiled pipeline with warnings! {}", maybeCompiledCode.second);
-        }
+                    return PipelineCompilationResult {
+                        .maybe_new_pipeline {std::nullopt},
+                        .warnings_and_errors {std::move(slangCompilationResult.second)},
+                        .dependent_files {}};
+                }
 
-        // Vertex
-        {
-            std::span<const u32> compiledSPV {
-                maybeCompiledCode.first->maybe_vertex_data.cbegin(), maybeCompiledCode.first->maybe_vertex_data.cend()};
+                DependentFileStorage dependentFiles {};
+                dependentFiles.reserve(slangCompilationResult.first->dependent_files.size());
 
-            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                .sType {vk::StructureType::eShaderModuleCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .codeSize {compiledSPV.size_bytes()},
-                .pCode {compiledSPV.data()},
-            };
+                for (std::filesystem::path& p : slangCompilationResult.first->dependent_files)
+                {
+                    const std::filesystem::file_time_type time = std::filesystem::last_write_time(p);
 
-            vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-        }
+                    dependentFiles.push_back(std::pair {std::move(p), time});
+                }
 
-        // Fragment
-        {
-            std::span<const u32> compiledSPV {
-                maybeCompiledCode.first->maybe_fragment_data.cbegin(),
-                maybeCompiledCode.first->maybe_fragment_data.cend()};
+                // Vertex
+                {
+                    std::span<const u32> compiledSPV {
+                        slangCompilationResult.first->maybe_vertex_data.cbegin(),
+                        slangCompilationResult.first->maybe_vertex_data.cend()};
 
-            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                .sType {vk::StructureType::eShaderModuleCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .codeSize {compiledSPV.size_bytes()},
-                .pCode {compiledSPV.data()},
-            };
+                    const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                        .sType {vk::StructureType::eShaderModuleCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .codeSize {compiledSPV.size_bytes()},
+                        .pCode {compiledSPV.data()},
+                    };
 
-            fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-        }
+                    vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+                }
 
-        for (std::filesystem::path& p : maybeCompiledCode.first->dependent_files)
-        {
-            std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
+                // Fragment
+                {
+                    std::span<const u32> compiledSPV {
+                        slangCompilationResult.first->maybe_fragment_data.cbegin(),
+                        slangCompilationResult.first->maybe_fragment_data.cend()};
 
-            allDependentFiles.push_back({std::move(p), writeTime});
-        }
+                    const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                        .sType {vk::StructureType::eShaderModuleCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .codeSize {compiledSPV.size_bytes()},
+                        .pCode {compiledSPV.data()},
+                    };
 
-        const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
-            vk::PipelineShaderStageCreateInfo {
-                .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .stage {vk::ShaderStageFlagBits::eVertex},
-                .module {*vertexShader},
-                .pName {"main"},
-                .pSpecializationInfo {},
-            },
-            vk::PipelineShaderStageCreateInfo {
-                .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .stage {vk::ShaderStageFlagBits::eFragment},
-                .module {*fragmentShader},
-                .pName {"main"},
-                .pSpecializationInfo {},
-            }};
+                    fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+                }
 
-        const vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {
-            .sType {vk::StructureType::ePipelineVertexInputStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .vertexBindingDescriptionCount {0},
-            .pVertexBindingDescriptions {nullptr},
-            .vertexAttributeDescriptionCount {0},
-            .pVertexAttributeDescriptions {nullptr},
-        };
+                const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
+                    vk::PipelineShaderStageCreateInfo {
+                        .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .stage {vk::ShaderStageFlagBits::eVertex},
+                        .module {*vertexShader},
+                        .pName {"main"},
+                        .pSpecializationInfo {},
+                    },
+                    vk::PipelineShaderStageCreateInfo {
+                        .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .stage {vk::ShaderStageFlagBits::eFragment},
+                        .module {*fragmentShader},
+                        .pName {"main"},
+                        .pSpecializationInfo {},
+                    }};
 
-        const vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {
-            .sType {vk::StructureType::ePipelineInputAssemblyStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .topology {descriptor.topology},
-            // Moltenvk doesn't support disabling this = https://github.com/KhronosGroup/MoltenVK/issues/1521
-            .primitiveRestartEnable {vk::False},
-        };
+                const vk::PipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineVertexInputStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .vertexBindingDescriptionCount {0},
+                    .pVertexBindingDescriptions {nullptr},
+                    .vertexAttributeDescriptionCount {0},
+                    .pVertexAttributeDescriptions {nullptr},
+                };
 
-        const vk::Viewport nullDynamicViewport {};
-        const vk::Rect2D   nullDynamicScissor {};
+                const vk::PipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineInputAssemblyStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .topology {descriptor.topology},
+                    // Moltenvk doesn't support disabling this = https://github.com/KhronosGroup/MoltenVK/issues/1521
+                    .primitiveRestartEnable {vk::False},
+                };
 
-        const vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {
-            .sType {vk::StructureType::ePipelineViewportStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .viewportCount {1},
-            .pViewports {&nullDynamicViewport},
-            .scissorCount {1},
-            .pScissors {&nullDynamicScissor},
-        };
+                const vk::Viewport nullDynamicViewport {};
+                const vk::Rect2D   nullDynamicScissor {};
 
-        const vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {
-            .sType {vk::StructureType::ePipelineRasterizationStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .depthClampEnable {vk::False},
-            .rasterizerDiscardEnable {vk::False},
-            .polygonMode {descriptor.polygon_mode},
-            .cullMode {descriptor.cull_mode},
-            .frontFace {descriptor.front_face},
-            .depthBiasEnable {vk::False},
-            .depthBiasConstantFactor {0.0},
-            .depthBiasClamp {0.0},
-            .depthBiasSlopeFactor {0.0},
-            .lineWidth {1.0},
-        };
+                const vk::PipelineViewportStateCreateInfo pipelineViewportStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineViewportStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .viewportCount {1},
+                    .pViewports {&nullDynamicViewport},
+                    .scissorCount {1},
+                    .pScissors {&nullDynamicScissor},
+                };
 
-        const vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {
-            .sType {vk::StructureType::ePipelineMultisampleStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .rasterizationSamples {vk::SampleCountFlagBits::e1},
-            .sampleShadingEnable {vk::False},
-            .minSampleShading {1.0},
-            .pSampleMask {nullptr},
-            .alphaToCoverageEnable {vk::False},
-            .alphaToOneEnable {vk::False},
-        };
+                const vk::PipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineRasterizationStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .depthClampEnable {vk::False},
+                    .rasterizerDiscardEnable {vk::False},
+                    .polygonMode {descriptor.polygon_mode},
+                    .cullMode {descriptor.cull_mode},
+                    .frontFace {descriptor.front_face},
+                    .depthBiasEnable {vk::False},
+                    .depthBiasConstantFactor {0.0},
+                    .depthBiasClamp {0.0},
+                    .depthBiasSlopeFactor {0.0},
+                    .lineWidth {1.0},
+                };
 
-        const vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {
-            .sType {vk::StructureType::ePipelineDepthStencilStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .depthTestEnable {descriptor.depth_test_enable},
-            .depthWriteEnable {descriptor.depth_write_enable},
-            .depthCompareOp {descriptor.depth_compare_op},
-            .depthBoundsTestEnable {vk::False}, // TODO: expose?
-            .stencilTestEnable {vk::False},
-            .front {},
-            .back {},
-            .minDepthBounds {0.0}, // TODO: expose?
-            .maxDepthBounds {1.0}, // TODO: expose?
-        };
+                const vk::PipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineMultisampleStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .rasterizationSamples {vk::SampleCountFlagBits::e1},
+                    .sampleShadingEnable {vk::False},
+                    .minSampleShading {1.0},
+                    .pSampleMask {nullptr},
+                    .alphaToCoverageEnable {vk::False},
+                    .alphaToOneEnable {vk::False},
+                };
 
-        const vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {
-            .blendEnable {descriptor.blend_enable},
-            .srcColorBlendFactor {vk::BlendFactor::eSrcAlpha},
-            .dstColorBlendFactor {vk::BlendFactor::eOneMinusSrcAlpha},
-            .colorBlendOp {vk::BlendOp::eAdd},
-            .srcAlphaBlendFactor {vk::BlendFactor::eOne},
-            .dstAlphaBlendFactor {vk::BlendFactor::eZero},
-            .alphaBlendOp {vk::BlendOp::eAdd},
-            .colorWriteMask {
-                vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
-                | vk::ColorComponentFlagBits::eA},
-        };
+                const vk::PipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineDepthStencilStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .depthTestEnable {descriptor.depth_test_enable},
+                    .depthWriteEnable {descriptor.depth_write_enable},
+                    .depthCompareOp {descriptor.depth_compare_op},
+                    .depthBoundsTestEnable {vk::False}, // TODO: expose?
+                    .stencilTestEnable {vk::False},
+                    .front {},
+                    .back {},
+                    .minDepthBounds {0.0}, // TODO: expose?
+                    .maxDepthBounds {1.0}, // TODO: expose?
+                };
 
-        const vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {
-            .sType {vk::StructureType::ePipelineColorBlendStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .logicOpEnable {vk::False},
-            .logicOp {vk::LogicOp::eCopy},
-            .attachmentCount {1},
-            .pAttachments {&pipelineColorBlendAttachmentState},
-            .blendConstants {{0.0, 0.0, 0.0, 0.0}}, // TODO: expose?
-        };
+                const vk::PipelineColorBlendAttachmentState pipelineColorBlendAttachmentState {
+                    .blendEnable {descriptor.blend_enable},
+                    .srcColorBlendFactor {vk::BlendFactor::eSrcAlpha},
+                    .dstColorBlendFactor {vk::BlendFactor::eOneMinusSrcAlpha},
+                    .colorBlendOp {vk::BlendOp::eAdd},
+                    .srcAlphaBlendFactor {vk::BlendFactor::eOne},
+                    .dstAlphaBlendFactor {vk::BlendFactor::eZero},
+                    .alphaBlendOp {vk::BlendOp::eAdd},
+                    .colorWriteMask {
+                        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
+                        | vk::ColorComponentFlagBits::eA},
+                };
 
-        const std::array pipelineDynamicStates {
-            vk::DynamicState::eScissor,
-            vk::DynamicState::eViewport,
-        };
+                const vk::PipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineColorBlendStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .logicOpEnable {vk::False},
+                    .logicOp {vk::LogicOp::eCopy},
+                    .attachmentCount {1},
+                    .pAttachments {&pipelineColorBlendAttachmentState},
+                    .blendConstants {{0.0, 0.0, 0.0, 0.0}}, // TODO: expose?
+                };
 
-        const vk::PipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo {
-            .sType {vk::StructureType::ePipelineDynamicStateCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .dynamicStateCount {static_cast<u32>(pipelineDynamicStates.size())},
-            .pDynamicStates {pipelineDynamicStates.data()},
-        };
+                const std::array pipelineDynamicStates {
+                    vk::DynamicState::eScissor,
+                    vk::DynamicState::eViewport,
+                };
 
-        const vk::PipelineRenderingCreateInfo renderingInfo {
-            .sType {vk::StructureType::ePipelineRenderingCreateInfo},
-            .pNext {nullptr},
-            .viewMask {0},
-            .colorAttachmentCount {descriptor.color_format == vk::Format::eUndefined ? 0u : 1u},
-            .pColorAttachmentFormats {&descriptor.color_format},
-            .depthAttachmentFormat {descriptor.depth_format},
-            .stencilAttachmentFormat {},
-        };
+                const vk::PipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo {
+                    .sType {vk::StructureType::ePipelineDynamicStateCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .dynamicStateCount {static_cast<u32>(pipelineDynamicStates.size())},
+                    .pDynamicStates {pipelineDynamicStates.data()},
+                };
 
-        const vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {
-            .sType {vk::StructureType::eGraphicsPipelineCreateInfo},
-            .pNext {&renderingInfo},
-            .flags {},
-            .stageCount {static_cast<u32>(denseStages.size())},
-            .pStages {denseStages.data()},
-            .pVertexInputState {&pipelineVertexInputStateCreateInfo},
-            .pInputAssemblyState {&pipelineInputAssemblyStateCreateInfo},
-            .pTessellationState {nullptr},
-            .pViewportState {&pipelineViewportStateCreateInfo},
-            .pRasterizationState {&pipelineRasterizationStateCreateInfo},
-            .pMultisampleState {&pipelineMultisampleStateCreateInfo},
-            .pDepthStencilState {&pipelineDepthStencilStateCreateInfo},
-            .pColorBlendState {&pipelineColorBlendStateCreateInfo},
-            .pDynamicState {&pipelineDynamicStateCreateInfo},
-            .layout {this->bindless_pipeline_layout},
-            .renderPass {nullptr},
-            .subpass {0},
-            .basePipelineHandle {nullptr},
-            .basePipelineIndex {0},
-        };
+                const vk::PipelineRenderingCreateInfo renderingInfo {
+                    .sType {vk::StructureType::ePipelineRenderingCreateInfo},
+                    .pNext {nullptr},
+                    .viewMask {0},
+                    .colorAttachmentCount {descriptor.color_format == vk::Format::eUndefined ? 0u : 1u},
+                    .pColorAttachmentFormats {&descriptor.color_format},
+                    .depthAttachmentFormat {descriptor.depth_format},
+                    .stencilAttachmentFormat {},
+                };
 
-        auto [result, maybeUniquePipeline] =
-            this->device.createGraphicsPipelineUnique(*this->pipeline_cache, graphicsPipelineCreateInfo);
+                const vk::GraphicsPipelineCreateInfo graphicsPipelineCreateInfo {
+                    .sType {vk::StructureType::eGraphicsPipelineCreateInfo},
+                    .pNext {&renderingInfo},
+                    .flags {},
+                    .stageCount {static_cast<u32>(denseStages.size())},
+                    .pStages {denseStages.data()},
+                    .pVertexInputState {&pipelineVertexInputStateCreateInfo},
+                    .pInputAssemblyState {&pipelineInputAssemblyStateCreateInfo},
+                    .pTessellationState {nullptr},
+                    .pViewportState {&pipelineViewportStateCreateInfo},
+                    .pRasterizationState {&pipelineRasterizationStateCreateInfo},
+                    .pMultisampleState {&pipelineMultisampleStateCreateInfo},
+                    .pDepthStencilState {&pipelineDepthStencilStateCreateInfo},
+                    .pColorBlendState {&pipelineColorBlendStateCreateInfo},
+                    .pDynamicState {&pipelineDynamicStateCreateInfo},
+                    .layout {this->bindless_pipeline_layout},
+                    .renderPass {nullptr},
+                    .subpass {0},
+                    .basePipelineHandle {nullptr},
+                    .basePipelineIndex {0},
+                };
 
-        assert::critical(
-            result == vk::Result::eSuccess, "Failed to create graphics pipeline | Error: {}", vk::to_string(result));
+                auto [result, maybeUniquePipeline] =
+                    this->device.createGraphicsPipelineUnique(*this->pipeline_cache, graphicsPipelineCreateInfo);
 
-        return PipelineInternalStorage {
-            .descriptor {std::move(descriptor)},
-            .pipeline {std::move(maybeUniquePipeline)},
-            .dependent_files {std::move(allDependentFiles)}};
+                assert::critical(
+                    result == vk::Result::eSuccess,
+                    "Failed to create graphics pipeline | Error: {}",
+                    vk::to_string(result));
+
+                return PipelineCompilationResult {
+                    .maybe_new_pipeline {std::move(maybeUniquePipeline)},
+                    .warnings_and_errors {std::move(slangCompilationResult.second)},
+                    .dependent_files {std::move(dependentFiles)}};
+            });
+
+        return util::MaybeAsynchronousObject {std::move(resultFuture)};
     }
 
-    std::expected<PipelineManager::PipelineInternalStorage, std::string>
-    PipelineManager::tryCompilePipeline(ComputePipelineDescriptor& descriptor) const
+    util::MaybeAsynchronousObject<PipelineManager::PipelineCompilationResult>
+    PipelineManager::startPipelineCompilation(ComputePipelineDescriptor descriptor) const
     {
-        vk::UniqueShaderModule                                                         computeShader;
-        std::vector<std::pair<std::filesystem::path, std::filesystem::file_time_type>> allDependentFiles {};
+        std::future<PipelineCompilationResult> resultFuture = std::async(
+            std::launch::async,
+            [descriptor, this]() -> PipelineCompilationResult
+            {
+                vk::UniqueShaderModule computeShader;
 
-        assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
+                assert::critical(
+                    descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> maybeCompiledCode =
-            this->sane_slang_compiler.lock(
-                [&](cfi::SaneSlangCompiler& c)
+                std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> slangCompilationResult =
+                    this->sane_slang_compiler.lock(
+                        [&](cfi::SaneSlangCompiler& c)
+                        {
+                            return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
+                        });
+
+                if (!slangCompilationResult.first.has_value())
                 {
-                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
-                });
+                    // well shit slang failed to compile, bail
 
-        if (!maybeCompiledCode.first.has_value())
-        {
-            return std::unexpected(std::move(maybeCompiledCode.second));
-        }
-        else if (!maybeCompiledCode.second.empty())
-        {
-            log::warn("Compiled pipeline with warnings! {}", maybeCompiledCode.second);
-        }
+                    return PipelineCompilationResult {
+                        .maybe_new_pipeline {std::nullopt},
+                        .warnings_and_errors {std::move(slangCompilationResult.second)},
+                        .dependent_files {}};
+                }
 
-        // Compute
-        {
-            std::span<const u32> compiledSPV {
-                maybeCompiledCode.first->maybe_compute_data.cbegin(),
-                maybeCompiledCode.first->maybe_compute_data.cend()};
+                DependentFileStorage dependentFiles {};
+                dependentFiles.reserve(slangCompilationResult.first->dependent_files.size());
 
-            const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
-                .sType {vk::StructureType::eShaderModuleCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .codeSize {compiledSPV.size_bytes()},
-                .pCode {compiledSPV.data()},
-            };
+                for (std::filesystem::path& p : slangCompilationResult.first->dependent_files)
+                {
+                    const std::filesystem::file_time_type time = std::filesystem::last_write_time(p);
 
-            computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
-        }
+                    dependentFiles.push_back(std::pair {std::move(p), time});
+                }
 
-        for (std::filesystem::path& p : maybeCompiledCode.first->dependent_files)
-        {
-            std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
+                // Compute
+                {
+                    std::span<const u32> compiledSPV {
+                        slangCompilationResult.first->maybe_compute_data.cbegin(),
+                        slangCompilationResult.first->maybe_compute_data.cend()};
 
-            allDependentFiles.push_back({std::move(p), writeTime});
-        }
+                    const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
+                        .sType {vk::StructureType::eShaderModuleCreateInfo},
+                        .pNext {nullptr},
+                        .flags {},
+                        .codeSize {compiledSPV.size_bytes()},
+                        .pCode {compiledSPV.data()},
+                    };
 
-        const vk::PipelineShaderStageCreateInfo shaderCreateInfo {
-            .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .stage {vk::ShaderStageFlagBits::eCompute},
-            .module {*computeShader},
-            .pName {"main"},
-            .pSpecializationInfo {},
-        };
+                    computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+                }
 
-        const vk::ComputePipelineCreateInfo computePipelineCreateInfo {
-            .sType {vk::StructureType::eComputePipelineCreateInfo},
-            .pNext {nullptr},
-            .flags {},
-            .stage {shaderCreateInfo},
-            .layout {this->bindless_pipeline_layout},
-            .basePipelineHandle {},
-            .basePipelineIndex {},
-        };
+                const vk::PipelineShaderStageCreateInfo shaderCreateInfo {
+                    .sType {vk::StructureType::ePipelineShaderStageCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .stage {vk::ShaderStageFlagBits::eCompute},
+                    .module {*computeShader},
+                    .pName {"main"},
+                    .pSpecializationInfo {},
+                };
 
-        auto [result, maybePipeline] =
-            this->device.createComputePipelineUnique(*this->pipeline_cache, computePipelineCreateInfo);
+                const vk::ComputePipelineCreateInfo computePipelineCreateInfo {
+                    .sType {vk::StructureType::eComputePipelineCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .stage {shaderCreateInfo},
+                    .layout {this->bindless_pipeline_layout},
+                    .basePipelineHandle {},
+                    .basePipelineIndex {},
+                };
 
-        return PipelineInternalStorage {
-            .descriptor {std::move(descriptor)},
-            .pipeline {std::move(maybePipeline)},
-            .dependent_files {std::move(allDependentFiles)}};
-    }
+                auto [result, maybePipeline] =
+                    this->device.createComputePipelineUnique(*this->pipeline_cache, computePipelineCreateInfo);
 
-    std::pair<PipelineManager::PipelineInternalStorage, std::optional<std::string>>
-    PipelineManager::tryRecompilePipeline(PipelineInternalStorage oldStorage) const
-    {
-        std::expected<PipelineInternalStorage, std::string> result {};
+                return PipelineCompilationResult {
+                    .maybe_new_pipeline {std::move(maybePipeline)},
+                    .warnings_and_errors {std::move(slangCompilationResult.second)},
+                    .dependent_files {std::move(dependentFiles)}};
+            });
 
-        if (GraphicsPipelineDescriptor* g = std::get_if<GraphicsPipelineDescriptor>(&oldStorage.descriptor))
-        {
-            result = this->tryCompilePipeline(*g);
-        }
-        else if (ComputePipelineDescriptor* c = std::get_if<ComputePipelineDescriptor>(&oldStorage.descriptor))
-        {
-            result = this->tryCompilePipeline(*c);
-        }
-        else
-        {
-            panic("unhandled variant");
-        }
-
-        if (result.has_value())
-        {
-            return {std::move(*result), std::nullopt};
-        }
-        else
-        {
-            return {std::move(oldStorage), std::move(result.error())};
-        }
+        return util::MaybeAsynchronousObject {std::move(resultFuture)};
     }
 
 } // namespace gfx::core::vulkan
