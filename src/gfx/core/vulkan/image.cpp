@@ -129,9 +129,7 @@ namespace gfx::core::vulkan
             const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
                 [] -> std::optional<u8>
                 {
-                    panic("Buffer was not given a binding location!");
-
-                    return std::nullopt;
+                    unreachable("Buffer was not given a binding location!");
                 });
 
             this->maybe_sampled_image_descriptor_handle = this->renderer->getDescriptorManager()->registerDescriptor(
@@ -147,9 +145,7 @@ namespace gfx::core::vulkan
             const u8 descriptorBindingLocation = *this->maybe_shader_binding_location.or_else(
                 [] -> std::optional<u8>
                 {
-                    panic("Buffer was not given a binding location!");
-
-                    return std::nullopt;
+                    unreachable("Buffer was not given a binding location!");
                 });
 
             this->maybe_storage_image_descriptor_handle =

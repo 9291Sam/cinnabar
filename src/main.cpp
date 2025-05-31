@@ -168,7 +168,8 @@ struct TemporaryGameState : game::Game::GameState
 
         if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::CloseWindow))
         {
-            return game::Game::GameStateUpdateResult {.should_terminate {true}, .generators {}, .camera {}};
+            return game::Game::GameStateUpdateResult {
+                .should_terminate {true}, .generators {}, .camera {}, .render_thread_profile {std::move(stamper)}};
         }
 
         glm::vec3 previousPosition = camera.getPosition();

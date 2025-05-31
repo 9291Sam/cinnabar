@@ -132,7 +132,7 @@ namespace gfx::core::vulkan
         }
         else
         {
-            panic("No graphics queue available!");
+            unreachable("no graphics queue was available");
         }
 
         if (asyncComputeFamily.has_value())

@@ -20,7 +20,7 @@
 #include <unistd.h>
 #endif
 
-namespace cfi
+namespace gfx
 {
     std::atomic<usize> SaneSlangCompiler::monotonic_counter {0};
 
@@ -364,4 +364,4 @@ namespace cfi
 
         return {}; // Not found
     }
-} // namespace cfi
+} // namespace gfx

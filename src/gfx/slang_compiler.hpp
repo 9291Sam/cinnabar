@@ -2,15 +2,13 @@
 
 #include "util/util.hpp"
 #include <atomic>
-#include <expected>
 #include <filesystem>
-#include <future>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
-namespace cfi
+namespace gfx
 {
     class SaneSlangCompiler
     {
@@ -66,4 +64,4 @@ namespace cfi
         resolveIncludePath(const std::string& includePath, const std::filesystem::path& currentDir);
     };
 
-} // namespace cfi
+} // namespace gfx

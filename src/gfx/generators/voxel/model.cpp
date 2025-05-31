@@ -439,7 +439,8 @@ namespace gfx::generators::voxel
             {
                 log::debug("{}", f);
             }
-            panic("panic");
+
+            unreachable("done");
         }
 
         return static_cast<FrameNumber>(it - this->frame_start_times.cbegin());

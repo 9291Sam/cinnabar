@@ -66,6 +66,7 @@ add_executable(cinnabar
 
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp
+    src/gfx/slang_compiler.cpp
     src/gfx/transform.cpp
 
     src/util/allocators/index_allocator.cpp
@@ -78,10 +79,9 @@ add_executable(cinnabar
     src/util/util.cpp
 
     src/main.cpp
-    src/slang_compiler.cpp
 )
 
-add_library(imgui_build_target STATIC
+add_library(library_build_target STATIC
     ${imgui_SOURCE_DIR}/imgui_demo.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -100,26 +100,40 @@ add_library(imgui_build_target STATIC
 
     ${plutosvg_SOURCE_DIR}/source/plutosvg.c
 )
-target_include_directories(imgui_build_target SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_include_directories(imgui_build_target SYSTEM PUBLIC ${imgui_SOURCE_DIR})
-target_include_directories(imgui_build_target SYSTEM PUBLIC ${implot_SOURCE_DIR})
-target_include_directories(imgui_build_target SYSTEM PUBLIC ${FREETYPE_INCLUDE_DIRS})
-target_include_directories(imgui_build_target SYSTEM PUBLIC ${plutosvg_SOURCE_DIR}/source)
-target_compile_definitions(imgui_build_target PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
-target_compile_definitions(imgui_build_target PUBLIC VULKAN_HPP_NO_CONSTRUCTORS=1)
-target_compile_definitions(imgui_build_target PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES=1)
-target_compile_definitions(imgui_build_target PUBLIC IMGUI_USE_WCHAR32=1)
-target_compile_definitions(imgui_build_target PUBLIC IMGUI_ENABLE_FREETYPE=1)
-target_compile_definitions(imgui_build_target PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG=1)
-target_compile_definitions(imgui_build_target PUBLIC PLUTOSVG_HAS_FREETYPE=1)
-target_compile_definitions(imgui_build_target PUBLIC PLUTOSVG_BUILD_STATIC=1)
-target_compile_definitions(imgui_build_target PUBLIC VK_NO_PROTOTYPES=1)
+target_include_directories(library_build_target SYSTEM PUBLIC ${Vulkan_INCLUDE_DIRS})
+target_include_directories(library_build_target SYSTEM PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(library_build_target SYSTEM PUBLIC ${implot_SOURCE_DIR})
+target_include_directories(library_build_target SYSTEM PUBLIC ${FREETYPE_INCLUDE_DIRS})
+target_include_directories(library_build_target SYSTEM PUBLIC ${plutosvg_SOURCE_DIR}/source)
+target_compile_definitions(library_build_target PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+target_compile_definitions(library_build_target PUBLIC VULKAN_HPP_NO_CONSTRUCTORS=1)
+target_compile_definitions(library_build_target PUBLIC IMGUI_IMPL_VULKAN_NO_PROTOTYPES=1)
+target_compile_definitions(library_build_target PUBLIC IMGUI_USE_WCHAR32=1)
+target_compile_definitions(library_build_target PUBLIC IMGUI_ENABLE_FREETYPE=1)
+target_compile_definitions(library_build_target PUBLIC IMGUI_ENABLE_FREETYPE_PLUTOSVG=1)
+target_compile_definitions(library_build_target PUBLIC PLUTOSVG_HAS_FREETYPE=1)
+target_compile_definitions(library_build_target PUBLIC PLUTOSVG_BUILD_STATIC=1)
+target_compile_definitions(library_build_target PUBLIC VK_NO_PROTOTYPES=1)
 target_link_libraries(
-    imgui_build_target
+    library_build_target
     PUBLIC 
     glfw
     plutovg::plutovg
     ${FREETYPE_LIBRARIES}
+    FastNoise2
+    fmt::fmt
+    spdlog::spdlog
+    cpptrace::cpptrace
+    VulkanMemoryAllocator
+    glm
+    magic_enum::magic_enum
+    Boost::container
+    Boost::unordered
+    Boost::dynamic_bitset
+    Boost::core
+    Boost::type_traits
+    Boost::sort
+    Boost::pool
 )
 
 target_include_directories(cinnabar PRIVATE src)
@@ -143,21 +157,8 @@ target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_NO_CONSTRUCTORS=1)
 target_compile_definitions(cinnabar PRIVATE VK_NO_PROTOTYPES=1)
 target_link_libraries(cinnabar PUBLIC
-    fmt::fmt
-    spdlog::spdlog
-    cpptrace::cpptrace
-    VulkanMemoryAllocator
-    glm
-    magic_enum::magic_enum
-    Boost::container
-    Boost::unordered
-    Boost::dynamic_bitset
-    Boost::core
-    Boost::type_traits
-    Boost::sort
-    Boost::pool
-    imgui_build_target
-    FastNoise2
+  
+    library_build_target
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
@@ -188,6 +189,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         -Wno-language-extension-token
     )
 
+    target_compile_options(library_build_target PRIVATE -Wno-everything -Wno-nan-infinity-disabled)
+
     if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         # Add debug symbols that lldb can actually read
         # target_compile_options(cinnabar PUBLIC -glldb) 
@@ -195,8 +198,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         # target_compile_options(cinnabar PUBLIC -fsanitize=address)
         # target_link_options(cinnabar PUBLIC -fsanitize=address)
 
-        # target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
-        # target_link_options(imgui_build_target PUBLIC -fsanitize=address)
+        # target_compile_options(library_build_target PUBLIC -fsanitize=address)
+        # target_link_options(library_build_target PUBLIC -fsanitize=address)
 
         # Some braindead dumbass fucking maintainer of freetype  is too high off of snorting
         # crayons to realize that pointing to your personal downloads folder is a

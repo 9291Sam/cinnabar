@@ -1,6 +1,5 @@
 #include "pipeline_manager.hpp"
 #include "device.hpp"
-#include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
 #include "util/timer.hpp"
@@ -158,7 +157,7 @@ namespace gfx::core::vulkan
                         }
                         else
                         {
-                            panic("unhandled variant");
+                            unreachable();
                         }
 
                         if (newPipelineCompilationResult.warnings_and_errors.empty())
@@ -271,7 +270,7 @@ namespace gfx::core::vulkan
                             }
                             else
                             {
-                                panic("unhandled variant");
+                                unreachable();
                             }
                         }
                     });
@@ -290,8 +289,8 @@ namespace gfx::core::vulkan
 
                 assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-                cfi::SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
-                    [&](cfi::SaneSlangCompiler& c)
+                SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
+                    [&](SaneSlangCompiler& c)
                     {
                         return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
                     });
@@ -543,8 +542,8 @@ namespace gfx::core::vulkan
                 assert::critical(
                     descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-                cfi::SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
-                    [&](cfi::SaneSlangCompiler& c)
+                SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
+                    [&](SaneSlangCompiler& c)
                     {
                         return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
                     });

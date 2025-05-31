@@ -1,6 +1,6 @@
 #pragma once
 
-#include "slang_compiler.hpp"
+#include "gfx/slang_compiler.hpp"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
 #include "util/threads.hpp"
 #include "util/util.hpp"
@@ -66,9 +66,9 @@ namespace gfx::core::vulkan
 
     private:
 
-        vk::Device                          device;
-        vk::UniquePipelineCache             pipeline_cache;
-        util::Mutex<cfi::SaneSlangCompiler> sane_slang_compiler;
+        vk::Device                     device;
+        vk::UniquePipelineCache        pipeline_cache;
+        util::Mutex<SaneSlangCompiler> sane_slang_compiler;
 
         vk::PipelineLayout bindless_pipeline_layout;
 

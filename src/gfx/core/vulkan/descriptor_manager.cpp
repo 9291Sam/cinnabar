@@ -43,8 +43,7 @@ namespace gfx::core::vulkan
 
             if (thisDescriptorBindingLocation == SupportedDescriptors.cend())
             {
-                panic("erm what");
-                std::terminate();
+                unreachable("what erm that shouldnt happen");
             }
             else
             {
