@@ -13,17 +13,6 @@ set(Boost_USE_STATIC_RUNTIME ON)
 set(BOOST_ENABLE_CMAKE ON)
 set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
 
-set(SLANG_LIB_TYPE "SHARED" CACHE STRING "" FORCE)
-set(SLANG_ENABLE_DXIL OFF)
-set(SLANG_ENABLE_GFX OFF)
-set(SLANG_ENABLE_SLANGD OFF)
-set(SLANG_ENABLE_SLANGC OFF)
-set(SLANG_ENABLE_SLANGRT OFF)
-set(SLANG_ENABLE_SLANG_GLSLANG OFF)
-set(SLANG_ENABLE_TESTS OFF)
-set(SLANG_ENABLE_EXAMPLES OFF)
-set(SLANG_ENABLE_SLANG_RHI OFF)
-# set(SLANG_ENABLE_ASAN ON)
 
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
 CPMAddPackage("gh:gabime/spdlog#v1.15.1")
@@ -209,20 +198,14 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
         # target_compile_options(imgui_build_target PUBLIC -fsanitize=address)
         # target_link_options(imgui_build_target PUBLIC -fsanitize=address)
 
-        
+        # Some braindead dumbass fucking maintainer of freetype  is too high off of snorting
+        # crayons to realize that pointing to your personal downloads folder is a
+        # stupid fucking ideaE
+        target_link_options(cinnabar PUBLIC -Xlinker /IGNORE:4099)
 
     endif ()
 
 endif()
-
-
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
-endif()
-CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
-target_link_libraries(cinnabar PUBLIC slang)
 
 
 

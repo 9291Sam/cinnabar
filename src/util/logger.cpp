@@ -114,7 +114,6 @@ namespace util
                         }
                     }
 
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                     dest.append(buffer.data(), buffer.data() + realFilenameView.size());
                 }
 

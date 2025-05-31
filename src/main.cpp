@@ -27,7 +27,6 @@
 #include <glm/fwd.hpp>
 #include <glm/trigonometric.hpp>
 #include <imgui.h>
-#include <slang.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
@@ -290,9 +289,8 @@ int main()
     CPPTRACE_CATCH_ALT(...)
     {
         log::critical(
-            "Cinnabar has crashed! | Unknown Exception type thrown!\n{} {}",
-            cpptrace::from_current_exception().to_string(true),
-            slang::getLastInternalErrorMessage());
+            "Cinnabar has crashed! | Unknown Exception type thrown!\n{}",
+            cpptrace::from_current_exception().to_string(true));
 
         throw;
     }

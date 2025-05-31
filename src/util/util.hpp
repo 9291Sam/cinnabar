@@ -110,7 +110,7 @@ namespace util
     }
 
     template<class Fn>
-        requires std::is_nothrow_invocable_v<Fn>
+        requires std::is_invocable_v<Fn>
     class Defer
     {
     public:

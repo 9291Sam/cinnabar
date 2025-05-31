@@ -1,292 +1,391 @@
-// #include "slang_compiler.hpp"
-// #include "util/logger.hpp"
-// #include "util/timer.hpp"
-// #include "util/util.hpp"
-// #include <expected>
-// #include <filesystem>
-// #include <fmt/format.h>
-// #include <slang-com-ptr.h>
-// #include <slang.h>
-// #include <vector>
-
-// namespace cfi
-// {
-
-//     SaneSlangCompiler::SaneSlangCompiler()
-//     // : unique_filename_integer {0}
-//     {
-//         // Initialize Global Session
-//         {
-//             const SlangGlobalSessionDesc globalSessionDescriptor {};
-
-//             const SlangResult result =
-//                 slang::createGlobalSession(&globalSessionDescriptor, this->global_session.writeRef());
-//             assert::critical(result == 0, "Failed to create Slang Global Session with error {}", result);
-//         }
-//     }
-
-//     SaneSlangCompiler::~SaneSlangCompiler() = default;
-
-//     std::expected<SaneSlangCompiler::CompileResult, std::string> SaneSlangCompiler::compile(std::filesystem::path
-//     path)
-//     {
-//         auto [maybeModule, maybeCompileMessage] = this->loadModule(path.generic_string());
-
-//         if (maybeModule == nullptr)
-//         {
-//             return std::unexpected(std::move(maybeCompileMessage));
-//         }
-
-//         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeVertexEntry =
-//             this->tryFindEntryPoint(maybeModule, "vertexMain");
-//         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeFragmentEntry =
-//             this->tryFindEntryPoint(maybeModule, "fragmentMain");
-//         const std::optional<Slang::ComPtr<slang::IEntryPoint>> maybeComputeEntry =
-//             this->tryFindEntryPoint(maybeModule, "computeMain");
-
-//         auto tryComposeEntrypoint = [&](const std::optional<Slang::ComPtr<slang::IEntryPoint>>& maybeEntryPoint)
-//             -> std::expected<std::vector<u32>, std::string>
-//         {
-//             if (!maybeEntryPoint.has_value())
-//             {
-//                 return {};
-//             }
-
-//             const Slang::ComPtr<slang::IComponentType> composedProgram =
-//                 this->composeProgram(maybeModule, &**maybeEntryPoint);
-//             std::pair<Slang::ComPtr<slang::IBlob>, std::string> maybeBlob =
-//                 this->compileComposedProgram(composedProgram.get());
-
-//             if (maybeBlob.first != nullptr)
-//             {
-//                 const usize outputSize = maybeBlob.first->getBufferSize();
-
-//                 assert::critical(
-//                     outputSize % 4 == 0, "Returned spirv was of size {} which is not divisble by 4", outputSize);
-
-//                 std::vector<u32> data {};
-//                 data.resize(outputSize / 4);
-
-//                 std::memcpy(data.data(), maybeBlob.first->getBufferPointer(), maybeBlob.first->getBufferSize());
-
-//                 return data;
-//             }
-//             else
-//             {
-//                 return std::unexpected(std::move(maybeBlob.second));
-//             }
-//         };
-
-//         std::expected<std::vector<u32>, std::string> maybeVertexSPIRV   = tryComposeEntrypoint(maybeVertexEntry);
-//         std::expected<std::vector<u32>, std::string> maybeFragmentSPIRV = tryComposeEntrypoint(maybeFragmentEntry);
-//         std::expected<std::vector<u32>, std::string> maybeComputeSPIRV  = tryComposeEntrypoint(maybeComputeEntry);
-
-//         if (!maybeVertexSPIRV.has_value())
-//         {
-//             return std::unexpected(std::move(maybeVertexSPIRV.error()));
-//         }
-//         if (!maybeFragmentSPIRV.has_value())
-//         {
-//             return std::unexpected(std::move(maybeFragmentSPIRV.error()));
-//         }
-//         if (!maybeComputeSPIRV.has_value())
-//         {
-//             return std::unexpected(std::move(maybeComputeSPIRV.error()));
-//         }
-
-//         return CompileResult {
-//             .maybe_vertex_data {std::move(*maybeVertexSPIRV)},
-//             .maybe_fragment_data {std::move(*maybeFragmentSPIRV)},
-//             .maybe_compute_data {std::move(*maybeComputeSPIRV)},
-//             .dependent_files {this->getDependencies(maybeModule, std::move(path))},
-//             .maybe_warnings {std::move(maybeCompileMessage)}};
-//     }
-
-//     void SaneSlangCompiler::loadNewSession()
-//     {
-//         this->lifetime_extender.clear();
-
-//         this->session = nullptr;
-
-//         std::vector<const char*> cStringPaths {};
-//         for (const std::filesystem::path& path : this->search_paths)
-//         {
-//             this->lifetime_extender.push_back(path.generic_string());
-
-//             cStringPaths.push_back(this->lifetime_extender.back().c_str());
-//         }
-
-//         slang::TargetDesc target {
-//             .format {SlangCompileTarget::SLANG_SPIRV},
-//             .profile {
-//                 this->global_session->findProfile("spirv_1_5, spvGroupNonUniformBallot, spvGroupNonUniformShuffle")},
-//             .flags {0},
-//         };
-
-//         slang::SessionDesc slangSessionDescriptor {};
-//         slangSessionDescriptor.searchPaths     = cStringPaths.data();
-//         slangSessionDescriptor.searchPathCount = static_cast<int>(cStringPaths.size());
-//         slangSessionDescriptor.targets         = &target;
-//         slangSessionDescriptor.targetCount     = 1;
-
-//         std::vector<slang::CompilerOptionEntry> compileOptions {};
-
-//         compileOptions.push_back(
-//             slang::CompilerOptionEntry {
-//                 .name {slang::CompilerOptionName::FloatingPointMode},
-//                 .value {.intValue0 {SlangFloatingPointMode::SLANG_FLOATING_POINT_MODE_FAST}}});
-
-//         compileOptions.push_back(
-//             slang::CompilerOptionEntry {
-//                 .name {slang::CompilerOptionName::Optimization},
-//                 .value {.intValue0 {SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}});
-
-//         compileOptions.push_back(
-//             slang::CompilerOptionEntry {.name {slang::CompilerOptionName::VulkanUseGLLayout}, .value {.intValue0
-//             {1}}});
-
-//         compileOptions.push_back(
-//             slang::CompilerOptionEntry {
-//                 .name {slang::CompilerOptionName::DebugInformation},
-//                 .value {.intValue0 {SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL}}});
-
-//         compileOptions.push_back(
-//             slang::CompilerOptionEntry {
-//                 .name {slang::CompilerOptionName::DisableWarning},
-//                 .value {.kind {slang::CompilerOptionValueKind::String}, .stringValue0 {"39001"}}});
-
-//         slangSessionDescriptor.compilerOptionEntryCount = static_cast<u32>(compileOptions.size());
-//         slangSessionDescriptor.compilerOptionEntries    = compileOptions.data();
-
-//         const SlangResult result =
-//             this->global_session->createSession(slangSessionDescriptor, this->session.writeRef());
-//         assert::critical(result == 0, "Failed to create Slang Session with error {}", result);
-//     }
-
-//     std::pair<slang::IModule*, std::string> SaneSlangCompiler::loadModule(const std::filesystem::path& modulePath)
-//     {
-//         this->loadNewSession();
-
-//         const std::string modulePathString = modulePath.generic_string();
-
-//         Slang::ComPtr<slang::IBlob> moduleBlob;
-//         // slang::IModule* maybeModule = this->session->loadModule(modulePathString.c_str(), moduleBlob.writeRef());
-
-//         std::vector<std::byte> entireFile = util::loadEntireFileFromPath(modulePath);
-
-//         std::string str {};
-//         str.resize(entireFile.size());
-
-//         std::memcpy(str.data(), entireFile.data(), str.size());
-
-//         slang::IModule* maybeModule = this->session->loadModuleFromSourceString(
-//             modulePathString.c_str(), modulePathString.c_str(), str.data(), moduleBlob.writeRef());
-
-//         // this->session->loadModuleFromSource(const char *moduleName, const char *path, slang::IBlob *source)
-//         // this->session->loadModuleFromSourceString(const char* moduleName, const char* path, const char* string)
-
-//         std::string compilerOutput {};
-
-//         if (moduleBlob != nullptr)
-//         {
-//             std::string_view errorMessage {
-//                 static_cast<const char*>(moduleBlob->getBufferPointer()), moduleBlob->getBufferSize()};
-
-//             compilerOutput = errorMessage;
-//         }
-
-//         return {maybeModule, std::move(compilerOutput)};
-//     }
-
-//     std::optional<Slang::ComPtr<slang::IEntryPoint>>
-//     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-//     SaneSlangCompiler::tryFindEntryPoint(slang::IModule* module, const char* entryPointName) const
-//     {
-//         Slang::ComPtr<slang::IEntryPoint> entryPoint;
-//         std::ignore = module->findEntryPointByName(entryPointName, entryPoint.writeRef());
-
-//         if (entryPoint == nullptr)
-//         {
-//             return std::nullopt;
-//         }
-//         else
-//         {
-//             return entryPoint;
-//         }
-//     }
-
-//     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-//     std::vector<std::filesystem::path>
-//     SaneSlangCompiler::getDependencies(slang::IModule* module, std::filesystem::path selfPath) const
-//     {
-//         std::vector<std::filesystem::path> result {};
-
-//         result.push_back(std::move(selfPath));
-
-//         const i32 deps = module->getDependencyFileCount();
-
-//         for (i32 i = 0; i < deps; ++i)
-//         {
-//             std::string_view p = module->getDependencyFilePath(i);
-
-//             // if (p.contains("UNIQUE_FILE_LOADED_IDENTIFIER"))
-//             // {
-//             //     continue;
-//             // }
-
-//             result.push_back(std::filesystem::path {p});
-//         }
-
-//         return result;
-//     }
-
-//     Slang::ComPtr<slang::IComponentType>
-//     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-//     SaneSlangCompiler::composeProgram(slang::IModule* module, slang::IEntryPoint* entryPoint) const
-//     {
-//         Slang::ComPtr<slang::IBlob> diagnosticBlob;
-
-//         std::vector<slang::IComponentType*> components {};
-//         components.push_back(module);
-//         components.push_back(entryPoint);
-
-//         Slang::ComPtr<slang::IComponentType> composedProgram;
-
-//         if (session->createCompositeComponentType(
-//                 components.data(),
-//                 static_cast<SlangInt>(components.size()),
-//                 composedProgram.writeRef(),
-//                 diagnosticBlob.writeRef())
-//             != SLANG_OK)
-//         {
-//             const std::string_view error {
-//                 static_cast<const char*>(diagnosticBlob->getBufferPointer()), diagnosticBlob->getBufferSize()};
-
-//             panic("Failed to compose program: \n{}", error);
-//         }
-
-//         return composedProgram;
-//     }
-//     std::pair<Slang::ComPtr<slang::IBlob>, std::string>
-//     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-//     SaneSlangCompiler::compileComposedProgram(slang::IComponentType* composedProgram) const
-//     {
-//         Slang::ComPtr<slang::IBlob> spirvBlob      = nullptr;
-//         Slang::ComPtr<slang::IBlob> diagnosticBlob = nullptr;
-
-//         const SlangResult result =
-//             composedProgram->getEntryPointCode(0, 0, spirvBlob.writeRef(), diagnosticBlob.writeRef());
-
-//         std::string outDiagnostic {};
-
-//         if (diagnosticBlob != nullptr && diagnosticBlob->getBufferSize() != 0)
-//         {
-//             outDiagnostic.resize(diagnosticBlob->getBufferSize());
-
-//             std::memcpy(outDiagnostic.data(), diagnosticBlob->getBufferPointer(), outDiagnostic.size());
-//         }
-
-//         return {result == SLANG_OK ? spirvBlob : nullptr, std::move(outDiagnostic)};
-//     }
-
-// } // namespace cfi
+#include "slang_compiler.hpp"
+#include "util/logger.hpp"
+#include "util/timer.hpp"
+#include "util/util.hpp"
+#include <array>
+#include <filesystem>
+#include <fstream>
+#include <random>
+#include <system_error>
+
+#ifdef _WIN32
+#include <Windows.h>
+#undef max
+#undef MemoryBarrier
+#undef min
+#else
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
+
+namespace cfi
+{
+    std::atomic<usize> SaneSlangCompiler::monotonic_counter {0};
+
+    SaneSlangCompiler::SaneSlangCompiler()
+    {
+        assert::critical(
+            SaneSlangCompiler::isSlangAvailable(), "Slang was not found on your system. Is this a production build?");
+
+        this->temporary_dir =
+            std::filesystem::temp_directory_path() / std::format("cinnabar_slang_compiler_{}", std::random_device {}());
+
+        std::filesystem::create_directories(this->temporary_dir);
+    }
+
+    SaneSlangCompiler::~SaneSlangCompiler()
+    {
+        std::error_code ec;
+        std::filesystem::remove_all(this->temporary_dir, ec);
+
+        assert::warn(!ec, "Failed to cleanup SaneSlangCompiler temporary directory");
+    }
+
+    std::expected<SaneSlangCompiler::CompileResult, std::string> SaneSlangCompiler::compile(std::filesystem::path path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            return std::unexpected("Source file does not exist: " + path.string());
+        }
+
+        CompileResult result {};
+        std::string   allWarnings;
+
+        auto tryCompileEntry = [&](const std::string& entryName,
+                                   const std::string& stage,
+                                   std::vector<u32>&  outputData) -> std::expected<void, std::string>
+        {
+            if (!this->hasEntryPoint(path, entryName))
+            {
+                return {};
+            }
+
+            auto spirvResult = compileEntryPoint(path, entryName, stage);
+            if (!spirvResult)
+            {
+                return std::unexpected(spirvResult.error());
+            }
+
+            outputData = std::move(*spirvResult);
+            return {};
+        };
+
+        // Try to compile each shader stage
+        if (auto vertexResult = tryCompileEntry("vertexMain", "vertex", result.maybe_vertex_data); !vertexResult)
+        {
+            return std::unexpected("Vertex shader error: " + vertexResult.error());
+        }
+
+        if (auto fragmentResult = tryCompileEntry("fragmentMain", "fragment", result.maybe_fragment_data);
+            !fragmentResult)
+        {
+            return std::unexpected("Fragment shader error: " + fragmentResult.error());
+        }
+
+        if (auto computeResult = tryCompileEntry("computeMain", "compute", result.maybe_compute_data); !computeResult)
+        {
+            return std::unexpected("Compute shader error: " + computeResult.error());
+        }
+
+        std::set<std::filesystem::path> visited;
+        collectDependencies(path, visited, result.dependent_files);
+
+        result.dependent_files.push_back(std::move(path));
+
+        for (const auto& p : result.dependent_files)
+        {
+            log::debug("found {}", p.string());
+        }
+
+        result.maybe_warnings = std::move(allWarnings);
+
+        return result;
+    }
+
+    std::expected<std::vector<u32>, std::string> SaneSlangCompiler::compileEntryPoint(
+        const std::filesystem::path& sourcePath, const std::string& entryPoint, const std::string& stage)
+    {
+        const std::filesystem::path outputPath = createTempFile(".spv");
+
+        std::vector<std::string> args {
+            "-target",
+            "spirv",
+            "-stage",
+            stage,
+            "-entry",
+            entryPoint,
+            "-o",
+            outputPath.string(),
+            "-O3",
+            "-fvk-use-gl-layout",
+            "-Wno-39001", // overlapping bindings
+        };
+
+        for (const auto& searchPath : this->search_paths)
+        {
+            args.push_back("-I");
+            args.push_back(searchPath.string());
+        }
+
+        args.push_back(sourcePath.string());
+
+        util::Defer _ {[&]
+                       {
+                           std::filesystem::remove(outputPath);
+                       }};
+
+        SaneSlangCompiler::executeSlang(args);
+
+        return loadSpirvFromFile(outputPath);
+    }
+
+    std::filesystem::path SaneSlangCompiler::createTempFile(std::string_view suffix)
+    {
+        return this->temporary_dir / std::format("temp_{}{}", SaneSlangCompiler::monotonic_counter++, suffix);
+    }
+
+    bool SaneSlangCompiler::hasEntryPoint(const std::filesystem::path& sourcePath, const std::string& entryPoint)
+    {
+        std::ifstream file(sourcePath);
+        if (!file)
+        {
+            return false;
+        }
+
+        std::string content {(std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>()};
+
+        // Look for function definition pattern: "void entryPointName(" or similar
+        std::string pattern1 = "void " + entryPoint + "(";
+        std::string pattern2 = entryPoint + "(";
+
+        return content.find(pattern1) != std::string::npos || content.find(pattern2) != std::string::npos;
+    }
+
+    std::vector<u32> SaneSlangCompiler::loadSpirvFromFile(const std::filesystem::path& filePath)
+    {
+        std::vector<std::byte> rawFileData = util::loadEntireFileFromPath(filePath);
+
+        std::vector<u32> spirvData {};
+        spirvData.resize(rawFileData.size() / 4);
+
+        assert::critical(
+            rawFileData.size() > 0 && rawFileData.size() % 4 == 0,
+            "Apparent Spirv file data is of an incorrect length of {} bytes",
+            rawFileData.size());
+
+        std::memcpy(spirvData.data(), rawFileData.data(), rawFileData.size());
+
+        assert::critical(spirvData.at(0) == 0x07230203, "Spirv magic constant was {}", spirvData.at(0));
+
+        return spirvData;
+    }
+
+    void SaneSlangCompiler::executeSlang(const std::vector<std::string>& args)
+    {
+        // Build command string
+        std::string command = "slangc";
+        for (const auto& arg : args)
+        {
+            command += " " + escapeArg(arg);
+        }
+
+        // Execute command and capture output
+        std::array<char, 4096> buffer {};
+        std::string            result;
+
+#ifdef _WIN32
+        std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(command.c_str(), "r"), _pclose);
+#else
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+#endif
+
+        assert::critical(pipe != nullptr, "Failed to execute slang command |{}|", command);
+
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+        {
+            result += buffer.data();
+        }
+
+#ifdef _WIN32
+        int exitCode = _pclose(pipe.release());
+#else
+        int exitCode = pclose(pipe.release());
+        exitCode     = WEXITSTATUS(exitCode);
+#endif
+
+        assert::critical(
+            exitCode == 0,
+            "Failed to execute Slang command |{}| returned with error code {} and a buffer string of |{}|",
+            command,
+            exitCode,
+            result);
+    }
+
+    std::string SaneSlangCompiler::escapeArg(const std::string& arg)
+    {
+        bool needsQuotes = arg.find(' ') != std::string::npos || arg.find('\t') != std::string::npos
+                        || arg.find('"') != std::string::npos;
+
+        if (!needsQuotes)
+        {
+            return arg;
+        }
+
+#ifdef _WIN32
+        // Windows-style escaping
+        std::string escaped = "\"";
+        for (char c : arg)
+        {
+            if (c == '"')
+            {
+                escaped += "\\\"";
+            }
+            else if (c == '\\')
+            {
+                escaped += "\\\\";
+            }
+            else
+            {
+                escaped += c;
+            }
+        }
+        escaped += "\"";
+        return escaped;
+#else
+        std::string escaped = "'";
+        for (char c : arg)
+        {
+            if (c == '\'')
+            {
+                escaped += "'\"'\"'";
+            }
+            else
+            {
+                escaped += c;
+            }
+        }
+        escaped += "'";
+        return escaped;
+#endif
+    }
+
+    bool SaneSlangCompiler::isSlangAvailable()
+    {
+#ifdef _WIN32
+        FILE* pipe = _popen("slangc -v 2>NUL", "r");
+        if (pipe != nullptr)
+        {
+            return _pclose(pipe) == 0;
+        }
+#else
+        FILE* pipe = popen("slangc -v 2>/dev/null", "r");
+        if (pipe != nullptr)
+        {
+            return WEXITSTATUS(pclose(pipe)) == 0;
+        }
+#endif
+        return false;
+    }
+
+    void SaneSlangCompiler::collectDependencies(
+        const std::filesystem::path&        filePath,
+        std::set<std::filesystem::path>&    visited,
+        std::vector<std::filesystem::path>& dependencies)
+    {
+        std::filesystem::path canonicalPath = std::filesystem::canonical(filePath);
+
+        if (visited.find(canonicalPath) != visited.end())
+        {
+            return; // Already processed
+        }
+
+        visited.insert(canonicalPath);
+        dependencies.push_back(canonicalPath);
+
+        if (canonicalPath.empty())
+        {
+            log::trace("{} {} what", filePath.string(), canonicalPath.string());
+        }
+
+        auto                  includes   = extractIncludes(filePath);
+        std::filesystem::path currentDir = filePath.parent_path();
+
+        for (const auto& includePath : includes)
+        {
+            auto resolvedPath = resolveIncludePath(includePath, currentDir);
+            if (!resolvedPath.empty() && std::filesystem::exists(resolvedPath))
+            {
+                collectDependencies(resolvedPath, visited, dependencies);
+            }
+        }
+    }
+
+    std::vector<std::string> SaneSlangCompiler::extractIncludes(const std::filesystem::path& filePath)
+    {
+        std::vector<std::string> includes;
+        std::ifstream            file(filePath);
+
+        if (!file)
+        {
+            return includes;
+        }
+
+        std::string line;
+        while (std::getline(file, line))
+        {
+            // Trim whitespace
+            line.erase(0, line.find_first_not_of(" \t"));
+            line.erase(line.find_last_not_of(" \t") + 1);
+
+            // Check for #include directive
+            if (line.starts_with("#include"))
+            {
+                // Extract the include path
+                size_t quoteStart = line.find('"');
+                size_t angleStart = line.find('<');
+
+                if (quoteStart != std::string::npos)
+                {
+                    size_t quoteEnd = line.find('"', quoteStart + 1);
+                    if (quoteEnd != std::string::npos)
+                    {
+                        includes.push_back(line.substr(quoteStart + 1, quoteEnd - quoteStart - 1));
+                    }
+                }
+                else if (angleStart != std::string::npos)
+                {
+                    size_t angleEnd = line.find('>', angleStart + 1);
+                    if (angleEnd != std::string::npos)
+                    {
+                        includes.push_back(line.substr(angleStart + 1, angleEnd - angleStart - 1));
+                    }
+                }
+            }
+        }
+
+        return includes;
+    }
+
+    std::filesystem::path
+    SaneSlangCompiler::resolveIncludePath(const std::string& includePath, const std::filesystem::path& currentDir)
+    {
+        // First try relative to current file's directory
+        std::filesystem::path relativePath = currentDir / includePath;
+        if (std::filesystem::exists(relativePath))
+        {
+            return relativePath;
+        }
+
+        // Then try search paths
+        for (const auto& searchPath : this->search_paths)
+        {
+            std::filesystem::path candidatePath = searchPath / includePath;
+            if (std::filesystem::exists(candidatePath))
+            {
+                return candidatePath;
+            }
+        }
+
+        return {}; // Not found
+    }
+} // namespace cfi

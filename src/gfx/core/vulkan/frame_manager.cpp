@@ -15,9 +15,7 @@ namespace gfx::core::vulkan
         .sType {vk::StructureType::eSemaphoreCreateInfo}, .pNext {nullptr}, .flags {}};
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
-        : device {&device_}
-        , swapchain {swapchain_}
-        , image_available {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
+        : image_available {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
         , render_finished {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
         , frame_in_flight {std::make_shared<vk::UniqueFence>(device_.getDevice().createFenceUnique(
               vk::FenceCreateInfo {
@@ -35,6 +33,7 @@ namespace gfx::core::vulkan
                                          .getFamilyOfQueueType(Device::QueueType::Graphics)
                                          .value()},
               })}
+        , should_profiling_query_pool_reset {true}
         , profiling_query_pool {device_.getDevice().createQueryPoolUnique(
               vk::QueryPoolCreateInfo {
                   .sType {vk::StructureType::eQueryPoolCreateInfo},
@@ -44,7 +43,8 @@ namespace gfx::core::vulkan
                   .queryCount {MaxQueriesPerFrame},
                   .pipelineStatistics {},
               })}
-        , should_profiling_query_pool_reset {true}
+        , device {&device_}
+        , swapchain {swapchain_}
     {
         if constexpr (CINNABAR_DEBUG_BUILD)
         {

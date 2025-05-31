@@ -86,7 +86,7 @@ namespace gfx
                     std::vector<u64> queryResultData {};
                     queryResultData.resize(core::vulkan::MaxQueriesPerFrame);
 
-                    this->renderer->getDevice()->getDevice().getQueryPoolResults(
+                    const vk::Result queryPoolResult = this->renderer->getDevice()->getDevice().getQueryPoolResults(
                         queryPool,
                         0,
                         core::vulkan::MaxQueriesPerFrame,
@@ -95,7 +95,10 @@ namespace gfx
                         sizeof(u64),
                         vk::QueryResultFlagBits::e64);
 
-                    // std::string out {};
+                    assert::critical(
+                        queryPoolResult == vk::Result::eSuccess || queryPoolResult == vk::Result::eNotReady,
+                        "Unexpected query pool poll result of {}",
+                        vk::to_string(queryPoolResult));
 
                     usize lastElementIdx = 0;
 
@@ -107,7 +110,7 @@ namespace gfx
                             continue;
                         }
 
-                        lastElementIdx = idx;
+                        lastElementIdx = static_cast<usize>(idx);
                     }
 
                     std::array<u64, core::vulkan::MaxQueriesPerFrame> timeStampDeltas {};
@@ -796,7 +799,6 @@ namespace gfx
 
         if (this->renderer->getPipelineManager()->couldAnyShadersReload())
         {
-            log::trace("idling!");
             this->renderer->getDevice()->getDevice().waitIdle();
 
             this->renderer->getPipelineManager()->reloadShaders();
