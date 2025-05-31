@@ -12,6 +12,7 @@ float2 fade(float2 t)
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
+
 float noise(float2 P)
 {
     float4 Pi  = floor(P.xyxy) + float4(0.0, 0.0, 1.0, 1.0);

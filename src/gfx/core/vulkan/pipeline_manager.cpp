@@ -134,13 +134,14 @@ namespace gfx::core::vulkan
                     // ensure the new pipeline is actually valid
                     PipelineCompilationResult& newPipelineCompilationResult = justCompiledPipeline.get();
 
+                    pipelineStorage.dependent_files = std::move(newPipelineCompilationResult.dependent_files);
+
                     if (newPipelineCompilationResult.maybe_new_pipeline.has_value())
                     {
                         // excellent, the new pipeline is real!
 
                         // slightly hacky, but just slam it in there, it's fine
                         pipelineStorage.current_pipeline = std::move(newPipelineCompilationResult.maybe_new_pipeline);
-                        pipelineStorage.dependent_files  = std::move(newPipelineCompilationResult.dependent_files);
 
                         std::string_view name {};
 
@@ -289,38 +290,37 @@ namespace gfx::core::vulkan
 
                 assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-                std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> slangCompilationResult =
-                    this->sane_slang_compiler.lock(
-                        [&](cfi::SaneSlangCompiler& c)
-                        {
-                            return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
-                        });
-
-                if (!slangCompilationResult.first.has_value())
-                {
-                    // well shit slang failed to compile, bail
-
-                    return PipelineCompilationResult {
-                        .maybe_new_pipeline {std::nullopt},
-                        .warnings_and_errors {std::move(slangCompilationResult.second)},
-                        .dependent_files {}};
-                }
+                cfi::SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
+                    [&](cfi::SaneSlangCompiler& c)
+                    {
+                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
+                    });
 
                 DependentFileStorage dependentFiles {};
-                dependentFiles.reserve(slangCompilationResult.first->dependent_files.size());
+                dependentFiles.reserve(slangCompilationResult.dependent_files.size());
 
-                for (std::filesystem::path& p : slangCompilationResult.first->dependent_files)
+                for (std::filesystem::path& p : slangCompilationResult.dependent_files)
                 {
                     const std::filesystem::file_time_type time = std::filesystem::last_write_time(p);
 
                     dependentFiles.push_back(std::pair {std::move(p), time});
                 }
 
+                if (!slangCompilationResult.shaders.has_value())
+                {
+                    // well shit slang failed to compile, bail
+
+                    return PipelineCompilationResult {
+                        .maybe_new_pipeline {std::nullopt},
+                        .warnings_and_errors {std::move(slangCompilationResult.warnings_and_errors)},
+                        .dependent_files {std::move(dependentFiles)}};
+                }
+
                 // Vertex
                 {
                     std::span<const u32> compiledSPV {
-                        slangCompilationResult.first->maybe_vertex_data.cbegin(),
-                        slangCompilationResult.first->maybe_vertex_data.cend()};
+                        slangCompilationResult.shaders->maybe_vertex_data.cbegin(),
+                        slangCompilationResult.shaders->maybe_vertex_data.cend()};
 
                     const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                         .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -336,8 +336,8 @@ namespace gfx::core::vulkan
                 // Fragment
                 {
                     std::span<const u32> compiledSPV {
-                        slangCompilationResult.first->maybe_fragment_data.cbegin(),
-                        slangCompilationResult.first->maybe_fragment_data.cend()};
+                        slangCompilationResult.shaders->maybe_fragment_data.cbegin(),
+                        slangCompilationResult.shaders->maybe_fragment_data.cend()};
 
                     const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                         .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -524,7 +524,7 @@ namespace gfx::core::vulkan
 
                 return PipelineCompilationResult {
                     .maybe_new_pipeline {std::move(maybeUniquePipeline)},
-                    .warnings_and_errors {std::move(slangCompilationResult.second)},
+                    .warnings_and_errors {std::move(slangCompilationResult.warnings_and_errors)},
                     .dependent_files {std::move(dependentFiles)}};
             });
 
@@ -543,38 +543,37 @@ namespace gfx::core::vulkan
                 assert::critical(
                     descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-                std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> slangCompilationResult =
-                    this->sane_slang_compiler.lock(
-                        [&](cfi::SaneSlangCompiler& c)
-                        {
-                            return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
-                        });
-
-                if (!slangCompilationResult.first.has_value())
-                {
-                    // well shit slang failed to compile, bail
-
-                    return PipelineCompilationResult {
-                        .maybe_new_pipeline {std::nullopt},
-                        .warnings_and_errors {std::move(slangCompilationResult.second)},
-                        .dependent_files {}};
-                }
+                cfi::SaneSlangCompiler::CompileResult slangCompilationResult = this->sane_slang_compiler.lock(
+                    [&](cfi::SaneSlangCompiler& c)
+                    {
+                        return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
+                    });
 
                 DependentFileStorage dependentFiles {};
-                dependentFiles.reserve(slangCompilationResult.first->dependent_files.size());
+                dependentFiles.reserve(slangCompilationResult.dependent_files.size());
 
-                for (std::filesystem::path& p : slangCompilationResult.first->dependent_files)
+                for (std::filesystem::path& p : slangCompilationResult.dependent_files)
                 {
                     const std::filesystem::file_time_type time = std::filesystem::last_write_time(p);
 
                     dependentFiles.push_back(std::pair {std::move(p), time});
                 }
 
+                if (!slangCompilationResult.shaders.has_value())
+                {
+                    // well shit slang failed to compile, bail
+
+                    return PipelineCompilationResult {
+                        .maybe_new_pipeline {std::nullopt},
+                        .warnings_and_errors {std::move(slangCompilationResult.warnings_and_errors)},
+                        .dependent_files {std::move(dependentFiles)}};
+                }
+
                 // Compute
                 {
                     std::span<const u32> compiledSPV {
-                        slangCompilationResult.first->maybe_compute_data.cbegin(),
-                        slangCompilationResult.first->maybe_compute_data.cend()};
+                        slangCompilationResult.shaders->maybe_compute_data.cbegin(),
+                        slangCompilationResult.shaders->maybe_compute_data.cend()};
 
                     const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                         .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -612,7 +611,7 @@ namespace gfx::core::vulkan
 
                 return PipelineCompilationResult {
                     .maybe_new_pipeline {std::move(maybePipeline)},
-                    .warnings_and_errors {std::move(slangCompilationResult.second)},
+                    .warnings_and_errors {std::move(slangCompilationResult.warnings_and_errors)},
                     .dependent_files {std::move(dependentFiles)}};
             });
 

@@ -5,6 +5,7 @@
 #include <expected>
 #include <filesystem>
 #include <future>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -14,12 +15,18 @@ namespace cfi
     class SaneSlangCompiler
     {
     public:
+        struct SpirvShaders
+        {
+            std::vector<u32> maybe_vertex_data;
+            std::vector<u32> maybe_fragment_data;
+            std::vector<u32> maybe_compute_data;
+        };
+
         struct CompileResult
         {
-            std::vector<u32>                   maybe_vertex_data;
-            std::vector<u32>                   maybe_fragment_data;
-            std::vector<u32>                   maybe_compute_data;
+            std::optional<SpirvShaders>        shaders;
             std::vector<std::filesystem::path> dependent_files;
+            std::string                        warnings_and_errors;
         };
 
     public:
@@ -31,8 +38,7 @@ namespace cfi
         SaneSlangCompiler& operator= (const SaneSlangCompiler&) = delete;
         SaneSlangCompiler& operator= (SaneSlangCompiler&&)      = default;
 
-        [[nodiscard]]
-        std::pair<std::optional<CompileResult>, std::string> compile(std::filesystem::path path);
+        [[nodiscard]] CompileResult compile(std::filesystem::path path);
 
     private:
         std::filesystem::path              temporary_dir;

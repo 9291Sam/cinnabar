@@ -43,17 +43,16 @@ namespace cfi
         assert::warn(!ec, "Failed to cleanup SaneSlangCompiler temporary directory");
     }
 
-    std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string>
-    SaneSlangCompiler::compile(std::filesystem::path path)
+    SaneSlangCompiler::CompileResult SaneSlangCompiler::compile(std::filesystem::path path)
     {
         assert::critical(
             std::filesystem::exists(path),
             "Sane Slang Compiler was requested to compile |{}| but that path does not exist!",
             path.generic_string());
 
-        bool          hasAnyCompileSucceeded = false;
-        CompileResult result {};
-        std::string   compileMessages {};
+        bool         hasAnyCompileSucceeded = false;
+        SpirvShaders shaders {};
+        std::string  compileMessages {};
 
         auto tryCompileEntry = [&](const std::string& entryName, const std::string& stage, std::vector<u32>& outputData)
         {
@@ -78,17 +77,20 @@ namespace cfi
             }
         };
 
-        tryCompileEntry("vertexMain", "vertex", result.maybe_vertex_data);
-        tryCompileEntry("fragmentMain", "fragment", result.maybe_fragment_data);
-        tryCompileEntry("computeMain", "compute", result.maybe_compute_data);
+        tryCompileEntry("vertexMain", "vertex", shaders.maybe_vertex_data);
+        tryCompileEntry("fragmentMain", "fragment", shaders.maybe_fragment_data);
+        tryCompileEntry("computeMain", "compute", shaders.maybe_compute_data);
 
-        std::set<std::filesystem::path> visited;
-        this->collectDependencies(path, visited, result.dependent_files);
+        std::set<std::filesystem::path>    visited {};
+        std::vector<std::filesystem::path> dependentFiles {};
+        this->collectDependencies(path, visited, dependentFiles);
 
-        result.dependent_files.push_back(std::move(path));
+        dependentFiles.push_back(std::move(path));
 
-        return std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string> {
-            hasAnyCompileSucceeded ? std::optional {result} : std::nullopt, std::move(compileMessages)};
+        return CompileResult {
+            .shaders {hasAnyCompileSucceeded ? std::optional {shaders} : std::nullopt},
+            .dependent_files {std::move(dependentFiles)},
+            .warnings_and_errors {std::move(compileMessages)}};
     }
 
     std::pair<std::optional<std::vector<u32>>, std::string> SaneSlangCompiler::compileEntryPoint(
