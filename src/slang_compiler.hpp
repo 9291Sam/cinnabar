@@ -19,7 +19,6 @@ namespace cfi
             std::vector<u32>                   maybe_fragment_data;
             std::vector<u32>                   maybe_compute_data;
             std::vector<std::filesystem::path> dependent_files;
-            std::string                        maybe_warnings;
         };
 
     public:
@@ -31,7 +30,8 @@ namespace cfi
         SaneSlangCompiler& operator= (const SaneSlangCompiler&) = delete;
         SaneSlangCompiler& operator= (SaneSlangCompiler&&)      = default;
 
-        [[nodiscard]] std::expected<CompileResult, std::string> compile(std::filesystem::path path);
+        [[nodiscard]]
+        std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string> compile(std::filesystem::path path);
 
 
     private:
@@ -39,18 +39,17 @@ namespace cfi
         std::vector<std::filesystem::path> search_paths = {util::getCanonicalPathOfShaderFile("src/gfx/shader_common")};
         static std::atomic<usize>          monotonic_counter;
 
-        // Core compilation
-        [[nodiscard]] std::expected<std::vector<u32>, std::string>
+        [[nodiscard]] std::pair<std::optional<std::vector<u32>>, std::string>
         compileEntryPoint(const std::filesystem::path&, const std::string&, const std::string&);
 
-        // Utility functions
         [[nodiscard]] std::filesystem::path createTempFile(std::string_view);
 
         [[nodiscard]] static bool             isSlangAvailable();
         [[nodiscard]] static std::string      escapeArg(const std::string& arg);
         [[nodiscard]] static std::vector<u32> loadSpirvFromFile(const std::filesystem::path&);
         [[nodiscard]] static bool             hasEntryPoint(const std::filesystem::path&, const std::string&);
-        static void                           executeSlang(const std::vector<std::string>&);
+        /// returns false on failure
+        [[nodiscard]] static std::pair<bool, std::string> executeSlang(const std::vector<std::string>&);
 
         void collectDependencies(
             const std::filesystem::path&        filePath,

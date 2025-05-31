@@ -255,22 +255,26 @@ namespace gfx::core::vulkan
 
         assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
+        std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> maybeCompiledCode =
             this->sane_slang_compiler.lock(
                 [&](cfi::SaneSlangCompiler& c)
                 {
                     return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
                 });
 
-        if (!maybeCompiledCode.has_value())
+        if (!maybeCompiledCode.first.has_value())
         {
-            return std::unexpected(std::move(maybeCompiledCode.error()));
+            return std::unexpected(std::move(maybeCompiledCode.second));
+        }
+        else if (!maybeCompiledCode.second.empty())
+        {
+            log::warn("Compiled pipeline with warnings! {}", maybeCompiledCode.second);
         }
 
         // Vertex
         {
             std::span<const u32> compiledSPV {
-                maybeCompiledCode->maybe_vertex_data.cbegin(), maybeCompiledCode->maybe_vertex_data.cend()};
+                maybeCompiledCode.first->maybe_vertex_data.cbegin(), maybeCompiledCode.first->maybe_vertex_data.cend()};
 
             const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                 .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -286,7 +290,8 @@ namespace gfx::core::vulkan
         // Fragment
         {
             std::span<const u32> compiledSPV {
-                maybeCompiledCode->maybe_fragment_data.cbegin(), maybeCompiledCode->maybe_fragment_data.cend()};
+                maybeCompiledCode.first->maybe_fragment_data.cbegin(),
+                maybeCompiledCode.first->maybe_fragment_data.cend()};
 
             const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                 .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -299,17 +304,11 @@ namespace gfx::core::vulkan
             fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
         }
 
-        for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
+        for (std::filesystem::path& p : maybeCompiledCode.first->dependent_files)
         {
             std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
 
             allDependentFiles.push_back({std::move(p), writeTime});
-        }
-
-        if (!maybeCompiledCode->maybe_warnings.empty())
-        {
-            // HACK: this shouldn't be here
-            log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
         }
 
         const std::array<vk::PipelineShaderStageCreateInfo, 2> denseStages {
@@ -496,22 +495,27 @@ namespace gfx::core::vulkan
 
         assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
+        std::pair<std::optional<cfi::SaneSlangCompiler::CompileResult>, std::string> maybeCompiledCode =
             this->sane_slang_compiler.lock(
                 [&](cfi::SaneSlangCompiler& c)
                 {
                     return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
                 });
 
-        if (!maybeCompiledCode.has_value())
+        if (!maybeCompiledCode.first.has_value())
         {
-            return std::unexpected(std::move(maybeCompiledCode.error()));
+            return std::unexpected(std::move(maybeCompiledCode.second));
+        }
+        else if (!maybeCompiledCode.second.empty())
+        {
+            log::warn("Compiled pipeline with warnings! {}", maybeCompiledCode.second);
         }
 
         // Compute
         {
             std::span<const u32> compiledSPV {
-                maybeCompiledCode->maybe_compute_data.cbegin(), maybeCompiledCode->maybe_compute_data.cend()};
+                maybeCompiledCode.first->maybe_compute_data.cbegin(),
+                maybeCompiledCode.first->maybe_compute_data.cend()};
 
             const vk::ShaderModuleCreateInfo shaderModuleCreateInfo {
                 .sType {vk::StructureType::eShaderModuleCreateInfo},
@@ -524,17 +528,11 @@ namespace gfx::core::vulkan
             computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
         }
 
-        for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
+        for (std::filesystem::path& p : maybeCompiledCode.first->dependent_files)
         {
             std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(p);
 
             allDependentFiles.push_back({std::move(p), writeTime});
-        }
-
-        if (!maybeCompiledCode->maybe_warnings.empty())
-        {
-            // HACK: this shouldn't be here
-            log::warn("Slang Compilation Warning:\n{}", maybeCompiledCode->maybe_warnings);
         }
 
         const vk::PipelineShaderStageCreateInfo shaderCreateInfo {

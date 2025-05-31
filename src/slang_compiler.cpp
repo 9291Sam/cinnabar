@@ -3,8 +3,10 @@
 #include "util/timer.hpp"
 #include "util/util.hpp"
 #include <array>
+#include <expected>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <random>
 #include <system_error>
 
@@ -41,68 +43,55 @@ namespace cfi
         assert::warn(!ec, "Failed to cleanup SaneSlangCompiler temporary directory");
     }
 
-    std::expected<SaneSlangCompiler::CompileResult, std::string> SaneSlangCompiler::compile(std::filesystem::path path)
+    std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string>
+    SaneSlangCompiler::compile(std::filesystem::path path)
     {
-        if (!std::filesystem::exists(path))
-        {
-            return std::unexpected("Source file does not exist: " + path.string());
-        }
+        assert::critical(
+            std::filesystem::exists(path),
+            "Sane Slang Compiler was requested to compile |{}| but that path does not exist!",
+            path.generic_string());
 
+        bool          hasAnyCompileSucceeded = false;
         CompileResult result {};
-        std::string   allWarnings;
+        std::string   compileMessages {};
 
-        auto tryCompileEntry = [&](const std::string& entryName,
-                                   const std::string& stage,
-                                   std::vector<u32>&  outputData) -> std::expected<void, std::string>
+        auto tryCompileEntry = [&](const std::string& entryName, const std::string& stage, std::vector<u32>& outputData)
         {
-            if (!this->hasEntryPoint(path, entryName))
+            if (!SaneSlangCompiler::hasEntryPoint(path, entryName))
             {
-                return {};
+                return;
             }
 
-            auto spirvResult = compileEntryPoint(path, entryName, stage);
-            if (!spirvResult)
+            auto [maybeOutputData, outputMessage] = this->compileEntryPoint(path, entryName, stage);
+
+            if (maybeOutputData.has_value())
             {
-                return std::unexpected(spirvResult.error());
+                outputData             = *std::move(maybeOutputData);
+                hasAnyCompileSucceeded = true;
             }
 
-            outputData = std::move(*spirvResult);
-            return {};
+            compileMessages += outputMessage;
+
+            if (!outputMessage.empty())
+            {
+                compileMessages += "\n";
+            }
         };
 
-        // Try to compile each shader stage
-        if (auto vertexResult = tryCompileEntry("vertexMain", "vertex", result.maybe_vertex_data); !vertexResult)
-        {
-            return std::unexpected("Vertex shader error: " + vertexResult.error());
-        }
-
-        if (auto fragmentResult = tryCompileEntry("fragmentMain", "fragment", result.maybe_fragment_data);
-            !fragmentResult)
-        {
-            return std::unexpected("Fragment shader error: " + fragmentResult.error());
-        }
-
-        if (auto computeResult = tryCompileEntry("computeMain", "compute", result.maybe_compute_data); !computeResult)
-        {
-            return std::unexpected("Compute shader error: " + computeResult.error());
-        }
+        tryCompileEntry("vertexMain", "vertex", result.maybe_vertex_data);
+        tryCompileEntry("fragmentMain", "fragment", result.maybe_fragment_data);
+        tryCompileEntry("computeMain", "compute", result.maybe_compute_data);
 
         std::set<std::filesystem::path> visited;
-        collectDependencies(path, visited, result.dependent_files);
+        this->collectDependencies(path, visited, result.dependent_files);
 
         result.dependent_files.push_back(std::move(path));
 
-        for (const auto& p : result.dependent_files)
-        {
-            log::debug("found {}", p.string());
-        }
-
-        result.maybe_warnings = std::move(allWarnings);
-
-        return result;
+        return std::pair<std::optional<SaneSlangCompiler::CompileResult>, std::string> {
+            hasAnyCompileSucceeded ? std::optional {result} : std::nullopt, std::move(compileMessages)};
     }
 
-    std::expected<std::vector<u32>, std::string> SaneSlangCompiler::compileEntryPoint(
+    std::pair<std::optional<std::vector<u32>>, std::string> SaneSlangCompiler::compileEntryPoint(
         const std::filesystem::path& sourcePath, const std::string& entryPoint, const std::string& stage)
     {
         const std::filesystem::path outputPath = createTempFile(".spv");
@@ -134,9 +123,10 @@ namespace cfi
                            std::filesystem::remove(outputPath);
                        }};
 
-        SaneSlangCompiler::executeSlang(args);
+        auto [succeeded, output] = SaneSlangCompiler::executeSlang(args);
 
-        return loadSpirvFromFile(outputPath);
+        return std::pair<std::optional<std::vector<u32>>, std::string> {
+            succeeded ? std::optional {SaneSlangCompiler::loadSpirvFromFile(outputPath)} : std::nullopt, output};
     }
 
     std::filesystem::path SaneSlangCompiler::createTempFile(std::string_view suffix)
@@ -154,7 +144,6 @@ namespace cfi
 
         std::string content {(std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>()};
 
-        // Look for function definition pattern: "void entryPointName(" or similar
         std::string pattern1 = "void " + entryPoint + "(";
         std::string pattern2 = entryPoint + "(";
 
@@ -180,16 +169,16 @@ namespace cfi
         return spirvData;
     }
 
-    void SaneSlangCompiler::executeSlang(const std::vector<std::string>& args)
+    std::pair<bool, std::string> SaneSlangCompiler::executeSlang(const std::vector<std::string>& args)
     {
-        // Build command string
         std::string command = "slangc";
         for (const auto& arg : args)
         {
             command += " " + escapeArg(arg);
         }
 
-        // Execute command and capture output
+        command += " 2>&1"; // redirect stderr to stdout so we can capture it
+
         std::array<char, 4096> buffer {};
         std::string            result;
 
@@ -213,12 +202,7 @@ namespace cfi
         exitCode     = WEXITSTATUS(exitCode);
 #endif
 
-        assert::critical(
-            exitCode == 0,
-            "Failed to execute Slang command |{}| returned with error code {} and a buffer string of |{}|",
-            command,
-            exitCode,
-            result);
+        return std::pair<bool, std::string> {exitCode == 0, std::move(result)};
     }
 
     std::string SaneSlangCompiler::escapeArg(const std::string& arg)
@@ -294,18 +278,13 @@ namespace cfi
     {
         std::filesystem::path canonicalPath = std::filesystem::canonical(filePath);
 
-        if (visited.find(canonicalPath) != visited.end())
+        if (visited.contains(canonicalPath))
         {
-            return; // Already processed
+            return;
         }
 
         visited.insert(canonicalPath);
         dependencies.push_back(canonicalPath);
-
-        if (canonicalPath.empty())
-        {
-            log::trace("{} {} what", filePath.string(), canonicalPath.string());
-        }
 
         auto                  includes   = extractIncludes(filePath);
         std::filesystem::path currentDir = filePath.parent_path();
@@ -333,14 +312,11 @@ namespace cfi
         std::string line;
         while (std::getline(file, line))
         {
-            // Trim whitespace
             line.erase(0, line.find_first_not_of(" \t"));
             line.erase(line.find_last_not_of(" \t") + 1);
 
-            // Check for #include directive
             if (line.starts_with("#include"))
             {
-                // Extract the include path
                 size_t quoteStart = line.find('"');
                 size_t angleStart = line.find('<');
 
@@ -369,14 +345,12 @@ namespace cfi
     std::filesystem::path
     SaneSlangCompiler::resolveIncludePath(const std::string& includePath, const std::filesystem::path& currentDir)
     {
-        // First try relative to current file's directory
         std::filesystem::path relativePath = currentDir / includePath;
         if (std::filesystem::exists(relativePath))
         {
             return relativePath;
         }
 
-        // Then try search paths
         for (const auto& searchPath : this->search_paths)
         {
             std::filesystem::path candidatePath = searchPath / includePath;
