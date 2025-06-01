@@ -3,6 +3,7 @@
 #include "gfx/transform.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "util/logger.hpp"
+#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <glm/fwd.hpp>
 // #include <kdtree++/kdtree.hpp> TODO: some other time it sucks

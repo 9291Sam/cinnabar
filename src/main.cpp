@@ -53,11 +53,12 @@ struct TemporaryGameState : game::Game::GameState
 
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
-        const i32 dim = 8;
+        const i32 dim = 13;
+        const i32 him = 3;
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {
-            for (i32 cY = -dim; cY <= dim; ++cY)
+            for (i32 cY = -him; cY <= him; ++cY)
             {
                 for (i32 cZ = -dim; cZ <= dim; ++cZ)
                 {

@@ -21,6 +21,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <imgui.h>
 #include <misc/freetype/imgui_freetype.h>
+#include <numeric>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_to_string.hpp>
@@ -541,7 +542,7 @@ FPS: {}{} / {}ms
 
                 for (usize i = this->most_recent_timestamp_average.size() - 1; i > 0; --i)
                 {
-                    if (this->most_recent_timestamp_average[i] != 0)
+                    if (std::bit_cast<u32>(this->most_recent_timestamp_average[i]) != 0)
                     {
                         numberOfTextElements = static_cast<i32>(i);
                         break;
