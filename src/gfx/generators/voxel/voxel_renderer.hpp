@@ -22,7 +22,8 @@ namespace gfx::generators::voxel
     class VoxelRenderer
     {
     public:
-        using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u32>;
+        using VoxelChunk    = util::OpaqueHandle<"Voxel Chunk", u32>;
+        using ShadowedLight = util::OpaqueHandle<"Voxel ShadowedLight", u16>;
     public:
 
         explicit VoxelRenderer(const core::Renderer*);
@@ -43,6 +44,15 @@ namespace gfx::generators::voxel
             std::span<const ChunkLocalPosition> emissiveLocations);
         void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
 
+        ShadowedLight createShadowedLight();
+        void          destroyShadowedLight(ShadowedLight);
+
+        using UniqueShadowedLight = util::UniqueOpaqueHandle<ShadowedLight, &VoxelRenderer::destroyShadowedLight>;
+
+        // void UniqueShadowedLight
+
+        void setLightInformation(GpuRaytracedLight);
+
         void preFrameUpdate();
 
         void recordCopyCommands(vk::CommandBuffer);
@@ -50,7 +60,6 @@ namespace gfx::generators::voxel
         void recordColorCalculation(vk::CommandBuffer);
         void recordColorTransfer(vk::CommandBuffer);
 
-        void setLightInformation(GpuRaytracedLight);
 
     private:
         const core::Renderer*                        renderer;

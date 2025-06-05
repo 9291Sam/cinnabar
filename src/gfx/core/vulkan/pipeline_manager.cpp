@@ -184,7 +184,7 @@ namespace gfx::core::vulkan
                         }
                         else
                         {
-                            // shit there is no old pipeline to keep, all we can do it panic
+                            // shit there is no old pipeline to fallback too, all we can do it panic
 
                             panic(
                                 "Failed to compile pipeline on first attempt! {}",

@@ -453,8 +453,7 @@ FPS: {}{} / {}ms
                         return static_cast<f32>(v) / static_cast<f32>(total);
                     });
 
-                this->next_average_to_place_values_in += 1;
-                this->next_average_to_place_values_in %= this->frame_moving_average_data.size();
+                ++this->next_average_to_place_values_in %= this->frame_moving_average_data.size();
             }
 
             if (std::optional renderThreadProfile =
@@ -481,8 +480,7 @@ FPS: {}{} / {}ms
                         (*renderThreadProfile)[i].duration;
                 }
 
-                this->next_average_cpu_timestamp += 1;
-                this->next_average_cpu_timestamp %= this->cpu_timestamp_moving_average.size();
+                ++this->next_average_cpu_timestamp %= this->cpu_timestamp_moving_average.size();
             }
 
             // Fun fact, there's a memory safety issue in implot :)

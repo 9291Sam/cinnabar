@@ -296,8 +296,7 @@ namespace gfx::core::vulkan
                             recordFunc,
         const BufferStager& stager)
     {
-        this->flying_frame_index += 1;
-        this->flying_frame_index %= FramesInFlight;
+        ++this->flying_frame_index %= FramesInFlight;
 
         std::expected<void, Frame::ResizeNeeded> result =
             this->flying_frames.at(this->flying_frame_index)
