@@ -86,7 +86,7 @@ namespace gfx
                     std::vector<u64> queryResultData {};
                     queryResultData.resize(core::vulkan::MaxQueriesPerFrame);
 
-                    this->renderer->getDevice()->getDevice().getQueryPoolResults(
+                    std::ignore = this->renderer->getDevice()->getDevice().getQueryPoolResults(
                         queryPool,
                         0,
                         core::vulkan::MaxQueriesPerFrame,

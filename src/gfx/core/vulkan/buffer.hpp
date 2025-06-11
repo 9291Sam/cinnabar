@@ -609,6 +609,7 @@ namespace gfx::core::vulkan
         }
 
         void enqueueByteTransfer(vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
+        void enqueueByteTransfer(vk::Buffer, u32 offset, std::vector<std::byte>, std::source_location) const;
 
         void flushTransfers(vk::CommandBuffer, std::shared_ptr<vk::UniqueFence> flushFinishFence) const;
 

@@ -149,8 +149,7 @@ namespace gfx::core::vulkan
             .messageSeverity {
                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eError | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning},
             .messageType {
-                vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-                | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+                vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
                 | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation},
             .pfnUserCallback {debugMessengerCallback},
             .pUserData {nullptr},

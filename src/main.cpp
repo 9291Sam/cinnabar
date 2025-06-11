@@ -42,6 +42,7 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_renderer {this->game->getRenderer()}
     {
+#warning sample;
         log::trace("initalized renderers");
         std::mt19937                           gen {std::random_device {}()};
         std::uniform_real_distribution<f32>    dist {-16.0f, 16.0f};
@@ -55,10 +56,11 @@ struct TemporaryGameState : game::Game::GameState
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
         const i32 dim = 8;
+        const i32 him = 2;
 
         for (i32 cX = -dim; cX <= dim; ++cX)
         {
-            for (i32 cY = -dim; cY <= dim; ++cY)
+            for (i32 cY = -dim; cY <= him; ++cY)
             {
                 for (i32 cZ = -dim; cZ <= dim; ++cZ)
                 {
@@ -169,7 +171,8 @@ struct TemporaryGameState : game::Game::GameState
 
         if (renderer->getWindow()->isActionActive(gfx::core::Window::Action::CloseWindow))
         {
-            return game::Game::GameStateUpdateResult {.should_terminate {true}, .generators {}, .camera {}};
+            return game::Game::GameStateUpdateResult {
+                .should_terminate {true}, .generators {}, .camera {}, .render_thread_profile {}};
         }
 
         glm::vec3 previousPosition = camera.getPosition();

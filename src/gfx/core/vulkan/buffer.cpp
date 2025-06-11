@@ -61,28 +61,35 @@ namespace gfx::core::vulkan
     void BufferStager::enqueueByteTransfer(
         vk::Buffer buffer, u32 offset, std::span<const std::byte> dataToWrite, std::source_location location) const
     {
+        this->enqueueByteTransfer(
+            buffer, offset, std::vector<std::byte> {dataToWrite.begin(), dataToWrite.end()}, location);
+    }
+
+    void BufferStager::enqueueByteTransfer(
+        vk::Buffer buffer, u32 offset, std::vector<std::byte> dataToWrite, std::source_location location) const
+    {
         assert::critical<std::size_t>(
-            dataToWrite.size_bytes() < StagingBufferSize / 2,
+            dataToWrite.size() < StagingBufferSize / 2,
             "Buffer::enqueueByteTransfer of size {} is too large",
-            dataToWrite.size_bytes(),
+            dataToWrite.size(),
             location);
 
         assert::warn<std::size_t>(
-            dataToWrite.size_bytes() > 0,
+            dataToWrite.size() > 0,
             "BufferStager::enqueueByteTransfer of size {} is too small",
-            dataToWrite.size_bytes(),
+            dataToWrite.size(),
             location);
 
         std::expected<util::RangeAllocation, util::RangeAllocator::OutOfBlocks> maybeAllocation =
             this->transfer_allocator.lock(
                 [&](util::RangeAllocator& a)
                 {
-                    return a.tryAllocate(static_cast<u32>(dataToWrite.size_bytes()));
+                    return a.tryAllocate(static_cast<u32>(dataToWrite.size()));
                 });
 
         if (maybeAllocation.has_value())
         {
-            this->allocated += dataToWrite.size_bytes();
+            this->allocated += dataToWrite.size();
 
             std::span<std::byte> stagingBufferData = this->staging_buffer.getGpuDataNonCoherent();
 
@@ -90,18 +97,17 @@ namespace gfx::core::vulkan
             std::memcpy(
                 stagingBufferData.data() + util::RangeAllocator::getOffsetofAllocation(*maybeAllocation),
                 dataToWrite.data(),
-                dataToWrite.size_bytes());
+                dataToWrite.size());
 
             this->transfers.lock(
                 [&](std::vector<BufferTransfer>& t)
                 {
-                    t.push_back(
-                        BufferTransfer {
-                            .staging_allocation {std::move(*maybeAllocation)},
-                            .output_buffer {buffer},
-                            .output_offset {offset},
-                            .size {static_cast<u32>(dataToWrite.size_bytes())},
-                        });
+                    t.push_back(BufferTransfer {
+                        .staging_allocation {std::move(*maybeAllocation)},
+                        .output_buffer {buffer},
+                        .output_offset {offset},
+                        .size {static_cast<u32>(dataToWrite.size())},
+                    });
                 });
         }
         else
@@ -112,10 +118,7 @@ namespace gfx::core::vulkan
                 [&](std::vector<OverflowTransfer>& overflowTransfers)
                 {
                     overflowTransfers.push_back({OverflowTransfer {
-                        .buffer {buffer},
-                        .offset {offset},
-                        .data {dataToWrite.begin(), dataToWrite.end()},
-                        .location {location}}});
+                        .buffer {buffer}, .offset {offset}, .data {std::move(dataToWrite)}, .location {location}}});
                 });
         }
     }
@@ -168,12 +171,11 @@ namespace gfx::core::vulkan
             }
             const u32 offset = util::RangeAllocator::getOffsetofAllocation(transfer.staging_allocation);
 
-            copies[transfer.output_buffer].push_back(
-                vk::BufferCopy {
-                    .srcOffset {offset},
-                    .dstOffset {transfer.output_offset},
-                    .size {transfer.size},
-                });
+            copies[transfer.output_buffer].push_back(vk::BufferCopy {
+                .srcOffset {offset},
+                .dstOffset {transfer.output_offset},
+                .size {transfer.size},
+            });
 
             stagingFlushes.push_back(FlushData {.offset_bytes {offset}, .size_bytes {transfer.size}});
         }
@@ -208,7 +210,7 @@ namespace gfx::core::vulkan
 
             for (OverflowTransfer& t : overflows)
             {
-                this->enqueueByteTransfer(t.buffer, t.offset, t.data, t.location);
+                this->enqueueByteTransfer(t.buffer, t.offset, std::move(t.data), t.location);
             }
         }
     }

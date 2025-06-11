@@ -49,8 +49,7 @@ namespace util
             return *this;
         }
 
-        decltype(auto) lock(std::invocable<T&...> auto func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        decltype(auto) lock(std::invocable<T&...> auto func) const noexcept(noexcept(std::apply(func, this->tuple)))
         {
             if (this->mutex == nullptr)
             {
@@ -61,9 +60,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock<std::mutex> lock {*this->mutex, std::defer_lock};
@@ -78,8 +76,7 @@ namespace util
             }
         }
 
-        bool tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        bool tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
             requires std::same_as<void, std::invoke_result_t<decltype(func), T&...>>
         {
             std::unique_lock<std::mutex> lock {*this->mutex, std::defer_lock};
@@ -155,17 +152,15 @@ namespace util
         RecursiveMutex& operator= (const RecursiveMutex&)     = delete;
         RecursiveMutex& operator= (RecursiveMutex&&) noexcept = default;
 
-        decltype(auto) lock(std::invocable<T&...> auto func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        decltype(auto) lock(std::invocable<T&...> auto func) const noexcept(noexcept(std::apply(func, this->tuple)))
         {
             std::unique_lock lock {*this->mutex};
 
             return std::apply(func, this->tuple);
         }
 
-        auto tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock<std::recursive_mutex> lock {*this->mutex, std::defer_lock};
@@ -180,8 +175,7 @@ namespace util
             }
         }
 
-        bool tryLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
+        bool tryLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
             requires std::same_as<void, std::invoke_result_t<decltype(func), T&...>>
         {
             std::unique_lock<std::recursive_mutex> lock {*this->mutex, std::defer_lock};
@@ -242,9 +236,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryWriteLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryWriteLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::unique_lock lock {*this->rwlock, std::defer_lock};
@@ -267,9 +260,8 @@ namespace util
             return std::apply(func, this->tuple);
         }
 
-        auto tryReadLock(std::invocable<T&...> auto&& func) const
-            noexcept(noexcept(std::apply(func, this->tuple)))
-                -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
+        auto tryReadLock(std::invocable<T&...> auto&& func) const noexcept(noexcept(std::apply(func, this->tuple)))
+            -> std::optional<std::decay_t<std::invoke_result_t<decltype(func), T&...>>>
             requires (!std::same_as<void, std::invoke_result_t<decltype(func), T&...>>)
         {
             std::shared_lock lock {*this->rwlock, std::defer_lock};

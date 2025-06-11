@@ -292,7 +292,7 @@ struct GpuRaytracedLight
 
     bool canInfluencePoint(float3 position, u32 numberOfLights = 1)
     {
-        const f32 minimumPossibleInfluence = (1.0f / (256.0f * numberOfLights)); 
+        const f32 minimumPossibleInfluence = (1.0f / (256.0f * f32(numberOfLights))); 
 
         f32 r = position_and_half_intensity_distance.w;
         f32 p = color_and_power.w;

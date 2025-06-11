@@ -45,8 +45,8 @@ namespace gfx::generators::imgui
                   .blend_enable {vk::True},
                   .name {"Menu Color Transfer"},
               })}
-        , light {.position_and_half_intensity_distance {11.5, 17.5, 32.4, 8.0}, .color_and_power {1.0, 1.0, 1.0, 0.25}}
         , next_average_to_place_values_in {0}
+        , light {.position_and_half_intensity_distance {11.5, 17.5, 32.4, 8.0}, .color_and_power {1.0, 1.0, 1.0, 0.25}}
     {
         util::Timer t {""};
         util::send<voxel::GpuRaytracedLight>("UpdateLight", voxel::GpuRaytracedLight {light});
@@ -521,7 +521,7 @@ FPS: {}{} / {}ms
                         sum / static_cast<f32>(this->cpu_timestamp_moving_average.size());
                 }
 
-                const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0);
+                const f32 plotSizePx = std::floor((desiredConsoleSize.x - (2 * WindowPadding)) / 2.0f);
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0, 0));
                 ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, ImVec2(0, 0));
@@ -541,7 +541,7 @@ FPS: {}{} / {}ms
 
                 for (usize i = this->most_recent_timestamp_average.size() - 1; i > 0; --i)
                 {
-                    if (this->most_recent_timestamp_average[i] != 0)
+                    if (std::bit_cast<u32>(this->most_recent_timestamp_average[i]) != 0)
                     {
                         numberOfTextElements = static_cast<i32>(i);
                         break;
@@ -554,8 +554,9 @@ FPS: {}{} / {}ms
                             plotSizePx,
                             plotSizePx + plotTitleSize
                                 + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
-                                + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
-                                + (numberOfTextElements * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
+                                + imPlotStyle.LegendPadding.y + (2.0f * imPlotStyle.LegendInnerPadding.y)
+                                + (static_cast<f32>(numberOfTextElements)
+                                   * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
                         ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
                 {
                     ImPlot::SetupLegend(ImPlotLocation_South | ImPlotLocation_Center, ImPlotLegendFlags_Outside);
@@ -582,8 +583,8 @@ FPS: {}{} / {}ms
                             plotSizePx,
                             plotSizePx + plotTitleSize
                                 + static_cast<f32>(ImGui::CalcTextSize("Gpu Frame Times", nullptr, true).y)
-                                + imPlotStyle.LegendPadding.y + (2.0 * imPlotStyle.LegendInnerPadding.y)
-                                + (static_cast<i32>(this->raw_cpu_profile_names.size())
+                                + imPlotStyle.LegendPadding.y + (2.0f * imPlotStyle.LegendInnerPadding.y)
+                                + (static_cast<f32>(this->raw_cpu_profile_names.size())
                                    * ImGui::CalcTextSize("fuck me", nullptr, true).y)),
                         ImPlotFlags_Equal | ImPlotFlags_NoMouseText))
                 {

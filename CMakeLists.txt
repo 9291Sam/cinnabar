@@ -1,51 +1,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(cinnabar VERSION 0.0.0.1)
 
-include(CPM.cmake)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-
-set(Boost_USE_STATIC_LIBS ON) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME ON) 
-set(BOOST_ENABLE_CMAKE ON)
-set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
-
-set(SLANG_LIB_TYPE "SHARED" CACHE STRING "" FORCE)
-set(SLANG_ENABLE_DXIL OFF)
-set(SLANG_ENABLE_GFX OFF)
-set(SLANG_ENABLE_SLANGD OFF)
-set(SLANG_ENABLE_SLANGC OFF)
-set(SLANG_ENABLE_SLANGRT OFF)
-set(SLANG_ENABLE_SLANG_GLSLANG OFF)
-set(SLANG_ENABLE_TESTS OFF)
-set(SLANG_ENABLE_EXAMPLES OFF)
-set(SLANG_ENABLE_SLANG_RHI OFF)
-# set(SLANG_ENABLE_ASAN ON)
-
-CPMAddPackage("gh:fmtlib/fmt#11.1.3")
-CPMAddPackage("gh:gabime/spdlog#v1.15.1")
-CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
-CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
-CPMAddPackage("gh:glfw/glfw#3.4")
-CPMAddPackage("gh:g-truc/glm#1.0.1")
-CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
-CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
-CPMAddPackage("gh:ocornut/imgui#v1.91.8")
-CPMAddPackage("gh:epezent/implot#v0.16")
-CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
-CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
-CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
-CPMAddPackage("gh:nvmd/libkdtree#0.7.4")
-CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
-find_package(Vulkan REQUIRED COMPONENTS)
-set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
-if (WIN32 AND NOT FREETYPE_DIR)
-    message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable")
-endif()
-find_package(Freetype REQUIRED)
 
 add_executable(cinnabar
     src/game/game.cpp
@@ -91,6 +50,58 @@ add_executable(cinnabar
     src/main.cpp
     src/slang_compiler.cpp
 )
+
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
+endif()
+
+include(CPM.cmake)
+
+
+set(Boost_USE_STATIC_LIBS ON) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME ON) 
+set(BOOST_ENABLE_CMAKE ON)
+set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
+
+set(SLANG_LIB_TYPE "SHARED" CACHE STRING "" FORCE)
+set(SLANG_ENABLE_DXIL OFF)
+set(SLANG_ENABLE_GFX OFF)
+set(SLANG_ENABLE_SLANGD OFF)
+set(SLANG_ENABLE_SLANGC OFF)
+set(SLANG_ENABLE_SLANGRT OFF)
+set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+set(SLANG_ENABLE_TESTS OFF)
+set(SLANG_ENABLE_EXAMPLES OFF)
+set(SLANG_ENABLE_REPLAYER OFF)
+set(SLANG_EXCLUDE_DAWN ON)
+set(SLANG_EXCLUDE_TINT ON)
+# set(SLANG_ENABLE_ASAN ON)
+
+CPMAddPackage("gh:fmtlib/fmt#11.1.3")
+CPMAddPackage("gh:gabime/spdlog#v1.15.1")
+CPMAddPackage("gh:jeremy-rifkin/cpptrace#v0.8.0")
+CPMAddPackage("gh:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#v3.2.1")
+CPMAddPackage("gh:glfw/glfw#3.4")
+CPMAddPackage("gh:g-truc/glm#1.0.1")
+CPMAddPackage("gh:Neargye/magic_enum#v0.9.7")
+CPMAddPackage("gh:boostorg/boost#boost-1.87.0")
+CPMAddPackage("gh:ocornut/imgui#v1.91.8")
+CPMAddPackage("gh:epezent/implot#v0.16")
+CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
+CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
+CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
+CPMAddPackage("gh:nvmd/libkdtree#0.7.4")
+CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
+find_package(Vulkan REQUIRED COMPONENTS)
+set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
+if (WIN32 AND NOT FREETYPE_DIR)
+    message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable")
+endif()
+find_package(Freetype REQUIRED)
 
 add_library(imgui_build_target STATIC
     ${imgui_SOURCE_DIR}/imgui_demo.cpp
@@ -168,7 +179,6 @@ target_link_libraries(cinnabar PUBLIC
     Boost::sort
     Boost::pool
     imgui_build_target
-    FastNoise2
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
@@ -216,16 +226,99 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
 endif()
 
 
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
-endif()
+
 CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
-target_link_libraries(cinnabar PUBLIC slang)
 
+# Complete list of all dependency targets
+set(ALL_DEPENDENCY_TARGETS 
+    # Main targets
+    slang core compiler-core
+    
+    # Directory targets
+    copy-slang-tint copy-slang-llvm copy-prebuilt-binaries
+    
+    # External targets
+    metal-cpp imgui stb
+    
+    # FastNoise2 targets (both alias and real target)
+    FastNoise # for some reason 2 is an alias to 1 bruh
+    
+    # Tools targets
+    all-generators slang-fiddle slang-embed slang-generate 
+    slang-lookup-generator slang-capability-generator 
+    slang-spirv-embed-generator slang-bootstrap 
+    slang-cpp-parser slangi
+    
+    # Prelude
+    prelude
+    
+    # Core module targets
+    slang-embedded-core-module-source slang-no-embedded-core-module-source
+    generate_core_module_headers slang-embedded-core-module 
+    slang-no-embedded-core-module
+    
+    # GLSL module
+    slang-glsl-module
+    
+    # Slang-specific targets
+    slang-fiddle-output slang-capability-defs slang-capability-lookup
+    slang-lookup-tables copy_slang_headers slang-common-objects
+    slang-without-embedded-core-module
+)
 
+foreach(target ${ALL_DEPENDENCY_TARGETS})
+    if(TARGET ${target})
+        # Check target type
+        get_target_property(target_type ${target} TYPE)
+        
+        # Handle alias targets - get the real target and process that instead
+        if(target_type STREQUAL "ALIAS")
+            get_target_property(aliased_target ${target} ALIASED_TARGET)
+            message(STATUS "Found alias target: ${target} -> ${aliased_target}")
+            
+            # Process the real target if it exists and is compilable
+            if(aliased_target AND TARGET ${aliased_target})
+                get_target_property(real_target_type ${aliased_target} TYPE)
+                get_target_property(real_is_imported ${aliased_target} IMPORTED)
+                
+                if(real_target_type STREQUAL "EXECUTABLE" OR 
+                   real_target_type STREQUAL "STATIC_LIBRARY" OR 
+                   real_target_type STREQUAL "SHARED_LIBRARY" OR 
+                   real_target_type STREQUAL "MODULE_LIBRARY" OR
+                   real_target_type STREQUAL "OBJECT_LIBRARY")
+                    
+                    if(real_is_imported)
+                        message(STATUS "Suppressing warnings for imported aliased target: ${aliased_target} (${real_target_type})")
+                        target_compile_options(${aliased_target} INTERFACE -w)
+                    else()
+                        message(STATUS "Suppressing warnings for aliased target: ${aliased_target} (${real_target_type})")
+                        target_compile_options(${aliased_target} PRIVATE -w)
+                    endif()
+                endif()
+            endif()
+            # Continue to next iteration - don't process the alias target itself
+            continue()
+        endif()
+        
+        # Handle regular targets - only apply compile options to compilable target types
+        if(target_type STREQUAL "EXECUTABLE" OR 
+           target_type STREQUAL "STATIC_LIBRARY" OR 
+           target_type STREQUAL "SHARED_LIBRARY" OR 
+           target_type STREQUAL "MODULE_LIBRARY" OR
+           target_type STREQUAL "OBJECT_LIBRARY")
+            
+            get_target_property(is_imported ${target} IMPORTED)
+            if(is_imported)
+                message(STATUS "Suppressing warnings for imported target: ${target} (${target_type})")
+                target_compile_options(${target} INTERFACE -w)
+            else()
+                message(STATUS "Suppressing warnings for target: ${target} (${target_type})")
+                target_compile_options(${target} PRIVATE -w)
+            endif()
+        else()
+            message(STATUS "Skipping non-compilable target: ${target} (${target_type})")
+        endif()
+    endif()
+endforeach()
 
-
-
-
+target_link_libraries(cinnabar PUBLIC slang FastNoise2)
