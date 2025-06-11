@@ -202,9 +202,8 @@ namespace gfx::generators::voxel
 
     struct CpuChunkData
     {
-        util::RangeAllocation                          brick_allocation; // change name
-        boost::container::flat_set<ChunkLocalPosition> current_chunk_local_emissive_voxels;
-        std::vector<EmissiveVoxelUpdateChange>         emissive_updates;
+        util::RangeAllocation brick_allocation; // change name
+        bool                  are_lights_dirty;
 
         bool operator== (const CpuChunkData&) const = default;
     };

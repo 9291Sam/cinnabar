@@ -335,27 +335,6 @@ struct GpuColorHashMapNode
 const static u32 faceHashTableCapacity = 1u << 22u;
 const static u32 faceHashTableNullHash = ~0u;
 
-struct ChunkLocalEmissiveOffset
-{
-    const static i32 x_min = -1024;
-    const static i32 x_max = 1023;
-
-    const static i32 y_min = -512;
-    const static i32 y_max = 511;
-
-    const static i32 z_min = -1024;
-    const static i32 z_max = 1023;
-
-    i32 x : 11;
-    i32 y : 10;
-    i32 z : 11;
-
-    float3 getCenterPositionOfVoxel()
-    {
-        return float3(0.5) + float3(x, y, z);
-    }
-};
-
 #ifdef __cplusplus
 template<class T, std::size_t N>
 using Array = std::array<T, N>;
@@ -370,8 +349,8 @@ struct GpuChunkData
     u32 offset = ~0u;
     BrickMap brick_map = {};
     float3 padding;
-    u32 number_of_emissives = 0;
-    ChunkLocalEmissiveOffset emissive_data[1024];
+    u16 number_of_nearby_lights = 0;
+    u16 nearby_light_ids[1024];
 
     float3 getWorldChunkCorner()
     {

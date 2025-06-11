@@ -482,6 +482,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
 
+        #warning do this properly within the lights radius
         if (!shadowResult.intersect_occur || all(shadowResult.material.emission_metallic.xyz != float3(0.0)))
         {
             calculatedColor += lightColor / approxProbability;

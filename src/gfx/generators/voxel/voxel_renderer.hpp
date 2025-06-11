@@ -19,10 +19,14 @@ namespace gfx::core
 
 namespace gfx::generators::voxel
 {
+    static constexpr u16 MaxVoxelLights = 8192;
+
     class VoxelRenderer
     {
     public:
         using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u32>;
+        using VoxelLight = util::OpaqueHandle<"Voxel Light", u16>;
+        static_assert(VoxelLight::MaxValidElement > MaxVoxelLights);
     public:
 
         explicit VoxelRenderer(const core::Renderer*);
@@ -33,8 +37,12 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        VoxelChunk createVoxelChunk(AlignedChunkCoordinate);
-        void       destroyVoxelChunk(VoxelChunk);
+        void destroyVoxelChunk(VoxelChunk);
+
+        using UniqueVoxelChunk = util::UniqueOpaqueHandle<VoxelChunk, &VoxelRenderer::destroyVoxelChunk>;
+
+        UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
+        VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
 
         void setVoxelChunkData(
             const VoxelChunk&,
@@ -42,6 +50,11 @@ namespace gfx::generators::voxel
             std::span<const CombinedBrick>,
             std::span<const ChunkLocalPosition> emissiveLocations);
         void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+
+        void destroyVoxelLight(VoxelLight);
+
+        void createVoxelLight();
+        void updateVoxelLight();
 
         void preFrameUpdate();
 
@@ -69,8 +82,10 @@ namespace gfx::generators::voxel
         util::RangeAllocator                            brick_allocator;
         gfx::core::vulkan::GpuOnlyBuffer<CombinedBrick> combined_bricks;
 
+        util::OpaqueHandleAllocator<VoxelLight>               light_allocator;
+        gfx::core::vulkan::CpuCachedBuffer<GpuRaytracedLight> lights;
+
         gfx::core::vulkan::GpuOnlyBuffer<GpuColorHashMapNode> face_hash_map;
-        gfx::core::vulkan::GpuOnlyBuffer<GpuRaytracedLight>   lights;
         gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial>  materials;
     };
 } // namespace gfx::generators::voxel

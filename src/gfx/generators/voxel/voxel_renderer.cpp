@@ -96,6 +96,14 @@ namespace gfx::generators::voxel
               BricksToAllocate,
               "Combined Bricks",
               SBO_COMBINED_BRICKS)
+        , light_allocator {MaxVoxelLights}
+        , lights(
+              this->renderer,
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              MaxVoxelLights,
+              "Voxel Lights",
+              SBO_VOXEL_LIGHTS)
         , face_hash_map(
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -103,13 +111,6 @@ namespace gfx::generators::voxel
               faceHashTableCapacity,
               "Face Hash Map",
               SBO_FACE_HASH_MAP)
-        , lights(
-              this->renderer,
-              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-              vk::MemoryPropertyFlagBits::eDeviceLocal,
-              1,
-              "Voxel Lights",
-              SBO_VOXEL_LIGHTS)
         , materials {generateMaterialBuffer(this->renderer)}
     {}
 
@@ -119,6 +120,11 @@ namespace gfx::generators::voxel
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->face_normalizer_pipeline));
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_calculation_pipeline));
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_transfer_pipeline));
+    }
+
+    VoxelRenderer::UniqueVoxelChunk VoxelRenderer::createVoxelChunkUnique(AlignedChunkCoordinate ac)
+    {
+        return UniqueVoxelChunk {this->createVoxelChunk(ac), this};
     }
 
     VoxelRenderer::VoxelChunk VoxelRenderer::createVoxelChunk(AlignedChunkCoordinate coordinate)
@@ -266,6 +272,7 @@ namespace gfx::generators::voxel
                     const u32 emissiveDataPacketBytes =
                         static_cast<u32>(thisChunkPossibleEmissivies.size() * sizeof(ChunkLocalEmissiveOffset));
 
+                    // TODO: if dirty
                     GpuChunkData& partData = this->gpu_chunk_data.modifyCoherentRange(
                         chunkId,
                         offsetof(GpuChunkData, number_of_emissives),
@@ -279,85 +286,12 @@ namespace gfx::generators::voxel
 
         this->gpu_chunk_data.flushViaStager(this->renderer->getStager());
         this->chunk_hash_map.flushViaStager(this->renderer->getStager());
-        // if (std::optional t = util::receive<f32>("SetAnimationTime"))
-        // {
-        //     this->setAnimationTime(*t);
-        // }
-        // if (std::optional n = util::receive<u32>("SetAnimationNumber"))
-        // {
-        //     this->setAnimationNumber(*n);
-        // }
+        this->lights.flushViaStager(this->renderer->getStager());
+
         if (std::optional l = util::receive<voxel::GpuRaytracedLight>("UpdateLight"))
         {
             this->setLightInformation(*l);
         }
-        // const f32 deltaTime     = this->renderer->getWindow()->getDeltaTimeSeconds();
-        // const f32 lastFrameTime = this->last_frame_time.load(std::memory_order_acquire);
-        // const f32 thisFrameTime = lastFrameTime + deltaTime;
-
-        // auto& thisDemo = this->demos.at(this->demo_index.load(std::memory_order_acquire));
-
-        // const u32 lastFrameAnimationNumber =
-        //     thisDemo.model.getFrameNumberAtTime(lastFrameTime, AnimatedVoxelModel::Looping {});
-        // const u32 thisFrameAnimationNumber =
-        //     thisDemo.model.getFrameNumberAtTime(thisFrameTime, AnimatedVoxelModel::Looping {});
-
-        // this->last_frame_time.fetch_add(deltaTime, std::memory_order_acq_rel);
-
-        // if (thisFrameAnimationNumber != lastFrameAnimationNumber
-        //     || (lastFrameAnimationNumber == 0 && thisFrameAnimationNumber == 0))
-        // {
-        //     auto sensibleData = thisDemo.model.getFrame(thisFrameTime);
-
-        //     std::vector<CombinedBrick> newCombinedBricks {};
-
-        //     ChunkData newChunk {.getWorldChunkCorner() {-16.0f, -16.0f, -16.0f}, .offset {0}, .brick_map {}};
-
-        //     u16 nextBrickIndex = 0;
-
-        //     const u32 xExtent = std::min({64U, thisDemo.model.getExtent().x});
-        //     const u32 yExtent = std::min({64U, thisDemo.model.getExtent().y});
-        //     const u32 zExtent = std::min({64U, thisDemo.model.getExtent().z});
-
-        //     for (u32 x = 0; x < xExtent; ++x)
-        //     {
-        //         for (u32 y = 0; y < yExtent; ++y)
-        //         {
-        //             for (u32 z = 0; z < zExtent; ++z)
-        //             {
-        //                 const ChunkLocalPosition cP {x, y, z};
-        //                 const auto [bC, bP] = cP.split();
-
-        //                 MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = newChunk.brick_map[bC.x][bC.y][bC.z];
-
-        //                 const glm::u32vec3 sample = thisDemo.sampler(glm::u32vec3 {x, y, z}, thisDemo.model);
-
-        //                 const Voxel& v = sensibleData[sample.x, sample.y, sample.z];
-
-        //                 if (maybeThisBrickOffset.data == static_cast<u16>(~0u) && v != Voxel::NullAirEmpty)
-        //                 {
-        //                     maybeThisBrickOffset.data = nextBrickIndex;
-
-        //                     newCombinedBricks.push_back(CombinedBrick {});
-
-        //                     nextBrickIndex += 1;
-        //                 }
-
-        //                 if (v != Voxel::NullAirEmpty)
-        //                 {
-        //                     newCombinedBricks.at(maybeThisBrickOffset.data).write(bP, static_cast<u16>(v));
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     if (!newCombinedBricks.empty())
-        //     {
-        //         this->renderer->getStager().enqueueTransfer(
-        //             this->combined_bricks, 0, {newCombinedBricks.data(), newCombinedBricks.size()});
-        //         this->renderer->getStager().enqueueTransfer(this->chunk_data, 0, {&newChunk, 1});
-        //     }
-        // }
     }
 
     void
@@ -475,7 +409,7 @@ namespace gfx::generators::voxel
         {
 #warning this radius is wrong!
             cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {newEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {96}});
+                .position {newEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {16}});
         }
 
         if (!cpuChunkData.brick_allocation.isNull())
