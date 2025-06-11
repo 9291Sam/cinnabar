@@ -99,10 +99,10 @@ namespace gfx
 
                     usize lastElementIdx = 0;
 
-                    for (const auto [idx, i] : std::ranges::enumerate_view {queryResultData})
+                    for (usize idx = 0; idx < queryResultData.size(); ++idx)
                     {
                         // HACK: get proper things from the array of string views
-                        if (i == 0)
+                        if (queryResultData[idx] == 0)
                         {
                             continue;
                         }
@@ -243,24 +243,23 @@ namespace gfx
 
                     for (const vk::Image i : swapchainImages)
                     {
-                        swapchainMemoryBarriers.push_back(
-                            vk::ImageMemoryBarrier {
-                                .sType {vk::StructureType::eImageMemoryBarrier},
-                                .pNext {nullptr},
-                                .srcAccessMask {vk::AccessFlagBits::eNone},
-                                .dstAccessMask {vk::AccessFlagBits::eNone},
-                                .oldLayout {vk::ImageLayout::eUndefined},
-                                .newLayout {vk::ImageLayout::ePresentSrcKHR},
-                                .srcQueueFamilyIndex {graphicsQueueIndex},
-                                .dstQueueFamilyIndex {graphicsQueueIndex},
-                                .image {i},
-                                .subresourceRange {vk::ImageSubresourceRange {
-                                    .aspectMask {vk::ImageAspectFlagBits::eColor},
-                                    .baseMipLevel {0},
-                                    .levelCount {1},
-                                    .baseArrayLayer {0},
-                                    .layerCount {1}}},
-                            });
+                        swapchainMemoryBarriers.push_back(vk::ImageMemoryBarrier {
+                            .sType {vk::StructureType::eImageMemoryBarrier},
+                            .pNext {nullptr},
+                            .srcAccessMask {vk::AccessFlagBits::eNone},
+                            .dstAccessMask {vk::AccessFlagBits::eNone},
+                            .oldLayout {vk::ImageLayout::eUndefined},
+                            .newLayout {vk::ImageLayout::ePresentSrcKHR},
+                            .srcQueueFamilyIndex {graphicsQueueIndex},
+                            .dstQueueFamilyIndex {graphicsQueueIndex},
+                            .image {i},
+                            .subresourceRange {vk::ImageSubresourceRange {
+                                .aspectMask {vk::ImageAspectFlagBits::eColor},
+                                .baseMipLevel {0},
+                                .levelCount {1},
+                                .baseArrayLayer {0},
+                                .layerCount {1}}},
+                        });
                     }
 
                     commandBuffer.pipelineBarrier(
