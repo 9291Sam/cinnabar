@@ -203,7 +203,6 @@ namespace gfx::generators::voxel
     struct CpuChunkData
     {
         util::RangeAllocation brick_allocation; // change name
-        bool                  are_lights_dirty;
 
         bool operator== (const CpuChunkData&) const = default;
     };

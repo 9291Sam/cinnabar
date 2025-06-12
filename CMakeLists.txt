@@ -30,6 +30,7 @@ add_executable(cinnabar
 
     src/gfx/generators/voxel/emissive_integer_tree.cpp
     src/gfx/generators/voxel/generator.cpp
+    src/gfx/generators/voxel/light_influence_storage.cpp
     src/gfx/generators/voxel/material.cpp
     src/gfx/generators/voxel/model.cpp
     src/gfx/generators/voxel/voxel_renderer.cpp

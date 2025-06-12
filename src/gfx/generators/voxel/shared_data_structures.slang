@@ -290,18 +290,27 @@ struct GpuRaytracedLight
     float4 position_and_half_intensity_distance;
     float4 color_and_power;
 
-    bool canInfluencePoint(float3 position, u32 numberOfLights = 1)
+    bool canInfluencePoint(float3 position, u32 numberOfLights = 1) CONST_MEMBER_FUNCTION
     {
-        const f32 minimumPossibleInfluence = (1.0f / (256.0f * f32(numberOfLights))); 
-
-        f32 r = position_and_half_intensity_distance.w;
-        f32 p = color_and_power.w;
-
-        f32 maxDistance = r * sqrt(p / minimumPossibleInfluence - 1.0f);
-        f32 actualDistance = euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position);
+        const f32 maxDistance = getMaxInfluenceDistance(numberOfLights);
+        const f32 actualDistance = euclidean_distance(position_and_half_intensity_distance XYZ_VEC, position);
 
         return maxDistance > actualDistance;
     }
+
+    f32 getMaxInfluenceDistance(u32 numberOfLights = 1)CONST_MEMBER_FUNCTION
+    {
+        const f32 minimumPossibleInfluence = (1.0f / (256.0f * f32(numberOfLights))); 
+        const f32 r = position_and_half_intensity_distance.w;
+        const f32 p = color_and_power.w;
+
+        return r * sqrt(p / minimumPossibleInfluence - 1.0f);
+    }
+
+    #ifdef __cplusplus
+    constexpr bool operator==(const GpuRaytracedLight&) const = default;
+
+    #endif
 
 };
 
@@ -350,7 +359,7 @@ struct GpuChunkData
     BrickMap brick_map = {};
     float3 padding;
     u16 number_of_nearby_lights = 0;
-    u16 nearby_light_ids[1024];
+    Array<u16, 1024> nearby_light_ids;
 
     float3 getWorldChunkCorner()
     {

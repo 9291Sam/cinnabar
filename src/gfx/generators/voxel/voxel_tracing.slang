@@ -413,11 +413,11 @@ float3 RandomHemisphereDirection(float3 normal, inout uint rngState)
 
 float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial firstMaterial, UnpackUniqueFaceIdResult unpacked, uint rngState, bool shouldDoReflect)
 {
-    GpuRaytracedLight light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+    GpuRaytracedLight light;
 
-    const u32 numberOfPossibleEmissives = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_emissives;
+    const u32 numberOfNearbyLights = in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].number_of_nearby_lights;
 
-    if (numberOfPossibleEmissives == 0)
+    if (numberOfNearbyLights == 0)
     {
         return float3(0);
     }
@@ -425,21 +425,18 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     f32 selectionProbability = 0.0f;
     bool foundLight = false;
 
-    const u32 triesLeftToFindALight = min(16, numberOfPossibleEmissives);
+    const u32 triesLeftToFindALight = min(16, numberOfNearbyLights);
     uint i = 0;
     for (; i < triesLeftToFindALight; ++i)
     {
-        light = in_raytraced_lights[SBO_VOXEL_LIGHTS][0];
+        const u32 thisRandomLightIndex = NextRandom(rngState) % numberOfNearbyLights;
 
-        const u32 thisEmissiveRandomPosition = NextRandom(rngState) % numberOfPossibleEmissives;
+        light = in_raytraced_lights[SBO_VOXEL_LIGHTS][
+            in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].nearby_light_ids[thisRandomLightIndex]
+        ];
+        
 
-        light.position_and_half_intensity_distance.xyz =
-            in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner() +
-            in_const_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id]
-                .emissive_data[thisEmissiveRandomPosition]
-                .getCenterPositionOfVoxel();
-
-        if (light.canInfluencePoint(firstWorldStrikePosition, numberOfPossibleEmissives))
+        if (light.canInfluencePoint(firstWorldStrikePosition, numberOfNearbyLights))
         {
             foundLight = true;
             break;
@@ -450,7 +447,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     {
         return float3(0);
     }
-    const f32 approxProbability = 1.0 / float(numberOfPossibleEmissives / (i + 1));// exp(f32(-i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
+    const f32 approxProbability = 1.0 / float(numberOfNearbyLights / (i + 1));// exp(f32(-i) / triesLeftToFindALight) / float(numberOfPossibleEmissives); // +1 to avoid div by zero
     
 
     const float3 toCameraVector = normalize(global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz - firstWorldStrikePosition);
@@ -478,12 +475,15 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
     float3 calculatedColor = float3(0.0);
 
-    if (light.canInfluencePoint(firstWorldStrikePosition, numberOfPossibleEmissives))
+    if (light.canInfluencePoint(firstWorldStrikePosition, numberOfNearbyLights))
     {
         const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
+        const float3 worldStrikePosition = shadowResult.t * dir + start;
+        
+        const bool isThisVoxelEmissiveAndCloseEnoughToBeTransparent = all(shadowResult.material.emission_metallic.xyz != float3(0.0)) && 
+            distance(worldStrikePosition, light.position_and_half_intensity_distance.xyz) < 1.0;
 
-        #warning do this properly within the lights radius
-        if (!shadowResult.intersect_occur || all(shadowResult.material.emission_metallic.xyz != float3(0.0)))
+        if (!shadowResult.intersect_occur || isThisVoxelEmissiveAndCloseEnoughToBeTransparent)
         {
             calculatedColor += lightColor / approxProbability;
         }
@@ -504,7 +504,7 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 
             const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
 
-            if (light.canInfluencePoint(shadowRay.origin, numberOfPossibleEmissives))
+            if (light.canInfluencePoint(shadowRay.origin, numberOfNearbyLights))
             {
                 const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
 

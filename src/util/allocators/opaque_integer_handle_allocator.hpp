@@ -141,7 +141,12 @@ namespace util
     public:
         explicit OpaqueHandleAllocator(Handle::IndexType numberOfElementsToAllocate)
             : allocator {static_cast<u32>(numberOfElementsToAllocate)}
-        {}
+        {
+            assert::critical(
+                numberOfElementsToAllocate <= Handle::MaxValidElement,
+                "tried to create an allocator for {} with too many elements",
+                Handle::HandleName.getStringView());
+        }
         ~OpaqueHandleAllocator() = default;
 
         OpaqueHandleAllocator(const OpaqueHandleAllocator&)             = delete;

@@ -12,8 +12,10 @@
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/generator.hpp"
+#include "gfx/generators/voxel/light_influence_storage.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
+#include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
@@ -42,7 +44,6 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_renderer {this->game->getRenderer()}
     {
-#warning sample;
         log::trace("initalized renderers");
         std::mt19937                           gen {std::random_device {}()};
         std::uniform_real_distribution<f32>    dist {-16.0f, 16.0f};
@@ -52,6 +53,12 @@ struct TemporaryGameState : game::Game::GameState
         {
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
@@ -100,8 +107,8 @@ struct TemporaryGameState : game::Game::GameState
                     }
                     else
                     {
-                        const auto [brickMap, bricks, emissives] = wg.generateChunkPreDense(aC);
-                        this->voxel_renderer.setVoxelChunkData(chunk, brickMap, bricks, emissives);
+                        const auto [brickMap, bricks] = wg.generateChunkPreDense(aC);
+                        this->voxel_renderer.setVoxelChunkData(chunk, brickMap, bricks);
                     }
 
                     if (!newVoxels.empty())
@@ -143,6 +150,17 @@ struct TemporaryGameState : game::Game::GameState
 
     game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
     {
+        const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));
+
+        for (usize i = 0; i < this->lights.size(); ++i)
+        {
+            this->voxel_renderer.updateVoxelLight(
+                lights[i],
+                gfx::generators::voxel::GpuRaytracedLight {
+                    .position_and_half_intensity_distance {100 * i + 33.3, height, 91.23, 8},
+                    .color_and_power {1.0, 1.0, 1.0, 42.0}});
+        }
+
         util::TimestampStamper stamper;
 
         const f32  deltaTime        = updateArgs.delta_time;
@@ -253,7 +271,8 @@ struct TemporaryGameState : game::Game::GameState
     gfx::generators::voxel::VoxelRenderer                              voxel_renderer;
     std::vector<gfx::generators::triangle::TriangleRenderer::Triangle> triangles;
 
-    std::vector<gfx::generators::voxel::VoxelRenderer::VoxelChunk> chunks;
+    std::vector<gfx::generators::voxel::VoxelRenderer::VoxelChunk>       chunks;
+    std::vector<gfx::generators::voxel::VoxelRenderer::UniqueVoxelLight> lights;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
 };

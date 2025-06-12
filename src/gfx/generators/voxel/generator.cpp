@@ -305,7 +305,7 @@ namespace gfx::generators::voxel
         return out;
     }
 
-    std::tuple<BrickMap, std::vector<CombinedBrick>, std::vector<ChunkLocalPosition>>
+    std::tuple<BrickMap, std::vector<CombinedBrick>>
     WorldGenerator::generateChunkPreDense(AlignedChunkCoordinate chunkRoot) const
     {
         // const u32                  lod = 0;
@@ -351,10 +351,9 @@ namespace gfx::generators::voxel
         // auto pebblesRock = gen3D(static_cast<f32>(integerScale) * 0.01f, this->seed -
         // 52649274); auto pebbles        = gen3D(static_cast<f32>(integerScale) * 0.05f, this->seed - 948);
 
-        BrickMap                        brickMap {};
-        std::vector<CombinedBrick>      combinedBricks;
-        u16                             nextFreeBrickIndex = 0;
-        std::vector<ChunkLocalPosition> emissives {};
+        BrickMap                   brickMap {};
+        std::vector<CombinedBrick> combinedBricks;
+        u16                        nextFreeBrickIndex = 0;
 
         for (u8 bCX = 0; bCX < 8; ++bCX)
         {
@@ -402,8 +401,6 @@ namespace gfx::generators::voxel
                                             UncheckedInDebugTag {}};
 
                                         workingBrick.write(pos2, std::to_underlying(Voxel::EmissiveWhite));
-                                        emissives.push_back(
-                                            ChunkLocalPosition::assemble(BrickCoordinate {bCX, bCY, bCZ}, pos2));
                                     }
                                     else
                                     {
@@ -432,7 +429,7 @@ namespace gfx::generators::voxel
             }
         }
 
-        return std::make_tuple(brickMap, std::move(combinedBricks), std::move(emissives));
+        return std::make_tuple(brickMap, std::move(combinedBricks));
     }
 
 } // namespace gfx::generators::voxel

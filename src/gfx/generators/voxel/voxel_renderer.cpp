@@ -5,6 +5,7 @@
 #include "gfx/core/window.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/emissive_integer_tree.hpp"
+#include "gfx/generators/voxel/light_influence_storage.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/shader_common/bindings.slang"
@@ -72,6 +73,7 @@ namespace gfx::generators::voxel
                   .blend_enable {vk::True},
                   .name {"Color Transfer Pipeline"},
               })}
+        , light_influence_storage {MaxVoxelLights}
         , chunk_allocator {MaxChunks}
         , gpu_chunk_data(
               this->renderer,
@@ -155,150 +157,86 @@ namespace gfx::generators::voxel
         removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate.asVector(), chunkId);
         this->chunk_allocator.free(std::move(c));
 
-        for (ChunkLocalPosition p : oldCpuChunkData.current_chunk_local_emissive_voxels)
-        {
-            this->emissives_in_world.erase(WorldPosition::assemble(oldGpuChunkData.aligned_chunk_coordinate, p));
-        }
-
         oldGpuChunkData = {};
         oldCpuChunkData = {};
     }
 
+    void VoxelRenderer::destroyVoxelLight(VoxelLight light)
+    {
+        const u16 lightId = this->light_allocator.getValueOfHandle(light);
+
+        this->light_influence_storage.remove(lightId);
+
+        if constexpr (CINNABAR_DEBUG_BUILD)
+        {
+            this->lights.modify<&GpuRaytracedLight::color_and_power>(lightId) = {1.0, 0.5, 0.5, 100000};
+        }
+
+        this->light_allocator.free(std::move(light));
+    }
+
+    VoxelRenderer::VoxelLight VoxelRenderer::createVoxelLight(GpuRaytracedLight gpuLight)
+    {
+        VoxelLight newLight   = this->light_allocator.allocateOrPanic();
+        const u16  newLightId = this->light_allocator.getValueOfHandle(newLight);
+
+        this->light_influence_storage.insert(newLightId, gpuLight);
+        this->lights.write(newLightId, gpuLight);
+
+        return newLight;
+    }
+
+    VoxelRenderer::UniqueVoxelLight VoxelRenderer::createVoxelLightUnique(GpuRaytracedLight gpuLight)
+    {
+        return UniqueVoxelLight {this->createVoxelLight(gpuLight), this};
+    }
+
+    void VoxelRenderer::updateVoxelLight(const VoxelLight& light, GpuRaytracedLight gpuLight)
+    {
+        const u16 lightId = this->light_allocator.getValueOfHandle(light);
+
+        this->light_influence_storage.update(lightId, gpuLight);
+        this->lights.write(lightId, gpuLight);
+    }
+
     void VoxelRenderer::preFrameUpdate()
     {
-        bool anyUpdates = false;
-        // check for chunks with dirty emissives, if so populate the changes
-        this->chunk_allocator.iterateThroughAllocatedElements(
-            [&](u32 chunkId)
-            {
-                const AlignedChunkCoordinate thisChunkCoordinate =
-                    this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate;
-                // TODO: this is totally going to be a data race in the future
-                CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
+        const bool haveAnyLightsChanged = this->light_influence_storage.pack();
 
-                if (!cpuChunkData.emissive_updates.empty())
-                {
-                    anyUpdates = true;
-
-                    for (EmissiveVoxelUpdateChange emissiveUpdate : cpuChunkData.emissive_updates)
-                    {
-                        const WorldPosition thisWorldPosition =
-                            WorldPosition::assemble(thisChunkCoordinate, emissiveUpdate.position);
-
-                        if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Insert)
-                        {
-                            this->emissives_in_world.insert(thisWorldPosition, static_cast<f32>(emissiveUpdate.radius));
-                            const auto [_, wasInserted] =
-                                cpuChunkData.current_chunk_local_emissive_voxels.insert(emissiveUpdate.position);
-
-                            if (!wasInserted)
-                            {
-                                assert::warn(
-                                    wasInserted,
-                                    "Duplicate insertion of Voxel @ {} in chunk {} @ {}",
-                                    glm::to_string(emissiveUpdate.position.asVector()),
-                                    chunkId,
-                                    glm::to_string(thisChunkCoordinate.asVector()));
-                            }
-                        }
-                        else if (emissiveUpdate.change_type == EmissiveVoxelUpdateChangeType::Removal)
-                        {
-                            this->emissives_in_world.erase(thisWorldPosition);
-                            const std::size_t elementsRemoved =
-                                cpuChunkData.current_chunk_local_emissive_voxels.erase(emissiveUpdate.position);
-
-                            assert::warn(
-                                elementsRemoved == 1,
-                                "Erroneous removal of emissive voxel {} @ {}",
-                                elementsRemoved,
-                                chunkId);
-                        }
-                        else
-                        {
-                            panic(
-                                "unexpected EmissiveVoxelUpdateChangeType of {}",
-                                std::to_underlying(emissiveUpdate.change_type));
-                        }
-                    }
-
-                    cpuChunkData.emissive_updates.clear();
-                }
-            });
-
-        if (anyUpdates)
+        // TODO: make more efficient
+        if (haveAnyLightsChanged)
         {
+            util::Timer t {"generated light gpu uploads"};
+
             this->chunk_allocator.iterateThroughAllocatedElements(
-                [&](u32 chunkId)
+                [this](u32 chunkId)
                 {
-                    const AlignedChunkCoordinate chunkCoordinate =
-                        this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate;
+                    std::vector<u16> polledLightIds =
+                        this->light_influence_storage.poll(this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate);
 
-                    WorldPosition chunkCornerPosition = WorldPosition::assemble(chunkCoordinate, {});
-
-                    const std::vector<WorldPosition> nearEmissiviesPositionsUnchecked =
-                        this->emissives_in_world.getPossibleInfluencingPoints(chunkCoordinate);
-
-                    std::vector<ChunkLocalEmissiveOffset> thisChunkPossibleEmissivies;
-                    thisChunkPossibleEmissivies.reserve(nearEmissiviesPositionsUnchecked.size());
-
-                    for (WorldPosition nearEmissiveWorldPosition : nearEmissiviesPositionsUnchecked)
-                    {
-                        const glm::i32vec3 uncheckedOffset = nearEmissiveWorldPosition - chunkCornerPosition;
-                        const glm::i32vec3 minPossibleEmissivePosition = chunkCornerPosition
-                                                                       + glm::i32vec3 {
-                                                                           ChunkLocalEmissiveOffset::x_min,
-                                                                           ChunkLocalEmissiveOffset::y_min,
-                                                                           ChunkLocalEmissiveOffset::z_min};
-
-                        const glm::i32vec3 maxPossibleEmissivePosition = chunkCornerPosition
-                                                                       + glm::i32vec3 {
-                                                                           ChunkLocalEmissiveOffset::x_max,
-                                                                           ChunkLocalEmissiveOffset::y_max,
-                                                                           ChunkLocalEmissiveOffset::z_max};
-
-                        if (glm::all(glm::lessThan(minPossibleEmissivePosition, uncheckedOffset))
-                            && glm::all(glm::lessThan(uncheckedOffset, maxPossibleEmissivePosition)))
-                        {
-                            const ChunkLocalEmissiveOffset thisEmissiveChunkLocalOffset {
-                                .x {nearEmissiveWorldPosition.x - chunkCornerPosition.x},
-                                .y {nearEmissiveWorldPosition.y - chunkCornerPosition.y},
-                                .z {nearEmissiveWorldPosition.z - chunkCornerPosition.z},
-                            };
-
-                            thisChunkPossibleEmissivies.push_back(thisEmissiveChunkLocalOffset);
-                        }
-                    }
-
-                    const u32 emissiveDataPacketBytes =
-                        static_cast<u32>(thisChunkPossibleEmissivies.size() * sizeof(ChunkLocalEmissiveOffset));
-
-                    // TODO: if dirty
-                    GpuChunkData& partData = this->gpu_chunk_data.modifyCoherentRange(
+                    GpuChunkData& partiallyCoherentGpuChunkData = this->gpu_chunk_data.modifyCoherentRangeSized(
                         chunkId,
-                        offsetof(GpuChunkData, number_of_emissives),
-                        sizeof(GpuChunkData::number_of_emissives) + emissiveDataPacketBytes);
+                        offsetof(GpuChunkData, number_of_nearby_lights),
+                        sizeof(GpuChunkData::number_of_nearby_lights)
+                            + (polledLightIds.size()
+                               * sizeof(decltype(partiallyCoherentGpuChunkData.nearby_light_ids)::value_type)));
 
-                    partData.number_of_emissives = static_cast<u32>(thisChunkPossibleEmissivies.size());
-                    std::memcpy(&partData.emissive_data, thisChunkPossibleEmissivies.data(), emissiveDataPacketBytes);
-                    static_assert(std::is_trivially_copyable_v<ChunkLocalEmissiveOffset>);
+                    partiallyCoherentGpuChunkData.number_of_nearby_lights = static_cast<u16>(polledLightIds.size());
+                    std::memcpy(
+                        partiallyCoherentGpuChunkData.nearby_light_ids.data(),
+                        polledLightIds.data(),
+                        std::span<const u16> {polledLightIds}.size_bytes());
                 });
         }
 
         this->gpu_chunk_data.flushViaStager(this->renderer->getStager());
         this->chunk_hash_map.flushViaStager(this->renderer->getStager());
         this->lights.flushViaStager(this->renderer->getStager());
-
-        if (std::optional l = util::receive<voxel::GpuRaytracedLight>("UpdateLight"))
-        {
-            this->setLightInformation(*l);
-        }
     }
 
     void
     VoxelRenderer::setVoxelChunkData(const VoxelChunk& c, std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
     {
-        std::vector<ChunkLocalPosition> newEmissives {};
-
         if (input.empty())
         {
             log::warn("empty setVoxelChunkData");
@@ -310,13 +248,6 @@ namespace gfx::generators::voxel
 
         for (const auto& [cP, v] : input)
         {
-            if (getMaterialFromVoxel(v).emission_metallic.xyz() != glm::vec3(0.0))
-            {
-// we have an emissive voxel
-#warning this radius is wrong!
-                newEmissives.push_back(cP);
-            }
-
             if (v == Voxel::NullAirEmpty)
             {
                 continue;
@@ -381,36 +312,18 @@ namespace gfx::generators::voxel
             }
         }
 
-        this->setVoxelChunkData(c, compactedBrickMap, compactedBricks, newEmissives);
+        this->setVoxelChunkData(c, compactedBrickMap, compactedBricks);
     }
 
     void VoxelRenderer::setVoxelChunkData(
-        const VoxelChunk&                   c,
-        const BrickMap&                     compactBrickMap,
-        std::span<const CombinedBrick>      compactedBricks,
-        std::span<const ChunkLocalPosition> newEmissiveLocations)
+        const VoxelChunk& c, const BrickMap& compactBrickMap, std::span<const CombinedBrick> compactedBricks)
     {
         const u32 chunkId = this->chunk_allocator.getValueOfHandle(c);
 
-        GpuChunkData& gpuChunkData = this->gpu_chunk_data.modify(chunkId);
+        GpuChunkData& partiallyCoherentGpuChunkData = this->gpu_chunk_data.modifyCoherentRangeOffsets(
+            chunkId, offsetof(GpuChunkData, offset), offsetof(GpuChunkData, brick_map) + sizeof(BrickMap));
+
         CpuChunkData& cpuChunkData = this->cpu_chunk_data[chunkId];
-
-        // Since we're going to nuke whatever is there, might as well reserve the space for it
-        cpuChunkData.emissive_updates.reserve(
-            cpuChunkData.emissive_updates.size() + cpuChunkData.current_chunk_local_emissive_voxels.size());
-
-        for (ChunkLocalPosition currentEmissivePosition : cpuChunkData.current_chunk_local_emissive_voxels)
-        {
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {currentEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Removal}});
-        }
-
-        for (ChunkLocalPosition newEmissivePosition : newEmissiveLocations)
-        {
-#warning this radius is wrong!
-            cpuChunkData.emissive_updates.push_back(EmissiveVoxelUpdateChange {
-                .position {newEmissivePosition}, .change_type {EmissiveVoxelUpdateChangeType::Insert}, .radius {16}});
-        }
 
         if (!cpuChunkData.brick_allocation.isNull())
         {
@@ -426,23 +339,24 @@ namespace gfx::generators::voxel
             cpuChunkData.brick_allocation = util::RangeAllocation {};
         }
 
-        gpuChunkData = {
-            .aligned_chunk_coordinate {gpuChunkData.aligned_chunk_coordinate},
-            .offset {util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation)},
-            .brick_map {compactBrickMap},
-            .padding {},
-            .emissive_data {}};
+        partiallyCoherentGpuChunkData.offset =
+            util::RangeAllocator::getOffsetofAllocation(cpuChunkData.brick_allocation);
+        partiallyCoherentGpuChunkData.brick_map = compactBrickMap;
 
         if (compactedBricks.empty())
         {
             assert::warn(
-                gpuChunkData.offset == ~0u, "Empty chunk has brick allocation offset of {}", gpuChunkData.offset);
+                partiallyCoherentGpuChunkData.offset == ~0u,
+                "Empty chunk has brick allocation offset of {}",
+                partiallyCoherentGpuChunkData.offset);
         }
 
         if (!compactedBricks.empty())
         {
             this->renderer->getStager().enqueueTransfer(
-                this->combined_bricks, gpuChunkData.offset, {compactedBricks.data(), compactedBricks.size()});
+                this->combined_bricks,
+                partiallyCoherentGpuChunkData.offset,
+                {compactedBricks.data(), compactedBricks.size()});
         }
     }
 
@@ -496,11 +410,6 @@ namespace gfx::generators::voxel
             this->renderer->getPipelineManager()->getPipeline(this->color_transfer_pipeline));
 
         commandBuffer.draw(3, 1, 0, 0);
-    }
-
-    void VoxelRenderer::setLightInformation(GpuRaytracedLight light)
-    {
-        this->renderer->getStager().enqueueTransfer(this->lights, 0, {&light, 1});
     }
 
     // void VoxelRenderer::setAnimationTime(f32 time) const

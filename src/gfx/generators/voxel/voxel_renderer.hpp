@@ -5,6 +5,7 @@
 #include "gfx/camera.hpp"
 #include "gfx/core/vulkan/buffer.hpp"
 #include "gfx/core/vulkan/pipeline_manager.hpp"
+#include "gfx/generators/voxel/light_influence_storage.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "util/allocators/opaque_integer_handle_allocator.hpp"
@@ -43,20 +44,15 @@ namespace gfx::generators::voxel
 
         UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
         VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
-
-        void setVoxelChunkData(
-            const VoxelChunk&,
-            const BrickMap&,
-            std::span<const CombinedBrick>,
-            std::span<const ChunkLocalPosition> emissiveLocations);
-        void setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+        void             setVoxelChunkData(const VoxelChunk&, const BrickMap&, std::span<const CombinedBrick>);
+        void             setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
 
         void destroyVoxelLight(VoxelLight);
 
-        // create and update new chunk
-        void createVoxelLight(GpuRaytracedLight);
-        // create and update in previous and new chunk if both are not the same
-        void updateVoxelLight(GpuRaytracedLight);
+        using UniqueVoxelLight = util::UniqueOpaqueHandle<VoxelLight, &VoxelRenderer::destroyVoxelLight>;
+        UniqueVoxelLight createVoxelLightUnique(GpuRaytracedLight);
+        VoxelLight       createVoxelLight(GpuRaytracedLight);
+        void             updateVoxelLight(const VoxelLight&, GpuRaytracedLight);
 
         void preFrameUpdate();
 
@@ -65,8 +61,6 @@ namespace gfx::generators::voxel
         void recordColorCalculation(vk::CommandBuffer);
         void recordColorTransfer(vk::CommandBuffer);
 
-        void setLightInformation(GpuRaytracedLight);
-
     private:
         const core::Renderer*                        renderer;
         gfx::core::vulkan::PipelineManager::Pipeline prepass_pipeline;
@@ -74,7 +68,7 @@ namespace gfx::generators::voxel
         gfx::core::vulkan::PipelineManager::Pipeline color_calculation_pipeline;
         gfx::core::vulkan::PipelineManager::Pipeline color_transfer_pipeline;
 
-        EmissiveIntegerTree emissives_in_world;
+        LightInfluenceStorage light_influence_storage;
 
         util::OpaqueHandleAllocator<VoxelChunk>              chunk_allocator;
         gfx::core::vulkan::CpuCachedBuffer<GpuChunkData>     gpu_chunk_data;
