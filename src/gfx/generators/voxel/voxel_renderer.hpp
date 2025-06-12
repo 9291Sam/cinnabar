@@ -53,8 +53,10 @@ namespace gfx::generators::voxel
 
         void destroyVoxelLight(VoxelLight);
 
-        void createVoxelLight();
-        void updateVoxelLight();
+        // create and update new chunk
+        void createVoxelLight(GpuRaytracedLight);
+        // create and update in previous and new chunk if both are not the same
+        void updateVoxelLight(GpuRaytracedLight);
 
         void preFrameUpdate();
 

@@ -65,7 +65,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME ON) 
 set(BOOST_ENABLE_CMAKE ON)
-set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool) # don't forget to target the library
+set(BOOST_INCLUDE_LIBRARIES container unordered dynamic_bitset core type_traits sort pool geometry) # don't forget to target the library
 
 set(SLANG_LIB_TYPE "SHARED" CACHE STRING "" FORCE)
 set(SLANG_ENABLE_DXIL OFF)
@@ -178,6 +178,7 @@ target_link_libraries(cinnabar PUBLIC
     Boost::type_traits
     Boost::sort
     Boost::pool
+    Boost::geometry
     imgui_build_target
 )
 
