@@ -9,7 +9,7 @@
 #include <slang.h>
 #include <vector>
 
-namespace cfi
+namespace gfx
 {
 
     SaneSlangCompiler::SaneSlangCompiler()
@@ -287,4 +287,4 @@ namespace cfi
         return {result == SLANG_OK ? spirvBlob : nullptr, std::move(outDiagnostic)};
     }
 
-} // namespace cfi
+} // namespace gfx

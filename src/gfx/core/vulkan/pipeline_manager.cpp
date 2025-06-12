@@ -1,12 +1,9 @@
 #include "pipeline_manager.hpp"
 #include "device.hpp"
-#include "slang_compiler.hpp"
 #include "util/logger.hpp"
 #include "util/threads.hpp"
-#include "util/timer.hpp"
 #include "util/util.hpp"
 #include <algorithm>
-#include <deque>
 #include <expected>
 #include <filesystem>
 #include <map>
@@ -257,12 +254,11 @@ namespace gfx::core::vulkan
 
         assert::critical(descriptor.shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
-            this->sane_slang_compiler.lock(
-                [&](cfi::SaneSlangCompiler& c)
-                {
-                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
-                });
+        std::expected<SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode = this->sane_slang_compiler.lock(
+            [&](SaneSlangCompiler& c)
+            {
+                return c.compile(util::getCanonicalPathOfShaderFile(descriptor.shader_path));
+            });
 
         if (!maybeCompiledCode.has_value())
         {
@@ -498,12 +494,11 @@ namespace gfx::core::vulkan
 
         assert::critical(descriptor.compute_shader_path.ends_with("slang"), "Tried to compile a non slang file");
 
-        std::expected<cfi::SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode =
-            this->sane_slang_compiler.lock(
-                [&](cfi::SaneSlangCompiler& c)
-                {
-                    return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
-                });
+        std::expected<SaneSlangCompiler::CompileResult, std::string> maybeCompiledCode = this->sane_slang_compiler.lock(
+            [&](SaneSlangCompiler& c)
+            {
+                return c.compile(util::getCanonicalPathOfShaderFile(descriptor.compute_shader_path));
+            });
 
         if (!maybeCompiledCode.has_value())
         {

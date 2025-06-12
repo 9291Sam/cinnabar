@@ -11,7 +11,7 @@
 /// Thanks to wakamatsu / Caio / Legend this lovely file
 /// Tweaked to my style. but the majority is his code.
 
-namespace cfi
+namespace gfx
 {
     class SaneSlangCompiler
     {
@@ -58,4 +58,4 @@ namespace cfi
         compileComposedProgram(slang::IComponentType*) const;
     };
 
-} // namespace cfi
+} // namespace gfx

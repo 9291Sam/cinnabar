@@ -37,6 +37,7 @@ add_executable(cinnabar
     src/gfx/camera.cpp
     src/gfx/frame_generator.cpp
     src/gfx/transform.cpp
+    src/gfx/slang_compiler.cpp
 
     src/util/allocators/index_allocator.cpp
     src/util/allocators/range_allocator.cpp
@@ -48,7 +49,6 @@ add_executable(cinnabar
     src/util/util.cpp
 
     src/main.cpp
-    src/slang_compiler.cpp
 )
 
 
@@ -274,7 +274,7 @@ foreach(target ${ALL_DEPENDENCY_TARGETS})
         # Handle alias targets - get the real target and process that instead
         if(target_type STREQUAL "ALIAS")
             get_target_property(aliased_target ${target} ALIASED_TARGET)
-            message(STATUS "Found alias target: ${target} -> ${aliased_target}")
+            # message(STATUS "Found alias target: ${target} -> ${aliased_target}")
             
             # Process the real target if it exists and is compilable
             if(aliased_target AND TARGET ${aliased_target})
@@ -288,10 +288,10 @@ foreach(target ${ALL_DEPENDENCY_TARGETS})
                    real_target_type STREQUAL "OBJECT_LIBRARY")
                     
                     if(real_is_imported)
-                        message(STATUS "Suppressing warnings for imported aliased target: ${aliased_target} (${real_target_type})")
+                        # message(STATUS "Suppressing warnings for imported aliased target: ${aliased_target} (${real_target_type})")
                         target_compile_options(${aliased_target} INTERFACE -w)
                     else()
-                        message(STATUS "Suppressing warnings for aliased target: ${aliased_target} (${real_target_type})")
+                        # message(STATUS "Suppressing warnings for aliased target: ${aliased_target} (${real_target_type})")
                         target_compile_options(${aliased_target} PRIVATE -w)
                     endif()
                 endif()
@@ -309,14 +309,14 @@ foreach(target ${ALL_DEPENDENCY_TARGETS})
             
             get_target_property(is_imported ${target} IMPORTED)
             if(is_imported)
-                message(STATUS "Suppressing warnings for imported target: ${target} (${target_type})")
+                # message(STATUS "Suppressing warnings for imported target: ${target} (${target_type})")
                 target_compile_options(${target} INTERFACE -w)
             else()
-                message(STATUS "Suppressing warnings for target: ${target} (${target_type})")
+                # message(STATUS "Suppressing warnings for target: ${target} (${target_type})")
                 target_compile_options(${target} PRIVATE -w)
             endif()
         else()
-            message(STATUS "Skipping non-compilable target: ${target} (${target_type})")
+            # message(STATUS "Skipping non-compilable target: ${target} (${target_type})")
         endif()
     endif()
 endforeach()
