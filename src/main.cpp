@@ -162,10 +162,13 @@ struct TemporaryGameState : game::Game::GameState
 
     game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
     {
+        // util::MultiTimer                                                                                  timer {};
         std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>> newVoxels {};
 
         gfx::generators::voxel::StaticVoxelModel cornelBox =
             gfx::generators::voxel::StaticVoxelModel::createCornelBox();
+
+        // timer.stamp("cornel");
 
         const glm::u32vec3 extents = cornelBox.getExtent();
         const auto         voxels  = cornelBox.getModel();
@@ -232,12 +235,14 @@ struct TemporaryGameState : game::Game::GameState
                 }
             }
         }
+        // timer.stamp("form voxles");
 
         if (!newVoxels.empty())
         {
             this->voxel_renderer.setVoxelChunkData(this->chunks[this->index_of_cornel_box], newVoxels);
         }
 
+        // timer.stamp("dump");
         const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));
 
         for (usize i = 0; i < this->lights.size(); ++i)
@@ -245,7 +250,7 @@ struct TemporaryGameState : game::Game::GameState
             this->voxel_renderer.updateVoxelLight(
                 lights[i],
                 gfx::generators::voxel::GpuRaytracedLight {
-                    .position_and_half_intensity_distance {100 * i + 16.3, height, 200 * (i / 2) + 91.23, 8},
+                    .position_and_half_intensity_distance {25 * i + 16.3, height, 200 * (i / 2) + 91.23, 8},
                     .color_and_power {1.0, 1.0, 1.0, 4.0}});
         }
 
