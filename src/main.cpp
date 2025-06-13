@@ -53,34 +53,23 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
-                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
-                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
-                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
-                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
-                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
-                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
+            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
@@ -102,6 +91,7 @@ struct TemporaryGameState : game::Game::GameState
 
                     if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 1})
                     {
+                        this->index_of_cornel_box = this->chunks.size();
                         gfx::generators::voxel::StaticVoxelModel cornelBox =
                             gfx::generators::voxel::StaticVoxelModel::createCornelBox();
 
@@ -172,6 +162,82 @@ struct TemporaryGameState : game::Game::GameState
 
     game::Game::GameStateUpdateResult update(game::Game::GameStateUpdateArgs updateArgs) override
     {
+        std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>> newVoxels {};
+
+        gfx::generators::voxel::StaticVoxelModel cornelBox =
+            gfx::generators::voxel::StaticVoxelModel::createCornelBox();
+
+        const glm::u32vec3 extents = cornelBox.getExtent();
+        const auto         voxels  = cornelBox.getModel();
+
+        assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
+
+        for (u32 x = 0; x < extents.x; ++x)
+        {
+            for (u32 y = 0; y < extents.y; ++y)
+            {
+                for (u32 z = 0; z < extents.z; ++z)
+                {
+                    const gfx::generators::voxel::Voxel v = voxels[x, y, z];
+
+                    if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
+                    {
+                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
+                    }
+                }
+            }
+        }
+
+        // Sphere properties
+        const float time           = this->game->getRenderer()->getTimeAlive();
+        const float sphereRadius   = 7.0f;
+        const float sphereRadiusSq = sphereRadius * sphereRadius;
+        const float orbitRadius    = 24.0f; // Kept within the 64x64x64 chunk bounds
+
+        // Calculate the orbiting center of the sphere in chunk-local space
+        const glm::vec3 sphereCenter = {
+            31.5f + orbitRadius * std::cos(time * 0.5f),
+            31.5f + 15.0f * std::sin(time * 0.4f), // Add some vertical motion
+            31.5f + orbitRadius * std::sin(time * 0.5f)};
+
+        // Define the voxel type for the sphere
+        const auto sphereVoxelType = gfx::generators::voxel::Voxel::Jade; // Assuming this type exists
+
+        // Determine the bounding box for the sphere, clamped to chunk boundaries [0, 63]
+        const u32 startX = static_cast<u32>(std::max(0.0f, sphereCenter.x - sphereRadius));
+        const u32 endX   = static_cast<u32>(std::min(63.0f, sphereCenter.x + sphereRadius));
+        const u32 startY = static_cast<u32>(std::max(0.0f, sphereCenter.y - sphereRadius));
+        const u32 endY   = static_cast<u32>(std::min(63.0f, sphereCenter.y + sphereRadius));
+        const u32 startZ = static_cast<u32>(std::max(0.0f, sphereCenter.z - sphereRadius));
+        const u32 endZ   = static_cast<u32>(std::min(63.0f, sphereCenter.z + sphereRadius));
+
+        // Iterate through the bounding box and add sphere voxels
+        for (u32 x = startX; x <= endX; ++x)
+        {
+            for (u32 y = startY; y <= endY; ++y)
+            {
+                for (u32 z = startZ; z <= endZ; ++z)
+                {
+                    // Calculate squared distance from current voxel to the sphere's center
+                    const float dx = static_cast<float>(x) - sphereCenter.x;
+                    const float dy = static_cast<float>(y) - sphereCenter.y;
+                    const float dz = static_cast<float>(z) - sphereCenter.z;
+
+                    // If inside the sphere, add the voxel.
+                    // This may overwrite existing Cornell Box voxels, which is intended.
+                    if ((dx * dx + dy * dy + dz * dz) <= sphereRadiusSq)
+                    {
+                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {x, y, z}, sphereVoxelType});
+                    }
+                }
+            }
+        }
+
+        if (!newVoxels.empty())
+        {
+            this->voxel_renderer.setVoxelChunkData(this->chunks[this->index_of_cornel_box], newVoxels);
+        }
+
         const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));
 
         for (usize i = 0; i < this->lights.size(); ++i)
@@ -297,6 +363,7 @@ struct TemporaryGameState : game::Game::GameState
     std::vector<gfx::generators::voxel::VoxelRenderer::UniqueVoxelLight> lights;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
+    usize       index_of_cornel_box = 0;
 };
 
 int main()

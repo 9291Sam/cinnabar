@@ -53,6 +53,7 @@ add_executable(cinnabar
 )
 
 
+# TODO INVESTIGATE
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
 else()
@@ -228,6 +229,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
 endif()
 
 
+# When I prompted an LLM for this code, only the LLM understood it. Now with my subscription expired, nobody does!
 
 CPMAddPackage("gh:shader-slang/slang#v2025.6.3")
 

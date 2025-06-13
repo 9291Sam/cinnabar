@@ -1,11 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 using u8    = std::uint8_t;   // NOLINT

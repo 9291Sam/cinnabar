@@ -203,10 +203,9 @@ namespace gfx::generators::voxel
     {
         const bool haveAnyLightsChanged = this->light_influence_storage.pack();
 
-        // TODO: make more efficient
         if (haveAnyLightsChanged)
         {
-            util::Timer t {"generated light gpu uploads"};
+            // util::Timer t {"generated light gpu uploads"};
 
             this->chunk_allocator.iterateThroughAllocatedElements(
                 [this](u32 chunkId)
@@ -214,18 +213,29 @@ namespace gfx::generators::voxel
                     std::vector<u16> polledLightIds =
                         this->light_influence_storage.poll(this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate);
 
-                    GpuChunkData& partiallyCoherentGpuChunkData = this->gpu_chunk_data.modifyCoherentRangeSized(
-                        chunkId,
-                        offsetof(GpuChunkData, number_of_nearby_lights),
-                        sizeof(GpuChunkData::number_of_nearby_lights)
-                            + (polledLightIds.size()
-                               * sizeof(decltype(partiallyCoherentGpuChunkData.nearby_light_ids)::value_type)));
+                    std::ranges::sort(polledLightIds);
 
-                    partiallyCoherentGpuChunkData.number_of_nearby_lights = static_cast<u16>(polledLightIds.size());
-                    std::memcpy(
-                        partiallyCoherentGpuChunkData.nearby_light_ids.data(),
-                        polledLightIds.data(),
-                        std::span<const u16> {polledLightIds}.size_bytes());
+                    const GpuChunkData& readOnlyGpuChunkData = this->gpu_chunk_data.read(chunkId);
+
+                    std::span<const u16> currentLightIds {
+                        readOnlyGpuChunkData.nearby_light_ids.data(),
+                        readOnlyGpuChunkData.nearby_light_ids.data() + readOnlyGpuChunkData.number_of_nearby_lights};
+
+                    if (!std::ranges::equal(polledLightIds, currentLightIds))
+                    {
+                        GpuChunkData& partiallyCoherentGpuChunkData = this->gpu_chunk_data.modifyCoherentRangeSized(
+                            chunkId,
+                            offsetof(GpuChunkData, number_of_nearby_lights),
+                            sizeof(GpuChunkData::number_of_nearby_lights)
+                                + (polledLightIds.size()
+                                   * sizeof(decltype(partiallyCoherentGpuChunkData.nearby_light_ids)::value_type)));
+
+                        partiallyCoherentGpuChunkData.number_of_nearby_lights = static_cast<u16>(polledLightIds.size());
+                        std::memcpy(
+                            partiallyCoherentGpuChunkData.nearby_light_ids.data(),
+                            polledLightIds.data(),
+                            std::span<const u16> {polledLightIds}.size_bytes());
+                    }
                 });
         }
 

@@ -1,4 +1,5 @@
 #include "material.hpp"
+#include "gfx/shader_common/bindings.slang"
 
 namespace gfx::generators::voxel
 {
@@ -615,7 +616,7 @@ namespace gfx::generators::voxel
             vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
             materials.size(),
             "Voxel Material Buffer",
-            4};
+            SBO_VOXEL_MATERIAL_BUFFER};
 
         buffer.uploadImmediate(0, materials);
 

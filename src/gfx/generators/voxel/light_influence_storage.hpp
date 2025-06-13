@@ -22,7 +22,6 @@ namespace gfx::generators::voxel
         LightInfluenceStorage& operator= (LightInfluenceStorage&&)      = delete;
 
         // these lightIds must be below the constructor parameter maxLightId
-
         void insert(u16 lightId, GpuRaytracedLight);
         void update(u16 lightId, GpuRaytracedLight);
         void remove(u16 lightId);
