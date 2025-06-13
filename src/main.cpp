@@ -12,7 +12,6 @@
 #include "gfx/generators/triangle/triangle_renderer.hpp"
 #include "gfx/generators/voxel/data_structures.hpp"
 #include "gfx/generators/voxel/generator.hpp"
-#include "gfx/generators/voxel/light_influence_storage.hpp"
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
@@ -54,11 +53,34 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
@@ -157,8 +179,8 @@ struct TemporaryGameState : game::Game::GameState
             this->voxel_renderer.updateVoxelLight(
                 lights[i],
                 gfx::generators::voxel::GpuRaytracedLight {
-                    .position_and_half_intensity_distance {100 * i + 33.3, height, 91.23, 8},
-                    .color_and_power {1.0, 1.0, 1.0, 42.0}});
+                    .position_and_half_intensity_distance {100 * i + 16.3, height, 200 * (i / 2) + 91.23, 8},
+                    .color_and_power {1.0, 1.0, 1.0, 4.0}});
         }
 
         util::TimestampStamper stamper;
