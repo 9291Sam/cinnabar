@@ -22,12 +22,16 @@ namespace gfx::generators::voxel
 {
     static constexpr u16 MaxVoxelLights = 8192;
 
+    std::pair<BrickMap, std::vector<CombinedBrick>>
+        createDenseChunk(std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+
     class VoxelRenderer
     {
     public:
         using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u32>;
         using VoxelLight = util::OpaqueHandle<"Voxel Light", u16>;
         static_assert(VoxelLight::MaxValidElement > MaxVoxelLights);
+
     public:
 
         explicit VoxelRenderer(const core::Renderer*);
@@ -42,17 +46,16 @@ namespace gfx::generators::voxel
 
         using UniqueVoxelChunk = util::UniqueOpaqueHandle<VoxelChunk, &VoxelRenderer::destroyVoxelChunk>;
 
-        UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
-        VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
-        void             setVoxelChunkData(const VoxelChunk&, const BrickMap&, std::span<const CombinedBrick>);
-        void             setVoxelChunkData(const VoxelChunk&, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+        [[nodiscard]] UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
+        [[nodiscard]] VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
+        void setVoxelChunkData(const VoxelChunk&, const BrickMap&, std::span<const CombinedBrick>);
 
         void destroyVoxelLight(VoxelLight);
 
         using UniqueVoxelLight = util::UniqueOpaqueHandle<VoxelLight, &VoxelRenderer::destroyVoxelLight>;
-        UniqueVoxelLight createVoxelLightUnique(GpuRaytracedLight);
-        VoxelLight       createVoxelLight(GpuRaytracedLight);
-        void             updateVoxelLight(const VoxelLight&, GpuRaytracedLight);
+        [[nodiscard]] UniqueVoxelLight createVoxelLightUnique(GpuRaytracedLight);
+        [[nodiscard]] VoxelLight       createVoxelLight(GpuRaytracedLight);
+        void                           updateVoxelLight(const VoxelLight&, GpuRaytracedLight);
 
         void preFrameUpdate();
 

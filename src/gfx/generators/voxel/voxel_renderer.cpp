@@ -33,6 +33,85 @@ static constexpr u32 BricksToAllocate                   = MaxChunks * AverageNon
 
 namespace gfx::generators::voxel
 {
+    std::pair<BrickMap, std::vector<CombinedBrick>>
+    createDenseChunk(std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
+    {
+        if (input.empty())
+        {
+            panic("empty setVoxelChunkData");
+        }
+        u16                        nextNonCompactedBrickIndex = 0;
+        std::vector<CombinedBrick> nonCompactedBricks {};
+        BrickMap                   nonCompactedBrickMap {};
+
+        for (const auto& [cP, v] : input)
+        {
+            if (v == Voxel::NullAirEmpty)
+            {
+                continue;
+            }
+
+            const auto [bC, bP] = cP.split();
+
+            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = nonCompactedBrickMap[bC.x][bC.y][bC.z];
+
+            if (maybeThisBrickOffset.isMaterial()
+                && maybeThisBrickOffset.getMaterial() == static_cast<u16>(Voxel::NullAirEmpty))
+            {
+                maybeThisBrickOffset._data = nextNonCompactedBrickIndex;
+
+                nonCompactedBricks.push_back(CombinedBrick {});
+
+                nextNonCompactedBrickIndex += 1;
+            }
+
+            nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
+        }
+
+        std::vector<CombinedBrick> compactedBricks {};
+        u16                        nextCompactedBrickIndex = 0;
+        BrickMap                   compactedBrickMap {};
+        for (u8 bCX = 0; bCX < 8; ++bCX)
+        {
+            for (u8 bCY = 0; bCY < 8; ++bCY)
+            {
+                for (u8 bCZ = 0; bCZ < 8; ++bCZ)
+                {
+                    MaybeBrickOffsetOrMaterialId nonCompactedMaybeOffset = nonCompactedBrickMap[bCX][bCY][bCZ];
+
+                    if (nonCompactedMaybeOffset.isPointer())
+                    {
+                        const CombinedBrick& maybeCompactBrick = nonCompactedBricks[nonCompactedMaybeOffset._data];
+
+                        const CombinedBrickReadResult compactionResult = maybeCompactBrick.isCompact();
+
+                        if (compactionResult.solid)
+                        {
+                            compactedBrickMap[bCX][bCY][bCZ] =
+                                MaybeBrickOffsetOrMaterialId::fromMaterial(compactionResult.voxel);
+                        }
+                        else
+                        {
+                            compactedBrickMap[bCX][bCY][bCZ] =
+                                MaybeBrickOffsetOrMaterialId::fromOffset(nextCompactedBrickIndex);
+
+                            compactedBricks.push_back(maybeCompactBrick);
+
+                            nextCompactedBrickIndex += 1;
+                        }
+                    }
+                    else if (nonCompactedMaybeOffset.getMaterial() != static_cast<u16>(Voxel::NullAirEmpty))
+                    {
+                        log::warn("erm what");
+
+                        compactedBrickMap[bCX][bCY][bCZ] = nonCompactedMaybeOffset;
+                    }
+                }
+            }
+        }
+
+        return std::make_pair(compactedBrickMap, std::move(compactedBricks));
+    }
     VoxelRenderer::VoxelRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
@@ -75,44 +154,44 @@ namespace gfx::generators::voxel
               })}
         , light_influence_storage {MaxVoxelLights}
         , chunk_allocator {MaxChunks}
-        , gpu_chunk_data(
+        , gpu_chunk_data{
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxChunks,
               "Chunk Data",
-              SBO_CHUNK_DATA)
+              SBO_CHUNK_DATA}
         , cpu_chunk_data {MaxChunks}
-        , chunk_hash_map(
+        , chunk_hash_map{
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               chunkHashTableCapacity,
               "Chunk Hash Map",
-              SBO_CHUNK_HASH_MAP)
-        , brick_allocator(BricksToAllocate, MaxChunks)
-        , combined_bricks(
+              SBO_CHUNK_HASH_MAP}
+        , brick_allocator{BricksToAllocate, MaxChunks}
+        , combined_bricks{
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               BricksToAllocate,
               "Combined Bricks",
-              SBO_COMBINED_BRICKS)
+              SBO_COMBINED_BRICKS}
         , light_allocator {MaxVoxelLights}
-        , lights(
+        , lights{
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               MaxVoxelLights,
               "Voxel Lights",
-              SBO_VOXEL_LIGHTS)
-        , face_hash_map(
+              SBO_VOXEL_LIGHTS}
+        , face_hash_map{
               this->renderer,
               vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               faceHashTableCapacity,
               "Face Hash Map",
-              SBO_FACE_HASH_MAP)
+              SBO_FACE_HASH_MAP}
         , materials {generateMaterialBuffer(this->renderer)}
     {}
 
@@ -242,87 +321,6 @@ namespace gfx::generators::voxel
         this->gpu_chunk_data.flushViaStager(this->renderer->getStager());
         this->chunk_hash_map.flushViaStager(this->renderer->getStager());
         this->lights.flushViaStager(this->renderer->getStager());
-    }
-
-    void
-    VoxelRenderer::setVoxelChunkData(const VoxelChunk& c, std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
-    {
-        if (input.empty())
-        {
-            log::warn("empty setVoxelChunkData");
-            return;
-        }
-        u16                        nextNonCompactedBrickIndex = 0;
-        std::vector<CombinedBrick> nonCompactedBricks {};
-        BrickMap                   nonCompactedBrickMap {};
-
-        for (const auto& [cP, v] : input)
-        {
-            if (v == Voxel::NullAirEmpty)
-            {
-                continue;
-            }
-
-            const auto [bC, bP] = cP.split();
-
-            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = nonCompactedBrickMap[bC.x][bC.y][bC.z];
-
-            if (maybeThisBrickOffset.isMaterial()
-                && maybeThisBrickOffset.getMaterial() == static_cast<u16>(Voxel::NullAirEmpty))
-            {
-                maybeThisBrickOffset._data = nextNonCompactedBrickIndex;
-
-                nonCompactedBricks.push_back(CombinedBrick {});
-
-                nextNonCompactedBrickIndex += 1;
-            }
-
-            nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
-        }
-
-        std::vector<CombinedBrick> compactedBricks {};
-        u16                        nextCompactedBrickIndex = 0;
-        BrickMap                   compactedBrickMap {};
-        for (u8 bCX = 0; bCX < 8; ++bCX)
-        {
-            for (u8 bCY = 0; bCY < 8; ++bCY)
-            {
-                for (u8 bCZ = 0; bCZ < 8; ++bCZ)
-                {
-                    MaybeBrickOffsetOrMaterialId nonCompactedMaybeOffset = nonCompactedBrickMap[bCX][bCY][bCZ];
-
-                    if (nonCompactedMaybeOffset.isPointer())
-                    {
-                        const CombinedBrick& maybeCompactBrick = nonCompactedBricks[nonCompactedMaybeOffset._data];
-
-                        const CombinedBrickReadResult compactionResult = maybeCompactBrick.isCompact();
-
-                        if (compactionResult.solid)
-                        {
-                            compactedBrickMap[bCX][bCY][bCZ] =
-                                MaybeBrickOffsetOrMaterialId::fromMaterial(compactionResult.voxel);
-                        }
-                        else
-                        {
-                            compactedBrickMap[bCX][bCY][bCZ] =
-                                MaybeBrickOffsetOrMaterialId::fromOffset(nextCompactedBrickIndex);
-
-                            compactedBricks.push_back(maybeCompactBrick);
-
-                            nextCompactedBrickIndex += 1;
-                        }
-                    }
-                    else if (nonCompactedMaybeOffset.getMaterial() != static_cast<u16>(Voxel::NullAirEmpty))
-                    {
-                        log::warn("erm what");
-
-                        compactedBrickMap[bCX][bCY][bCZ] = nonCompactedMaybeOffset;
-                    }
-                }
-            }
-        }
-
-        this->setVoxelChunkData(c, compactedBrickMap, compactedBricks);
     }
 
     void VoxelRenderer::setVoxelChunkData(

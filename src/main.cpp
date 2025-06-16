@@ -53,23 +53,34 @@ struct TemporaryGameState : game::Game::GameState
             triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
         }
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
-            .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
+        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
+            gfx::generators::voxel::GpuRaytracedLight {
+                .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
+                .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         util::Timer worldGenerationTimer {"worldGenerationTimer"};
 
@@ -200,7 +211,7 @@ struct TemporaryGameState : game::Game::GameState
         // Calculate the orbiting center of the sphere in chunk-local space
         const glm::vec3 sphereCenter = {
             31.5f + orbitRadius * std::cos(time * 0.5f),
-            31.5f + 15.0f * std::sin(time * 0.4f), // Add some vertical motion
+            15.5f + 6.0f * std::sin(time * 0.4f), // Add some vertical motion
             31.5f + orbitRadius * std::sin(time * 0.5f)};
 
         // Define the voxel type for the sphere
@@ -236,11 +247,6 @@ struct TemporaryGameState : game::Game::GameState
             }
         }
         // timer.stamp("form voxles");
-
-        if (!newVoxels.empty())
-        {
-            this->voxel_renderer.setVoxelChunkData(this->chunks[this->index_of_cornel_box], newVoxels);
-        }
 
         // timer.stamp("dump");
         const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));

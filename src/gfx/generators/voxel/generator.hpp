@@ -14,8 +14,7 @@ namespace gfx::generators::voxel
     public:
         explicit WorldGenerator(u64 seed);
 
-        [[nodiscard]] std::vector<std::pair<ChunkLocalPosition, Voxel>> generateChunk(AlignedChunkCoordinate) const;
-        [[nodiscard]] std::tuple<BrickMap, std::vector<CombinedBrick>>
+        [[nodiscard]] std::pair<BrickMap, std::vector<CombinedBrick>>
             generateChunkPreDense(AlignedChunkCoordinate) const;
 
     private:

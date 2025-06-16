@@ -39,6 +39,7 @@ add_executable(cinnabar
     src/gfx/frame_generator.cpp
     src/gfx/transform.cpp
     src/gfx/slang_compiler.cpp
+    src/gfx/voxel_world_manager.cpp
 
     src/util/allocators/index_allocator.cpp
     src/util/allocators/range_allocator.cpp

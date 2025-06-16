@@ -59,7 +59,8 @@ namespace gfx
             .framebuffer_size {glm::uvec2 {framebufferSize.width, framebufferSize.height}},
             .bool_enable_reflections {static_cast<u32>(this->are_reflections_enabled)},
             .bool_moved_this_frame {
-                static_cast<u32>(camera.getPosition() != this->maybe_previous_frame_camera_position)}};
+                static_cast<u32>(camera.getPosition() != this->maybe_previous_frame_camera_position)},
+        };
 
         this->maybe_previous_frame_camera_position = camera.getPosition();
 
@@ -243,23 +244,24 @@ namespace gfx
 
                     for (const vk::Image i : swapchainImages)
                     {
-                        swapchainMemoryBarriers.push_back(vk::ImageMemoryBarrier {
-                            .sType {vk::StructureType::eImageMemoryBarrier},
-                            .pNext {nullptr},
-                            .srcAccessMask {vk::AccessFlagBits::eNone},
-                            .dstAccessMask {vk::AccessFlagBits::eNone},
-                            .oldLayout {vk::ImageLayout::eUndefined},
-                            .newLayout {vk::ImageLayout::ePresentSrcKHR},
-                            .srcQueueFamilyIndex {graphicsQueueIndex},
-                            .dstQueueFamilyIndex {graphicsQueueIndex},
-                            .image {i},
-                            .subresourceRange {vk::ImageSubresourceRange {
-                                .aspectMask {vk::ImageAspectFlagBits::eColor},
-                                .baseMipLevel {0},
-                                .levelCount {1},
-                                .baseArrayLayer {0},
-                                .layerCount {1}}},
-                        });
+                        swapchainMemoryBarriers.push_back(
+                            vk::ImageMemoryBarrier {
+                                .sType {vk::StructureType::eImageMemoryBarrier},
+                                .pNext {nullptr},
+                                .srcAccessMask {vk::AccessFlagBits::eNone},
+                                .dstAccessMask {vk::AccessFlagBits::eNone},
+                                .oldLayout {vk::ImageLayout::eUndefined},
+                                .newLayout {vk::ImageLayout::ePresentSrcKHR},
+                                .srcQueueFamilyIndex {graphicsQueueIndex},
+                                .dstQueueFamilyIndex {graphicsQueueIndex},
+                                .image {i},
+                                .subresourceRange {vk::ImageSubresourceRange {
+                                    .aspectMask {vk::ImageAspectFlagBits::eColor},
+                                    .baseMipLevel {0},
+                                    .levelCount {1},
+                                    .baseArrayLayer {0},
+                                    .layerCount {1}}},
+                            });
                     }
 
                     commandBuffer.pipelineBarrier(
