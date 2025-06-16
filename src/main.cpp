@@ -16,6 +16,7 @@
 #include "gfx/generators/voxel/model.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "gfx/voxel_world_manager.hpp"
 #include "util/events.hpp"
 #include "util/logger.hpp"
 #include "util/task_generator.hpp"
@@ -41,121 +42,44 @@ struct TemporaryGameState : game::Game::GameState
         , triangle_renderer {this->game->getRenderer()}
         , skybox_renderer {this->game->getRenderer()}
         , imgui_renderer {this->game->getRenderer()}
-        , voxel_renderer {this->game->getRenderer()}
+        , voxel_world_manager {this->game->getRenderer(), 12812389021980}
     {
-        log::trace("initalized renderers");
-        std::mt19937                           gen {std::random_device {}()};
-        std::uniform_real_distribution<f32>    dist {-16.0f, 16.0f};
-        gfx::generators::voxel::WorldGenerator wg {12812389021980};
-
-        for (int i = 0; i < 38; ++i)
-        {
-            triangles.push_back(this->triangle_renderer.createTriangle({dist(gen), dist(gen), dist(gen)}));
-        }
-
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_renderer.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        util::Timer worldGenerationTimer {"worldGenerationTimer"};
-
-        const i32 dim = 8;
-        const i32 him = 2;
-
-        for (i32 cX = -dim; cX <= dim; ++cX)
-        {
-            for (i32 cY = -dim; cY <= him; ++cY)
-            {
-                for (i32 cZ = -dim; cZ <= dim; ++cZ)
-                {
-                    gfx::generators::voxel::AlignedChunkCoordinate aC {cX, cY, cZ};
-
-                    gfx::generators::voxel::VoxelRenderer::VoxelChunk chunk = this->voxel_renderer.createVoxelChunk(aC);
-
-                    std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
-                        newVoxels {};
-
-                    if (glm::i32vec3 {cX, cY, cZ} == glm::i32vec3 {0, 0, 1})
-                    {
-                        this->index_of_cornel_box = this->chunks.size();
-                        gfx::generators::voxel::StaticVoxelModel cornelBox =
-                            gfx::generators::voxel::StaticVoxelModel::createCornelBox();
-
-                        const glm::u32vec3 extents = cornelBox.getExtent();
-                        const auto         voxels  = cornelBox.getModel();
-
-                        assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
-
-                        for (u32 x = 0; x < extents.x; ++x)
-                        {
-                            for (u32 y = 0; y < extents.y; ++y)
-                            {
-                                for (u32 z = 0; z < extents.z; ++z)
-                                {
-                                    const gfx::generators::voxel::Voxel v = voxels[x, y, z];
-
-                                    if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
-                                    {
-                                        newVoxels.push_back(
-                                            {gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        const auto [brickMap, bricks] = wg.generateChunkPreDense(aC);
-                        this->voxel_renderer.setVoxelChunkData(chunk, brickMap, bricks);
-                    }
-
-                    if (!newVoxels.empty())
-                    {
-                        this->voxel_renderer.setVoxelChunkData(chunk, newVoxels);
-                    }
-
-                    this->chunks.push_back(std::move(chunk));
-                }
-            }
-        }
-
-        log::info("generated world in {}ms", worldGenerationTimer.end(false) / 1000);
+        this->sphere_entity = this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16});
     }
     ~TemporaryGameState() override
     {
         for (auto& t : triangles)
         {
             this->triangle_renderer.destroyTriangle(std::move(t));
-        }
-
-        for (gfx::generators::voxel::VoxelRenderer::VoxelChunk& c : this->chunks)
-        {
-            this->voxel_renderer.destroyVoxelChunk(std::move(c));
         }
     }
 
@@ -175,32 +99,6 @@ struct TemporaryGameState : game::Game::GameState
     {
         // util::MultiTimer                                                                                  timer {};
         std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>> newVoxels {};
-
-        gfx::generators::voxel::StaticVoxelModel cornelBox =
-            gfx::generators::voxel::StaticVoxelModel::createCornelBox();
-
-        // timer.stamp("cornel");
-
-        const glm::u32vec3 extents = cornelBox.getExtent();
-        const auto         voxels  = cornelBox.getModel();
-
-        assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
-
-        for (u32 x = 0; x < extents.x; ++x)
-        {
-            for (u32 y = 0; y < extents.y; ++y)
-            {
-                for (u32 z = 0; z < extents.z; ++z)
-                {
-                    const gfx::generators::voxel::Voxel v = voxels[x, y, z];
-
-                    if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
-                    {
-                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
-                    }
-                }
-            }
-        }
 
         // Sphere properties
         const float time           = this->game->getRenderer()->getTimeAlive();
@@ -241,19 +139,23 @@ struct TemporaryGameState : game::Game::GameState
                     // This may overwrite existing Cornell Box voxels, which is intended.
                     if ((dx * dx + dy * dy + dz * dz) <= sphereRadiusSq)
                     {
-                        newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {x, y, z}, sphereVoxelType});
+                        newVoxels.push_back(
+                            {gfx::generators::voxel::ChunkLocalPosition {dx + 8, dy + 8, dz + 8}, sphereVoxelType});
                     }
                 }
             }
         }
-        // timer.stamp("form voxles");
+
+        this->voxel_world_manager.updateVoxelEntityData(this->sphere_entity, std::move(newVoxels));
+        this->voxel_world_manager.updateVoxelEntityPosition(
+            this->sphere_entity, gfx::WorldPosition {static_cast<glm::i32vec3>(sphereCenter - sphereRadius / 2.0f)});
 
         // timer.stamp("dump");
         const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));
 
         for (usize i = 0; i < this->lights.size(); ++i)
         {
-            this->voxel_renderer.updateVoxelLight(
+            this->voxel_world_manager.updateVoxelLight(
                 lights[i],
                 gfx::generators::voxel::GpuRaytracedLight {
                     .position_and_half_intensity_distance {25 * i + 16.3, height, 200 * (i / 2) + 91.23, 8},
@@ -349,13 +251,17 @@ struct TemporaryGameState : game::Game::GameState
 
         stamper.stamp("camera processing");
 
+        this->voxel_world_manager.onFrameUpdate(camera);
+
+        stamper.stamp("Voxel World Update");
+
         return game::Game::GameStateUpdateResult {
             .should_terminate {false},
             .generators {gfx::FrameGenerator::FrameGenerateArgs {
                 .maybe_triangle_renderer {&this->triangle_renderer},
                 .maybe_skybox_renderer {&this->skybox_renderer},
                 .maybe_imgui_renderer {&this->imgui_renderer},
-                .maybe_voxel_renderer {&this->voxel_renderer}}},
+                .maybe_voxel_renderer {this->voxel_world_manager.getRenderer()}}},
             .camera {this->camera},
             .render_thread_profile {std::move(stamper)}};
     }
@@ -367,11 +273,12 @@ struct TemporaryGameState : game::Game::GameState
     gfx::generators::triangle::TriangleRenderer                        triangle_renderer;
     gfx::generators::skybox::SkyboxRenderer                            skybox_renderer;
     gfx::generators::imgui::ImguiRenderer                              imgui_renderer;
-    gfx::generators::voxel::VoxelRenderer                              voxel_renderer;
+    gfx::VoxelWorldManager                                             voxel_world_manager;
     std::vector<gfx::generators::triangle::TriangleRenderer::Triangle> triangles;
 
     std::vector<gfx::generators::voxel::VoxelRenderer::VoxelChunk>       chunks;
     std::vector<gfx::generators::voxel::VoxelRenderer::UniqueVoxelLight> lights;
+    gfx::VoxelWorldManager::UniqueVoxelEntity                            sphere_entity;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
     usize       index_of_cornel_box = 0;

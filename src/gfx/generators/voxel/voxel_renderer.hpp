@@ -25,6 +25,9 @@ namespace gfx::generators::voxel
     std::pair<BrickMap, std::vector<CombinedBrick>>
         createDenseChunk(std::span<const std::pair<ChunkLocalPosition, Voxel>>);
 
+    std::pair<BrickMap, std::vector<CombinedBrick>> appendVoxelsToDenseChunk(
+        const BrickMap&, std::vector<CombinedBrick>, std::span<const std::pair<ChunkLocalPosition, Voxel>>);
+
     class VoxelRenderer
     {
     public:

@@ -38,8 +38,9 @@ namespace gfx
 
         using UniqueVoxelEntity = util::UniqueOpaqueHandle<VoxelEntity, &VoxelWorldManager::destroyVoxelEntity>;
 
-        [[nodiscard]] UniqueVoxelEntity createVoxelEntityUnique(glm::u8vec3 size);
-        [[nodiscard]] VoxelEntity       createVoxelEntity(glm::u8vec3 size);
+        // TODO: add a size and allow for custom origin points
+        [[nodiscard]] UniqueVoxelEntity createVoxelEntityUnique(WorldPosition, glm::u8vec3 size);
+        [[nodiscard]] VoxelEntity       createVoxelEntity(WorldPosition, glm::u8vec3 size);
         void updateVoxelEntityData(const VoxelEntity&, std::vector<std::pair<ChunkLocalPosition, Voxel>> newVoxels);
         void updateVoxelEntityPosition(const VoxelEntity&, WorldPosition);
 
@@ -58,18 +59,23 @@ namespace gfx
         generators::voxel::VoxelRenderer  voxel_renderer;
 
         using UniqueVoxelChunk = generators::voxel::VoxelRenderer::UniqueVoxelChunk;
+        using VoxelChunk       = generators::voxel::VoxelRenderer::VoxelChunk;
+        using CombinedBrick    = generators::voxel::CombinedBrick;
 
         std::unordered_map<AlignedChunkCoordinate, UniqueVoxelChunk> chunks;
 
         struct PerEntityData
         {
-            boost::container::small_vector<AlignedChunkCoordinate, 8> chunks;
-            std::vector<std::pair<ChunkLocalPosition, Voxel>>         new_data;
+            boost::container::small_flat_set<AlignedChunkCoordinate, 8> current_chunks;
+            std::vector<std::pair<ChunkLocalPosition, Voxel>>           model;
+            glm::u8vec3                                                 size;
+            WorldPosition                                               position;
         };
 
-        util::OpaqueHandleAllocator<VoxelEntity>   voxel_entity_allocator;
-        std::vector<PerEntityData>                 voxel_entity_storage;
-        std::unordered_set<AlignedChunkCoordinate> chunks_that_need_regeneration;
+        util::OpaqueHandleAllocator<VoxelEntity> voxel_entity_allocator;
+        std::vector<PerEntityData>               voxel_entity_storage;
+        std::unordered_map<AlignedChunkCoordinate, boost::container::flat_set<u16>>
+            chunks_that_need_regeneration_to_ids_in_each_chunk;
     };
 
     /*

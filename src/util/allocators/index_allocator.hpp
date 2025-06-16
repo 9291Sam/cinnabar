@@ -80,6 +80,11 @@ namespace util
             }
         }
 
+        bool isElementAlive(IndexType index)
+        {
+            return index < next_available_block && !this->free_block_list.contains(index);
+        }
+
         [[nodiscard]] IndexType getUpperBoundOnAllocatedElements() const
         {
             return this->next_available_block;

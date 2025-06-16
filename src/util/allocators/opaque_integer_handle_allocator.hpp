@@ -203,6 +203,11 @@ namespace util
                 });
         }
 
+        bool isHandleAlive(Handle::IndexType index)
+        {
+            return this->allocator.isElementAlive(index);
+        }
+
         Handle::IndexType getUpperBoundOnAllocatedElements() const
         {
             return static_cast<Handle::IndexType>(this->allocator.getUpperBoundOnAllocatedElements());

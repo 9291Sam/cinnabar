@@ -247,6 +247,20 @@ struct CombinedBrick
     BooleanBrick  boolean_brick = {};
     MaterialBrick material_brick = {};
 
+    MUTABLE_MEMBER_FUNCTION void fill(u16 v)
+    {
+        for (i32 x = 0; x < 8; ++x)
+        {
+            for (i32 y = 0; y < 8; ++y)
+            {
+                for (i32 z = 0; z < 8; ++z)
+                {
+                    write(BrickLocalPosition(x, y, z), v);
+                }
+            }
+        }
+    }
+
     MUTABLE_MEMBER_FUNCTION void write(BrickLocalPosition p, u16 v)
     {
         boolean_brick.write(p, v != 0);

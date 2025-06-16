@@ -61,13 +61,14 @@ namespace gfx::generators::voxel
             : VoxelCoordinateBase {Base::VectorType {std::forward<Args>(args)...}}
         {}
 
-        static std::optional<Derived> tryCreate(V v)
+        template<class TryCreateVectorType>
+        static std::optional<Derived> tryCreate(TryCreateVectorType v)
         {
             if (MinValidValue <= v.x && v.x <= MaxValidValue && // format guide
                 MinValidValue <= v.y && v.y <= MaxValidValue && // format guide
                 MinValidValue <= v.z && v.z <= MaxValidValue)
             {
-                return std::optional<Derived> {Derived {v, UncheckedInDebugTag {}}};
+                return std::optional<Derived> {Derived {static_cast<V>(v), UncheckedInDebugTag {}}};
             }
             else
             {
@@ -207,3 +208,15 @@ namespace gfx::generators::voxel
         bool operator== (const CpuChunkData&) const = default;
     };
 } // namespace gfx::generators::voxel
+
+namespace std
+{
+    template<>
+    struct hash<gfx::generators::voxel::AlignedChunkCoordinate>
+    {
+        usize operator() (const gfx::generators::voxel::AlignedChunkCoordinate& aC) const
+        {
+            return util::hashCombine(gfx::generators::voxel::hashAlignedChunkCoordinate(aC), 12732028474994);
+        }
+    };
+} // namespace std

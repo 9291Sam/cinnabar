@@ -1,8 +1,14 @@
 #include "voxel_world_manager.hpp"
+#include "boost/range/algorithm_ext/erase.hpp"
 #include "generators/voxel/data_structures.hpp"
 #include "gfx/camera.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/generators/voxel/material.hpp"
+#include "gfx/generators/voxel/shared_data_structures.slang"
+#include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "util/logger.hpp"
 #include "util/timer.hpp"
+#include <boost/range/algorithm/remove_if.hpp>
 
 namespace gfx
 {
@@ -45,19 +51,193 @@ namespace gfx
         const u16 entityId = this->voxel_entity_allocator.getValueOfHandle(e);
 
         PerEntityData& entityData = this->voxel_entity_storage[entityId];
-        entityData.new_data       = {};
 
-        this->chunks_that_need_regeneration.insert(entityData.chunks.cbegin(), entityData.chunks.cend());
+        for (AlignedChunkCoordinate aC : entityData.current_chunks)
+        {
+            this->chunks_that_need_regeneration_to_ids_in_each_chunk[aC];
+        }
+
+        entityData = {};
 
         this->voxel_entity_allocator.free(std::move(e));
     }
 
-    void VoxelWorldManager::onFrameUpdate(gfx::Camera c)
+    VoxelWorldManager::UniqueVoxelEntity
+    VoxelWorldManager::createVoxelEntityUnique(WorldPosition position, glm::u8vec3 size)
     {
-        // iter over alive entities and move them to chunks as needed
+        return {this->createVoxelEntity(position, size), this};
+    }
 
-        // iter over dead entities and mark those chunks as needing regeneration
+    VoxelWorldManager::VoxelEntity VoxelWorldManager::createVoxelEntity(WorldPosition position, glm::u8vec3 size)
+    {
+        VoxelEntity e = this->voxel_entity_allocator.allocateOrPanic();
 
-        //
+        this->voxel_entity_storage[this->voxel_entity_allocator.getValueOfHandle(e)] =
+            PerEntityData {.current_chunks {}, .model {}, .size {size}, .position {position}};
+
+        return e;
+    }
+
+    void VoxelWorldManager::updateVoxelEntityData(
+        const VoxelEntity& e, std::vector<std::pair<ChunkLocalPosition, Voxel>> newVoxels)
+    {
+        const u16      entityId   = this->voxel_entity_allocator.getValueOfHandle(e);
+        PerEntityData& entityData = this->voxel_entity_storage[entityId];
+
+        for (const auto& [cP, v] : newVoxels)
+        {
+            assert::critical(
+                glm::all(glm::lessThan(cP.asVector(), entityData.size)),
+                "Voxel @ {} {} {} is out of bounds for VoxelEntity of size {} {} {}",
+                cP.x,
+                cP.y,
+                cP.z,
+                entityData.size.x,
+                entityData.size.y,
+                entityData.size.z);
+        }
+
+        for (AlignedChunkCoordinate aC : entityData.current_chunks)
+        {
+            this->chunks_that_need_regeneration_to_ids_in_each_chunk[aC].insert(entityId);
+        }
+
+        entityData.model = std::move(newVoxels);
+    }
+
+    void VoxelWorldManager::updateVoxelEntityPosition(const VoxelEntity& e, WorldPosition newPosition)
+    {
+        const u16      entityId   = this->voxel_entity_allocator.getValueOfHandle(e);
+        PerEntityData& entityData = this->voxel_entity_storage[entityId];
+
+        for (AlignedChunkCoordinate aC : entityData.current_chunks)
+        {
+            this->chunks_that_need_regeneration_to_ids_in_each_chunk[aC];
+        }
+
+        entityData.current_chunks = {};
+        entityData.position       = newPosition;
+
+        for (i32 x : {0, i32 {entityData.size.x}})
+        {
+            for (i32 y : {0, i32 {entityData.size.y}})
+            {
+                for (i32 z : {0, i32 {entityData.size.z}})
+                {
+                    entityData.current_chunks.insert(
+                        WorldPosition {entityData.position + WorldPosition {x, y, z}}.splitIntoAlignedChunk().first);
+                }
+            }
+        }
+
+        for (AlignedChunkCoordinate aC : entityData.current_chunks)
+        {
+            this->chunks_that_need_regeneration_to_ids_in_each_chunk[aC].insert(entityId);
+        }
+    }
+
+    VoxelWorldManager::UniqueVoxelLight VoxelWorldManager::createVoxelLightUnique(GpuRaytracedLight light)
+    {
+        return this->voxel_renderer.createVoxelLightUnique(light);
+    }
+
+    VoxelWorldManager::VoxelLight VoxelWorldManager::createVoxelLight(GpuRaytracedLight light)
+    {
+        return this->voxel_renderer.createVoxelLight(light);
+    }
+
+    void VoxelWorldManager::updateVoxelLight(const VoxelLight& l, GpuRaytracedLight light)
+    {
+        this->voxel_renderer.updateVoxelLight(l, light);
+    }
+
+    void VoxelWorldManager::destroyVoxelLight(VoxelLight l)
+    {
+        this->voxel_renderer.destroyVoxelLight(std::move(l));
+    }
+
+    void VoxelWorldManager::onFrameUpdate(gfx::Camera)
+    {
+        this->voxel_entity_allocator.iterateThroughAllocatedElements(
+            [this](const u16 entityId)
+            {
+                PerEntityData& entityData = this->voxel_entity_storage[entityId];
+
+                for (AlignedChunkCoordinate aC : entityData.current_chunks)
+                {
+                    if (this->chunks_that_need_regeneration_to_ids_in_each_chunk.contains(aC))
+                    {
+                        this->chunks_that_need_regeneration_to_ids_in_each_chunk[aC].insert(entityId);
+                    }
+                }
+            });
+
+        // 25 - 26 seninor
+        // 24 - 25 juinor
+        // 23 - 24 sophomore
+        // 22 - 23 freshman
+
+        for (auto& [aC, entities] : this->chunks_that_need_regeneration_to_ids_in_each_chunk)
+        {
+            const WorldPosition                             chunkBase = WorldPosition::assemble(aC, {});
+            const VoxelChunk&                               chunk     = this->chunks.at(aC);
+            std::pair<BrickMap, std::vector<CombinedBrick>> data      = this->world_generator.generateChunkPreDense(aC);
+
+            // Not a bug! remember if a handle dies and is replaced we need to clear it from the old chunk and insert it
+            // into the new one
+            boost::range::remove_erase_if(
+                entities,
+                [this](const u16 entityId)
+                {
+                    return !this->voxel_entity_allocator.isHandleAlive(entityId);
+                });
+
+            usize voxelEntitiesTotalVoxelsNeeded = 0;
+            for (u16 entityId : entities)
+            {
+                voxelEntitiesTotalVoxelsNeeded += this->voxel_entity_storage[entityId].model.size();
+            }
+
+            std::vector<std::pair<ChunkLocalPosition, Voxel>> collectedVoxelUpdateList {};
+            collectedVoxelUpdateList.reserve(voxelEntitiesTotalVoxelsNeeded);
+
+            for (u16 entityId : entities)
+            {
+                const PerEntityData& entityData = this->voxel_entity_storage[entityId];
+
+                // offset by world position
+                // ensure all variables are within the correct bound of the chunk
+                const glm::i32vec3 entityOffsetFromChunk = entityData.position - chunkBase;
+
+                for (const auto& [cP, v] : entityData.model)
+                {
+                    const glm::i32vec3 thisVoxelPlaceInChunk =
+                        static_cast<glm::i32vec3>(cP.asVector()) - entityOffsetFromChunk;
+
+                    if (std::optional<ChunkLocalPosition> correctlyOffsetEntityPosition =
+                            ChunkLocalPosition::tryCreate(thisVoxelPlaceInChunk))
+                    {
+                        // excellent its in the chunk
+                        collectedVoxelUpdateList.push_back({*correctlyOffsetEntityPosition, v});
+                    }
+                    else
+                    {
+                        // welp nothing happens then, it's outside
+                    }
+                }
+            }
+
+            auto [brickMap, bricks] = generators::voxel::appendVoxelsToDenseChunk(
+                data.first, std::move(data.second), collectedVoxelUpdateList);
+
+            this->voxel_renderer.setVoxelChunkData(chunk, brickMap, std::move(bricks));
+        }
+
+        this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
+    }
+
+    gfx::generators::voxel::VoxelRenderer* VoxelWorldManager::getRenderer()
+    {
+        return &this->voxel_renderer;
     }
 } // namespace gfx

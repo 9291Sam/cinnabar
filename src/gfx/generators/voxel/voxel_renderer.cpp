@@ -33,39 +33,44 @@ static constexpr u32 BricksToAllocate                   = MaxChunks * AverageNon
 
 namespace gfx::generators::voxel
 {
-    std::pair<BrickMap, std::vector<CombinedBrick>>
-    createDenseChunk(std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
+    std::pair<BrickMap, std::vector<CombinedBrick>> appendVoxelsToDenseChunk(
+        const BrickMap&                                       oldBrickMap,
+        std::vector<CombinedBrick>                            oldBricks,
+        std::span<const std::pair<ChunkLocalPosition, Voxel>> newVoxels)
     {
-        if (input.empty())
-        {
-            panic("empty setVoxelChunkData");
-        }
-        u16                        nextNonCompactedBrickIndex = 0;
-        std::vector<CombinedBrick> nonCompactedBricks {};
-        BrickMap                   nonCompactedBrickMap {};
+        BrickMap                   partiallyDenseBrickMap = oldBrickMap;
+        std::vector<CombinedBrick> partiallyDenseBricks   = std::move(oldBricks);
+        u16                        nextBrickId            = static_cast<u16>(partiallyDenseBricks.size());
 
-        for (const auto& [cP, v] : input)
+        for (const auto& [cP, v] : newVoxels)
         {
-            if (v == Voxel::NullAirEmpty)
-            {
-                continue;
-            }
-
             const auto [bC, bP] = cP.split();
 
-            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = nonCompactedBrickMap[bC.x][bC.y][bC.z];
+            MaybeBrickOffsetOrMaterialId& maybeThisBrickOffset = partiallyDenseBrickMap[bC.x][bC.y][bC.z];
 
-            if (maybeThisBrickOffset.isMaterial()
-                && maybeThisBrickOffset.getMaterial() == static_cast<u16>(Voxel::NullAirEmpty))
+            if (maybeThisBrickOffset.isMaterial() && maybeThisBrickOffset.getMaterial() == static_cast<u16>(v))
             {
-                maybeThisBrickOffset._data = nextNonCompactedBrickIndex;
-
-                nonCompactedBricks.push_back(CombinedBrick {});
-
-                nextNonCompactedBrickIndex += 1;
+                // awesome, we need to insert a voxel and that brick is already a dense brick of those, do nothing!
             }
+            else if (maybeThisBrickOffset.isMaterial())
+            {
+                // ok well its a dense brick, but not of what we need
+                CombinedBrick workingBrick {};
+                workingBrick.fill(maybeThisBrickOffset.getMaterial());
+                workingBrick.write(bP, static_cast<u16>(v));
 
-            nonCompactedBricks[maybeThisBrickOffset._data].write(bP, static_cast<u16>(v));
+                const u16 newBrickPointer = nextBrickId;
+                nextBrickId += 1;
+
+                partiallyDenseBricks.push_back(workingBrick);
+                maybeThisBrickOffset = MaybeBrickOffsetOrMaterialId::fromOffset(newBrickPointer);
+            }
+            else
+            {
+                const u16 brickPointer = maybeThisBrickOffset._data;
+
+                partiallyDenseBricks[brickPointer].write(bP, static_cast<u16>(v));
+            }
         }
 
         std::vector<CombinedBrick> compactedBricks {};
@@ -77,11 +82,11 @@ namespace gfx::generators::voxel
             {
                 for (u8 bCZ = 0; bCZ < 8; ++bCZ)
                 {
-                    MaybeBrickOffsetOrMaterialId nonCompactedMaybeOffset = nonCompactedBrickMap[bCX][bCY][bCZ];
+                    MaybeBrickOffsetOrMaterialId partiallyDenseOffset = partiallyDenseBrickMap[bCX][bCY][bCZ];
 
-                    if (nonCompactedMaybeOffset.isPointer())
+                    if (partiallyDenseOffset.isPointer())
                     {
-                        const CombinedBrick& maybeCompactBrick = nonCompactedBricks[nonCompactedMaybeOffset._data];
+                        const CombinedBrick& maybeCompactBrick = partiallyDenseBricks[partiallyDenseOffset._data];
 
                         const CombinedBrickReadResult compactionResult = maybeCompactBrick.isCompact();
 
@@ -100,11 +105,10 @@ namespace gfx::generators::voxel
                             nextCompactedBrickIndex += 1;
                         }
                     }
-                    else if (nonCompactedMaybeOffset.getMaterial() != static_cast<u16>(Voxel::NullAirEmpty))
+                    else
                     {
-                        log::warn("erm what");
-
-                        compactedBrickMap[bCX][bCY][bCZ] = nonCompactedMaybeOffset;
+                        // ok, we have a material brick, it's definitely dense, just copy it
+                        compactedBrickMap[bCX][bCY][bCZ] = partiallyDenseOffset;
                     }
                 }
             }
@@ -112,6 +116,13 @@ namespace gfx::generators::voxel
 
         return std::make_pair(compactedBrickMap, std::move(compactedBricks));
     }
+
+    std::pair<BrickMap, std::vector<CombinedBrick>>
+    createDenseChunk(std::span<const std::pair<ChunkLocalPosition, Voxel>> input)
+    {
+        return appendVoxelsToDenseChunk({}, {}, input);
+    }
+
     VoxelRenderer::VoxelRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
         , prepass_pipeline {this->renderer->getPipelineManager()->createPipeline(
