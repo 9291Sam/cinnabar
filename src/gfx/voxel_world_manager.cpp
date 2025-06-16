@@ -212,7 +212,7 @@ namespace gfx
                 for (const auto& [cP, v] : entityData.model)
                 {
                     const glm::i32vec3 thisVoxelPlaceInChunk =
-                        static_cast<glm::i32vec3>(cP.asVector()) - entityOffsetFromChunk;
+                        static_cast<glm::i32vec3>(cP.asVector()) + entityOffsetFromChunk;
 
                     if (std::optional<ChunkLocalPosition> correctlyOffsetEntityPosition =
                             ChunkLocalPosition::tryCreate(thisVoxelPlaceInChunk))

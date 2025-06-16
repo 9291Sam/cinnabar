@@ -5,6 +5,7 @@
 #include "model.hpp"
 #include "util/logger.hpp"
 #include "voxel_renderer.hpp"
+#include <random>
 #include <tuple>
 #include <utility>
 
@@ -250,6 +251,10 @@ namespace gfx::generators::voxel
             return createDenseChunk(newVoxels);
         }
 
+        const u32                       randomSeed = hashAlignedChunkCoordinate(chunkRoot);
+        std::minstd_rand                gen {randomSeed};
+        std::uniform_int_distribution<> dist {0, 1024};
+
         // const u32                  lod = 0;
         const voxel::WorldPosition root {voxel::WorldPosition::assemble(chunkRoot, {})};
         const i32                  lodres = 1; // gpu_calculateChunkVoxelSizeUnits(lod)
@@ -336,7 +341,7 @@ namespace gfx::generators::voxel
                                 }
                                 else if (relativeDistanceToHeight < 3 * integerScale)
                                 {
-                                    if (rand() % 1024 == 0)
+                                    if (dist(gen) == 0)
                                     {
                                         const BrickLocalPosition pos2 {
                                             BrickLocalPosition::VectorType {bPX, std::min({7, bPY + 6}), bPZ},
