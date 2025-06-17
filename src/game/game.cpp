@@ -61,6 +61,11 @@ namespace game
 
             const f32 deltaTime = this->renderer->getWindow()->getDeltaTimeSeconds();
 
+            if (deltaTime > 0.1)
+            {
+                log::warn("Unusually long frame {}", deltaTime);
+            }
+
             assert::critical(
                 this->maybe_current_game_state != nullptr, "Tried to iterate Game's update loop without a GameState!");
 
