@@ -61,7 +61,7 @@ namespace game
 
             const f32 deltaTime = this->renderer->getWindow()->getDeltaTimeSeconds();
 
-            if (deltaTime > 0.1)
+            if (deltaTime > 0.1f)
             {
                 log::warn("Unusually long frame {}", deltaTime);
             }

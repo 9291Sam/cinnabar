@@ -44,18 +44,57 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_world_manager {this->game->getRenderer(), 12812389021980}
     {
-        this->lights.push_back(this->voxel_world_manager.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_world_manager.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         // const glm::u8vec3 size = glm::u8vec3 {4, 4, 4};
 
-        this->sphere_entity = this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16});
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
+        this->sphere_entities.push_back(
+            this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
     }
     ~TemporaryGameState() override
     {
@@ -81,67 +120,71 @@ struct TemporaryGameState : game::Game::GameState
     {
         std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>> newVoxels {};
 
-        // Sphere properties
-        const float time           = this->game->getRenderer()->getTimeAlive();
-        const float sphereRadius   = 7.0f;
-        const float sphereRadiusSq = sphereRadius * sphereRadius;
-        const float orbitRadius    = 24.0f;
-
-        // Calculate the orbiting center of the sphere in world space
-        const glm::vec3 worldSphereCenter = {
-            15.5f + orbitRadius * std::cos(time * 0.5f),
-            15.5f + 6.0f * std::sin(time * 0.4f),
-            15.5f + orbitRadius * std::sin(time * 0.5f)};
-
-        // Define the voxel type for the sphere
-        const auto sphereVoxelType = gfx::generators::voxel::Voxel::Jade;
-
-        // Entity volume is 16x16x16, so coordinates go from 0 to 15
-        const int   entitySize   = 16;
-        const float entityCenter = (entitySize - 1) * 0.5f; // 7.5f for centering
-
-        // Calculate where the entity will be positioned (integer world coordinates)
-        const glm::vec3    entityOffset   = glm::vec3(entityCenter);
-        const glm::vec3    entityWorldPos = worldSphereCenter - entityOffset;
-        const glm::i32vec3 entityIntPos   = static_cast<glm::i32vec3>(entityWorldPos);
-
-        // Calculate the actual world position of the entity's origin after integer quantization
-        const glm::vec3 actualEntityWorldPos = static_cast<glm::vec3>(entityIntPos);
-
-        // Generate sphere voxels in entity-local space (16x16x16 volume)
-        for (int x = 0; x < entitySize; ++x)
+        float iter = 0;
+        for (const gfx::VoxelWorldManager::UniqueVoxelEntity& e : this->sphere_entities)
         {
-            for (int y = 0; y < entitySize; ++y)
+            // Sphere properties
+            const float time = this->game->getRenderer()->getTimeAlive() + static_cast<float>(iter);
+            iter += (12.0f * glm::pi<f32>()) / this->sphere_entities.size();
+            const float sphereRadius   = 7.0f;
+            const float sphereRadiusSq = sphereRadius * sphereRadius;
+            const float orbitRadius    = 24.0f;
+
+            // Calculate the orbiting center of the sphere in world space
+            const glm::vec3 worldSphereCenter = {
+                32.5f + orbitRadius * std::cos(time * 0.5f),
+                32.5f + 24.0f * std::sin(time * 0.4f),
+                96.5f + orbitRadius * std::sin(time * 0.5f)};
+
+            // Define the voxel type for the sphere
+            const auto sphereVoxelType = gfx::generators::voxel::Voxel::Jade;
+
+            // Entity volume is 16x16x16, so coordinates go from 0 to 15
+            const int   entitySize   = 16;
+            const float entityCenter = (entitySize - 1) * 0.5f; // 7.5f for centering
+
+            // Calculate where the entity will be positioned (integer world coordinates)
+            const glm::vec3    entityOffset   = glm::vec3(entityCenter);
+            const glm::vec3    entityWorldPos = worldSphereCenter - entityOffset;
+            const glm::i32vec3 entityIntPos   = static_cast<glm::i32vec3>(entityWorldPos);
+
+            // Calculate the actual world position of the entity's origin after integer quantization
+            const glm::vec3 actualEntityWorldPos = static_cast<glm::vec3>(entityIntPos);
+
+            // Generate sphere voxels in entity-local space (16x16x16 volume)
+            for (int x = 0; x < entitySize; ++x)
             {
-                for (int z = 0; z < entitySize; ++z)
+                for (int y = 0; y < entitySize; ++y)
                 {
-                    // Convert entity-local coordinates to world coordinates
-                    const glm::vec3 voxelWorldPos =
-                        actualEntityWorldPos
-                        + glm::vec3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
-
-                    // Calculate distance from voxel to the orbiting sphere center
-                    const glm::vec3 diff       = voxelWorldPos - worldSphereCenter;
-                    const float     distanceSq = glm::dot(diff, diff);
-
-                    // If voxel is within sphere radius, add it
-                    if (distanceSq <= sphereRadiusSq)
+                    for (int z = 0; z < entitySize; ++z)
                     {
-                        newVoxels.push_back(
-                            {gfx::generators::voxel::ChunkLocalPosition {
-                                 static_cast<u32>(x), static_cast<u32>(y), static_cast<u32>(z)},
-                             sphereVoxelType});
+                        // Convert entity-local coordinates to world coordinates
+                        const glm::vec3 voxelWorldPos =
+                            actualEntityWorldPos
+                            + glm::vec3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
+
+                        // Calculate distance from voxel to the orbiting sphere center
+                        const glm::vec3 diff       = voxelWorldPos - worldSphereCenter;
+                        const float     distanceSq = glm::dot(diff, diff);
+
+                        // If voxel is within sphere radius, add it
+                        if (distanceSq <= sphereRadiusSq)
+                        {
+                            newVoxels.push_back(
+                                {gfx::generators::voxel::ChunkLocalPosition {
+                                     static_cast<u32>(x), static_cast<u32>(y), static_cast<u32>(z)},
+                                 sphereVoxelType});
+                        }
                     }
                 }
             }
+
+            // Update the voxel data for the sphere entity
+            this->voxel_world_manager.updateVoxelEntityData(e, std::move(newVoxels));
+
+            this->voxel_world_manager.updateVoxelEntityPosition(
+                e, gfx::WorldPosition {static_cast<glm::i32vec3>(entityWorldPos)});
         }
-
-        // Update the voxel data for the sphere entity
-        this->voxel_world_manager.updateVoxelEntityData(this->sphere_entity, std::move(newVoxels));
-
-        this->voxel_world_manager.updateVoxelEntityPosition(
-            this->sphere_entity, gfx::WorldPosition {static_cast<glm::i32vec3>(entityWorldPos)});
-
         // timer.stamp("dump");
         const f32 height = 23.2f + (14.2f * std::sin(this->game->getRenderer()->getTimeAlive()));
 
@@ -150,8 +193,8 @@ struct TemporaryGameState : game::Game::GameState
             this->voxel_world_manager.updateVoxelLight(
                 lights[i],
                 gfx::generators::voxel::GpuRaytracedLight {
-                    .position_and_half_intensity_distance {25 * i + 16.3, height, 200 * (i / 2) + 91.23, 16},
-                    .color_and_power {1.0, 1.0, 1.0, 8.0}});
+                    .position_and_half_intensity_distance {25 * i + 16.3, height, 200 * (i / 2) + 91.23, 8},
+                    .color_and_power {1.0, 1.0, 1.0, 16.0}});
         }
 
         util::TimestampStamper stamper;
@@ -270,7 +313,7 @@ struct TemporaryGameState : game::Game::GameState
 
     std::vector<gfx::generators::voxel::VoxelRenderer::VoxelChunk>       chunks;
     std::vector<gfx::generators::voxel::VoxelRenderer::UniqueVoxelLight> lights;
-    gfx::VoxelWorldManager::UniqueVoxelEntity                            sphere_entity;
+    std::vector<gfx::VoxelWorldManager::UniqueVoxelEntity>               sphere_entities;
 
     gfx::Camera camera {gfx::Camera::CameraDescriptor {.fov_y {FovY}}};
     usize       index_of_cornel_box = 0;
