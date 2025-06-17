@@ -15,7 +15,7 @@ namespace gfx::core::vulkan
 
     static constexpr u32         FramesInFlight = 3;
     static constexpr std::size_t TimeoutNs =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<std::size_t> {5}).count();
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<std::size_t> {7}).count();
 
     static constexpr u32 MaxQueriesPerFrame = 32;
 
@@ -24,6 +24,7 @@ namespace gfx::core::vulkan
     public:
         struct ResizeNeeded
         {};
+
     public:
         Frame(const Device&, vk::SwapchainKHR, std::size_t number);
         ~Frame() noexcept;
@@ -34,14 +35,12 @@ namespace gfx::core::vulkan
         Frame& operator= (Frame&&)      = delete;
 
         [[nodiscard]] std::expected<void, Frame::ResizeNeeded> recordAndDisplay(
-            util::TimestampStamper*  maybeRenderThreadProfiler,
-            std::optional<vk::Fence> previousFrameFence,
+            util::TimestampStamper* maybeRenderThreadProfiler,
             // u32 is the swapchain image's index
             std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)>,
             const BufferStager&);
 
-        // uses a shared_ptr for implementation reasons
-        [[nodiscard]] std::shared_ptr<vk::UniqueFence> getFrameInFlightFence() const noexcept;
+        [[nodiscard]] vk::Fence getFrameInFlightFence() const noexcept;
 
     private:
         vk::UniqueSemaphore              image_available;
@@ -61,7 +60,6 @@ namespace gfx::core::vulkan
     class FrameManager
     {
     public:
-
         FrameManager(const Device&, vk::SwapchainKHR);
         ~FrameManager() noexcept;
 
@@ -77,11 +75,11 @@ namespace gfx::core::vulkan
             util::TimestampStamper* maybeRenderThreadProfiler,
             std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32, std::function<void()>)>,
             const BufferStager&);
+
     private:
         vk::Device                        device;
-        std::shared_ptr<vk::UniqueFence>  nullable_previous_frame_finished_fence;
         std::array<Frame, FramesInFlight> flying_frames;
-        std::size_t                       flying_frame_index;
+        std::size_t                       current_frame_index;
     };
 
 } // namespace gfx::core::vulkan

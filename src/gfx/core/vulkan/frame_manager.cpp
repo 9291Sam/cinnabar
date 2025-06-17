@@ -108,14 +108,26 @@ namespace gfx::core::vulkan
 
     std::expected<void, Frame::ResizeNeeded> Frame::recordAndDisplay(
         util::TimestampStamper*                                                           maybeRenderThreadProfiler,
-        std::optional<vk::Fence>                                                          previousFrameFence,
         std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)> withCommandBuffer,
         const BufferStager&                                                               stager)
     {
+        // Wait for this frame's fence to ensure we don't overwrite resources still in use
+        vk::Result waitResult = this->device->getDevice().waitForFences(**this->frame_in_flight, vk::True, TimeoutNs);
+        if (waitResult != vk::Result::eSuccess)
+        {
+            panic("Failed to wait for fence: {}", vk::to_string(waitResult));
+        }
+
+        if (maybeRenderThreadProfiler != nullptr)
+        {
+            maybeRenderThreadProfiler->stamp("fence wait");
+        }
+
+        // Acquire next swapchain image
         const auto [acquireImageResult, maybeNextImageIdx] =
             this->device->getDevice().acquireNextImageKHR(this->swapchain, TimeoutNs, *this->image_available, nullptr);
 
-        switch (acquireImageResult) // NOLINT
+        switch (acquireImageResult)
         {
         case vk::Result::eSuccess:
             break;
@@ -127,78 +139,75 @@ namespace gfx::core::vulkan
             panic("acquireNextImage returned {}", vk::to_string(acquireImageResult));
         }
 
-        bool shouldResize = false;
+        if (maybeRenderThreadProfiler != nullptr)
+        {
+            maybeRenderThreadProfiler->stamp("acquire image");
+        }
+
+        // Reset command pool
+        this->device->getDevice().resetCommandPool(*this->command_pool);
+
+        // Allocate command buffer if needed or reset existing one
+        if (!this->command_buffer)
+        {
+            const vk::CommandBufferAllocateInfo commandBufferAllocateInfo {
+                .sType {vk::StructureType::eCommandBufferAllocateInfo},
+                .pNext {nullptr},
+                .commandPool {*this->command_pool},
+                .level {vk::CommandBufferLevel::ePrimary},
+                .commandBufferCount {1},
+            };
+
+            this->command_buffer =
+                std::move(this->device->getDevice().allocateCommandBuffersUnique(commandBufferAllocateInfo).at(0));
+        }
+
+        // Begin command buffer recording
+        const vk::CommandBufferBeginInfo commandBufferBeginInfo {
+            .sType {vk::StructureType::eCommandBufferBeginInfo},
+            .pNext {nullptr},
+            .flags {vk::CommandBufferUsageFlagBits::eOneTimeSubmit},
+            .pInheritanceInfo {nullptr},
+        };
+
+        this->command_buffer->begin(commandBufferBeginInfo);
+
+        // Handle query pool reset
+        vk::QueryPool activeQueryPool = *this->profiling_query_pool;
+        if (this->should_profiling_query_pool_reset)
+        {
+            this->command_buffer->resetQueryPool(*this->profiling_query_pool, 0, MaxQueriesPerFrame);
+            this->should_profiling_query_pool_reset = false;
+            // Don't use query pool on the same frame we reset it
+            activeQueryPool                         = vk::QueryPool {};
+        }
+
+        // Buffer flush callback
+        std::function<void()> callback = [&]
+        {
+            stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
+        };
+
+        // Record user commands
+        withCommandBuffer(*this->command_buffer, activeQueryPool, maybeNextImageIdx, std::move(callback));
+
+        // Reset fence for this frame, ensure its visible to stager.flushTransfesr()
+        this->device->getDevice().resetFences(**this->frame_in_flight);
+
+        this->command_buffer->end();
+
+        if (maybeRenderThreadProfiler != nullptr)
+        {
+            maybeRenderThreadProfiler->stamp("record command buffer");
+        }
+
+        // Submit command buffer to graphics queue
+        std::expected<void, Frame::ResizeNeeded> result;
 
         this->device->acquireQueue(
             Device::QueueType::Graphics,
             [&](vk::Queue queue)
             {
-                if (maybeRenderThreadProfiler != nullptr)
-                {
-                    maybeRenderThreadProfiler->stamp("acquire queue");
-                }
-
-                this->device->getDevice().resetFences(**this->frame_in_flight);
-                this->device->getDevice().resetCommandPool(*this->command_pool);
-
-                // HACK: on nvidia, there's a driver bug where calling
-                // vkResetCommandPool doesn't actually free the resources of its
-                // underlying command buffers, we can skirt around this by
-                // having an explicit call to free and reallocate the command
-                // buffer every frame.
-                this->command_buffer.reset();
-
-                const vk::CommandBufferAllocateInfo commandBufferAllocateInfo {
-                    .sType {vk::StructureType::eCommandBufferAllocateInfo},
-                    .pNext {nullptr},
-                    .commandPool {*this->command_pool},
-                    .level {vk::CommandBufferLevel::ePrimary},
-                    .commandBufferCount {1},
-                };
-
-                this->command_buffer =
-                    std::move(this->device->getDevice().allocateCommandBuffersUnique(commandBufferAllocateInfo).at(0));
-
-                const vk::CommandBufferBeginInfo commandBufferBeginInfo {
-                    .sType {vk::StructureType::eCommandBufferBeginInfo},
-                    .pNext {nullptr},
-                    .flags {vk::CommandBufferUsageFlagBits::eOneTimeSubmit},
-                    .pInheritanceInfo {nullptr},
-                };
-
-                this->command_buffer->reset();
-                this->command_buffer->begin(commandBufferBeginInfo);
-
-                // HACK: query pool shouldnt be nullable
-                bool shouldQueryPoolBeNull = false;
-
-                if (this->should_profiling_query_pool_reset)
-                {
-                    this->command_buffer->resetQueryPool(*this->profiling_query_pool, 0, MaxQueriesPerFrame);
-
-                    this->should_profiling_query_pool_reset = false;
-                    shouldQueryPoolBeNull                   = true;
-                }
-
-                // HACK: flush all buffers on this
-                std::function<void()> callback = [&]
-                {
-                    stager.flushTransfers(*this->command_buffer, this->frame_in_flight);
-                };
-
-                withCommandBuffer(
-                    *this->command_buffer,
-                    shouldQueryPoolBeNull ? vk::QueryPool {} : *this->profiling_query_pool,
-                    maybeNextImageIdx,
-                    std::move(callback));
-
-                this->command_buffer->end();
-
-                if (maybeRenderThreadProfiler != nullptr)
-                {
-                    maybeRenderThreadProfiler->stamp("record command buffer");
-                }
-
                 const vk::PipelineStageFlags dstStageWaitFlags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
                 const vk::SubmitInfo queueSubmitInfo {
@@ -220,16 +229,7 @@ namespace gfx::core::vulkan
                     maybeRenderThreadProfiler->stamp("queue submit");
                 }
 
-                if (previousFrameFence.has_value())
-                {
-                    std::ignore = this->device->getDevice().waitForFences(*previousFrameFence, vk::True, 0);
-                }
-
-                if (maybeRenderThreadProfiler != nullptr)
-                {
-                    maybeRenderThreadProfiler->stamp("previous frame wait");
-                }
-
+                // Present the image
                 const vk::PresentInfoKHR presentInfo {
                     .sType {vk::StructureType::ePresentInfoKHR},
                     .pNext {nullptr},
@@ -241,49 +241,46 @@ namespace gfx::core::vulkan
                     .pResults {nullptr},
                 };
 
-                const vk::Result presentResult = vk::Result {vk::detail::defaultDispatchLoaderDynamic.vkQueuePresentKHR(
-                    queue, reinterpret_cast<const VkPresentInfoKHR*>(&presentInfo))};
+                const vk::Result presentResult = queue.presentKHR(presentInfo);
 
                 if (maybeRenderThreadProfiler != nullptr)
                 {
                     maybeRenderThreadProfiler->stamp("present");
                 }
 
-                switch (presentResult) // NOLINT
+                switch (presentResult)
                 {
                 case vk::Result::eSuccess:
-                    break;
+                    result = {};
+                    return;
                 case vk::Result::eSuboptimalKHR:
                     [[fallthrough]];
                 case vk::Result::eErrorOutOfDateKHR:
-                    shouldResize = true;
-                    break;
+                    result = std::unexpected(Frame::ResizeNeeded {});
+                    return;
                 default:
-                    panic("acquireNextImage returned {}", vk::to_string(presentResult));
+                    panic("presentKHR returned {}", vk::to_string(presentResult));
                 }
             });
 
-        if (shouldResize)
+        if (!result)
         {
             this->should_profiling_query_pool_reset = true;
-            return std::unexpected(Frame::ResizeNeeded {});
+            return result;
         }
-        else
-        {
-            return {};
-        }
+
+        return {};
     }
 
-    std::shared_ptr<vk::UniqueFence> Frame::getFrameInFlightFence() const noexcept
+    vk::Fence Frame::getFrameInFlightFence() const noexcept
     {
-        return this->frame_in_flight;
+        return **this->frame_in_flight;
     }
 
     FrameManager::FrameManager(const Device& device_, vk::SwapchainKHR swapchain)
         : device {device_.getDevice()}
-        , nullable_previous_frame_finished_fence {nullptr}
         , flying_frames {Frame {device_, swapchain, 0}, Frame {device_, swapchain, 1}, Frame {device_, swapchain, 2}}
-        , flying_frame_index {0}
+        , current_frame_index {0}
     {
         log::debug("Created Frame Manager");
     }
@@ -292,36 +289,29 @@ namespace gfx::core::vulkan
 
     std::expected<void, Frame::ResizeNeeded> FrameManager::recordAndDisplay(
         util::TimestampStamper* maybeRenderThreadProfiler,
-        std::function<void(std::size_t, vk::QueryPool queryPool, vk::CommandBuffer, u32, std::function<void()>)>
-                            recordFunc,
-        const BufferStager& stager)
+        std::function<void(std::size_t, vk::QueryPool, vk::CommandBuffer, u32, std::function<void()>)> recordFunc,
+        const BufferStager&                                                                            stager)
     {
-        this->flying_frame_index += 1;
-        this->flying_frame_index %= FramesInFlight;
+        Frame& currentFrame = this->flying_frames[this->current_frame_index];
 
-        std::expected<void, Frame::ResizeNeeded> result =
-            this->flying_frames.at(this->flying_frame_index)
-                .recordAndDisplay(
-                    maybeRenderThreadProfiler,
-                    this->nullable_previous_frame_finished_fence != nullptr
-                        ? std::optional {**this->nullable_previous_frame_finished_fence}
-                        : std::nullopt,
-                    [&](vk::CommandBuffer     commandBuffer,
-                        vk::QueryPool         queryPool,
-                        u32                   swapchainIndex,
-                        std::function<void()> bufferFlushCallback)
-                    {
-                        recordFunc(
-                            this->flying_frame_index,
-                            queryPool,
-                            commandBuffer,
-                            swapchainIndex,
-                            std::move(bufferFlushCallback));
-                    },
-                    stager);
+        std::expected<void, Frame::ResizeNeeded> result = currentFrame.recordAndDisplay(
+            maybeRenderThreadProfiler,
+            [&](vk::CommandBuffer     commandBuffer,
+                vk::QueryPool         queryPool,
+                u32                   swapchainIndex,
+                std::function<void()> bufferFlushCallback)
+            {
+                recordFunc(
+                    this->current_frame_index,
+                    queryPool,
+                    commandBuffer,
+                    swapchainIndex,
+                    std::move(bufferFlushCallback));
+            },
+            stager);
 
-        this->nullable_previous_frame_finished_fence =
-            this->flying_frames.at(this->flying_frame_index).getFrameInFlightFence();
+        // Advance to next frame
+        this->current_frame_index = (this->current_frame_index + 1) % FramesInFlight;
 
         return result;
     }
