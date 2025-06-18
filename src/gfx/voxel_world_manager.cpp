@@ -158,6 +158,7 @@ namespace gfx
 
     void VoxelWorldManager::onFrameUpdate(gfx::Camera)
     {
+        util::MultiTimer t {};
         this->voxel_entity_allocator.iterateThroughAllocatedElements(
             [this](const u16 entityId)
             {
@@ -172,16 +173,49 @@ namespace gfx
                 }
             });
 
-        // 25 - 26 seninor
-        // 24 - 25 juinor
-        // 23 - 24 sophomore
-        // 22 - 23 freshman
+        std::vector<AlignedChunkCoordinate> chunksToCullFromCache {};
+
+        for (const auto& data : this->generated_chunk_data_cache)
+        {
+            if (data.second.frames_alive > 32)
+            {
+                chunksToCullFromCache.push_back(data.first);
+            }
+        }
+
+        for (AlignedChunkCoordinate aC : chunksToCullFromCache)
+        {
+            this->generated_chunk_data_cache.erase(aC);
+        }
+        t.stamp("cull first");
 
         for (auto& [aC, entities] : this->chunks_that_need_regeneration_to_ids_in_each_chunk)
         {
-            const WorldPosition                             chunkBase = WorldPosition::assemble(aC, {});
-            const VoxelChunk&                               chunk     = this->chunks.at(aC);
-            std::pair<BrickMap, std::vector<CombinedBrick>> data      = this->world_generator.generateChunkPreDense(aC);
+            util::MultiTimer    t {};
+            const WorldPosition chunkBase = WorldPosition::assemble(aC, {});
+            const VoxelChunk&   chunk     = this->chunks.at(aC);
+
+            decltype(this->generated_chunk_data_cache)::iterator maybeCacheEntry =
+                this->generated_chunk_data_cache.find(aC);
+
+            if (maybeCacheEntry == this->generated_chunk_data_cache.cend())
+            {
+                maybeCacheEntry =
+                    this->generated_chunk_data_cache
+                        .insert(
+                            {aC,
+                             ChunkCacheEntry {
+                                 .data {this->world_generator.generateChunkPreDense(aC)}, .frames_alive {0}}})
+                        .first;
+            }
+            else
+            {
+                maybeCacheEntry->second.frames_alive += 1;
+            }
+
+            std::pair<BrickMap, std::vector<CombinedBrick>> data = maybeCacheEntry->second.data;
+
+            t.stamp("generate chunk pre dense");
 
             // Not a bug! remember if a handle dies and is replaced we need to clear it from the old chunk and insert it
             // into the new one
@@ -227,11 +261,23 @@ namespace gfx
                 }
             }
 
+            t.stamp("entities pp and culling");
+
             auto [brickMap, bricks] = generators::voxel::appendVoxelsToDenseChunk(
                 data.first, std::move(data.second), collectedVoxelUpdateList);
 
+            t.stamp("append dense");
+
             this->voxel_renderer.setVoxelChunkData(chunk, brickMap, std::move(bricks));
+
+            t.stamp("upload dense");
+
+            std::ignore = t.finish();
         }
+
+        t.stamp("generate chunk");
+
+        std::ignore = t.finish();
 
         this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
     }

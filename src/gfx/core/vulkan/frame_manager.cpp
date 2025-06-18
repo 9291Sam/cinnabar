@@ -16,7 +16,6 @@ namespace gfx::core::vulkan
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
         : image_available {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
-        , render_finished {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
         , frame_in_flight {std::make_shared<vk::UniqueFence>(device_.getDevice().createFenceUnique(
               vk::FenceCreateInfo {
                   .sType {vk::StructureType::eFenceCreateInfo},
@@ -63,14 +62,14 @@ namespace gfx::core::vulkan
                     .pObjectName {imageAvailableName.c_str()},
                 });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(
-                vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eSemaphore},
-                    .objectHandle {std::bit_cast<u64>(*this->render_finished)},
-                    .pObjectName {renderFinishedName.c_str()},
-                });
+            // device->getDevice().setDebugUtilsObjectNameEXT(
+            //     vk::DebugUtilsObjectNameInfoEXT {
+            //         .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+            //         .pNext {nullptr},
+            //         .objectType {vk::ObjectType::eSemaphore},
+            //         .objectHandle {std::bit_cast<u64>(*this->render_finished)},
+            //         .pObjectName {renderFinishedName.c_str()},
+            //     });
 
             device->getDevice().setDebugUtilsObjectNameEXT(
                 vk::DebugUtilsObjectNameInfoEXT {
@@ -109,7 +108,8 @@ namespace gfx::core::vulkan
     std::expected<void, Frame::ResizeNeeded> Frame::recordAndDisplay(
         util::TimestampStamper*                                                           maybeRenderThreadProfiler,
         std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)> withCommandBuffer,
-        const BufferStager&                                                               stager)
+        const BufferStager&                                                               stager,
+        const std::vector<vk::UniqueSemaphore>&                                           renderFinishedSemaphores)
     {
         // Wait for this frame's fence to ensure we don't overwrite resources still in use
         vk::Result waitResult = this->device->getDevice().waitForFences(**this->frame_in_flight, vk::True, TimeoutNs);
@@ -221,7 +221,7 @@ namespace gfx::core::vulkan
                     .commandBufferCount {1},
                     .pCommandBuffers {&*this->command_buffer},
                     .signalSemaphoreCount {1},
-                    .pSignalSemaphores {&*this->render_finished},
+                    .pSignalSemaphores {&*renderFinishedSemaphores[maybeNextImageIdx]},
                 };
 
                 queue.submit(queueSubmitInfo, **this->frame_in_flight);
@@ -236,7 +236,7 @@ namespace gfx::core::vulkan
                     .sType {vk::StructureType::ePresentInfoKHR},
                     .pNext {nullptr},
                     .waitSemaphoreCount {1},
-                    .pWaitSemaphores {&*this->render_finished},
+                    .pWaitSemaphores {&*renderFinishedSemaphores[maybeNextImageIdx]},
                     .swapchainCount {1},
                     .pSwapchains {&this->swapchain},
                     .pImageIndices {&maybeNextImageIdx},
@@ -284,6 +284,10 @@ namespace gfx::core::vulkan
         , flying_frames {Frame {device_, swapchain, 0}, Frame {device_, swapchain, 1}, Frame {device_, swapchain, 2}}
         , current_frame_index {0}
     {
+        for (int i = 0; i < 8; ++i)
+        {
+            this->present_ready_semaphores.push_back(device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo));
+        }
         log::debug("Created Frame Manager");
     }
 
@@ -310,7 +314,8 @@ namespace gfx::core::vulkan
                     swapchainIndex,
                     std::move(bufferFlushCallback));
             },
-            stager);
+            stager,
+            this->present_ready_semaphores);
 
         // Advance to next frame
         this->current_frame_index = (this->current_frame_index + 1) % FramesInFlight;

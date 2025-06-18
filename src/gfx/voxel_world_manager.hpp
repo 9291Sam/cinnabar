@@ -72,10 +72,17 @@ namespace gfx
             WorldPosition                                               position;
         };
 
+        struct ChunkCacheEntry
+        {
+            std::pair<BrickMap, std::vector<CombinedBrick>> data;
+            u32                                             frames_alive;
+        };
+
         util::OpaqueHandleAllocator<VoxelEntity> voxel_entity_allocator;
         std::vector<PerEntityData>               voxel_entity_storage;
         std::unordered_map<AlignedChunkCoordinate, boost::container::flat_set<u16>>
-            chunks_that_need_regeneration_to_ids_in_each_chunk;
+                                                                    chunks_that_need_regeneration_to_ids_in_each_chunk;
+        std::unordered_map<AlignedChunkCoordinate, ChunkCacheEntry> generated_chunk_data_cache;
     };
 
     /*

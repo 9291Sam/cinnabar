@@ -38,13 +38,13 @@ namespace gfx::core::vulkan
             util::TimestampStamper* maybeRenderThreadProfiler,
             // u32 is the swapchain image's index
             std::function<void(vk::CommandBuffer, vk::QueryPool, u32, std::function<void()>)>,
-            const BufferStager&);
+            const BufferStager&,
+            const std::vector<vk::UniqueSemaphore>& renderFinishedSemaphore);
 
         [[nodiscard]] vk::Fence getFrameInFlightFence() const noexcept;
 
     private:
         vk::UniqueSemaphore              image_available;
-        vk::UniqueSemaphore              render_finished;
         std::shared_ptr<vk::UniqueFence> frame_in_flight;
 
         vk::UniqueCommandPool   command_pool;
@@ -78,6 +78,7 @@ namespace gfx::core::vulkan
 
     private:
         vk::Device                        device;
+        std::vector<vk::UniqueSemaphore>  present_ready_semaphores;
         std::array<Frame, FramesInFlight> flying_frames;
         std::size_t                       current_frame_index;
     };
