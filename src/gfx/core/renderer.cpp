@@ -160,7 +160,7 @@ namespace gfx::core
             this->desired_present_mode.load(std::memory_order_acquire));
 
         std::unique_ptr<vulkan::FrameManager> frameManager =
-            std::make_unique<vulkan::FrameManager>(*this->device, **swapchain);
+            std::make_unique<vulkan::FrameManager>(*this->device, *swapchain);
 
         return std::make_unique<RenderingCriticalSection>(RenderingCriticalSection {
             .frame_manager {std::move(frameManager)},

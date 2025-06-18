@@ -44,18 +44,18 @@ struct TemporaryGameState : game::Game::GameState
         , imgui_renderer {this->game->getRenderer()}
         , voxel_world_manager {this->game->getRenderer(), 12812389021980}
     {
-        this->lights.push_back(this->voxel_world_manager.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {33.3, 23.2, 91.23, 8}, .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
-        this->lights.push_back(this->voxel_world_manager.createVoxelLightUnique(
-            gfx::generators::voxel::GpuRaytracedLight {
+        this->lights.push_back(
+            this->voxel_world_manager.createVoxelLightUnique(gfx::generators::voxel::GpuRaytracedLight {
                 .position_and_half_intensity_distance {133.3, 23.2, 91.23, 4},
                 .color_and_power {1.0, 1.0, 1.0, 42.0}}));
 
         // const glm::u8vec3 size = glm::u8vec3 {4, 4, 4};
 
-        for (int i = 0; i < 32; ++i)
+        for (int i = 0; i < 1024; ++i)
         {
             this->sphere_entities.push_back(
                 this->voxel_world_manager.createVoxelEntityUnique({}, glm::u8vec3 {16, 16, 16}));
@@ -89,17 +89,17 @@ struct TemporaryGameState : game::Game::GameState
         for (const gfx::VoxelWorldManager::UniqueVoxelEntity& e : this->sphere_entities)
         {
             // Sphere properties
-            const float time = this->game->getRenderer()->getTimeAlive() + static_cast<float>(iter);
-            iter += (12.0f * glm::pi<f32>()) / this->sphere_entities.size();
+            const float time = this->game->getRenderer()->getTimeAlive() + iter;
+            iter += (12.0f * glm::pi<f32>()) / static_cast<f32>(this->sphere_entities.size());
             const float sphereRadius   = 7.0f;
             const float sphereRadiusSq = sphereRadius * sphereRadius;
-            const float orbitRadius    = 64.0f;
+            const float orbitRadius    = 164.0f;
 
             // Calculate the orbiting center of the sphere in world space
             const glm::vec3 worldSphereCenter = {
-                32.5f + orbitRadius * std::cos(time * 0.5f),
-                32.5f + 24.0f * std::sin(time * 0.33f),
-                96.5f + orbitRadius * std::sin(time * 0.5f)};
+                32.5f + (orbitRadius * std::cos(time * 0.5f - iter)),
+                32.5f + (24.0f * std::sin(time * 3.417342f + iter)),
+                96.5f + (orbitRadius * std::sin(time * 0.5f - 2 * iter))};
 
             // Define the voxel type for the sphere
             const auto sphereVoxelType = gfx::generators::voxel::Voxel::Jade;

@@ -355,7 +355,7 @@ struct GpuColorHashMapNode
 
 };
 
-const static u32 faceHashTableCapacity = 1u << 22u;
+const static u32 faceHashTableCapacity = 1u << 26u;
 const static u32 faceHashTableNullHash = ~0u;
 
 #ifdef __cplusplus

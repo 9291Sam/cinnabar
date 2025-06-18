@@ -40,12 +40,12 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
     const u32 rdSeed = gpu_hashU32(reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive));
     int2 thisPixel           = int2(threadId.xy);
 
-    // if (pushConstant.bool_is_quarter_res != 0)
-    // {
-    //     thisPixel *= 2;
-    //     thisPixel.x += (((rdSeed & 1u) == 0u) ? 1u : 0u);
-    //     thisPixel.y += (((rdSeed & 2u) == 0u) ? 1u : 0u);
-    // }
+    if (pushConstant.bool_is_quarter_res != 0)
+    {
+        thisPixel *= 2;
+        thisPixel.x += (((rdSeed & 1u) == 0u) ? 1u : 0u);
+        thisPixel.y += (((rdSeed & 2u) == 0u) ? 1u : 0u);
+    }
 
     if (all(thisPixel < global_gpu_data[UBO_GLOBAL_DATA].framebuffer_size))
     {

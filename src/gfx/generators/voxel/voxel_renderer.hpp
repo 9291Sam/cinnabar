@@ -31,7 +31,7 @@ namespace gfx::generators::voxel
     class VoxelRenderer
     {
     public:
-        using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u32>;
+        using VoxelChunk = util::OpaqueHandle<"Voxel Chunk", u16>;
         using VoxelLight = util::OpaqueHandle<"Voxel Light", u16>;
         static_assert(VoxelLight::MaxValidElement > MaxVoxelLights);
 

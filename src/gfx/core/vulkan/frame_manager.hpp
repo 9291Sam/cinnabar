@@ -12,6 +12,7 @@ namespace gfx::core::vulkan
 {
     class BufferStager;
     class Device;
+    class Swapchain;
 
     static constexpr u32         FramesInFlight = 3;
     static constexpr std::size_t TimeoutNs =
@@ -60,7 +61,7 @@ namespace gfx::core::vulkan
     class FrameManager
     {
     public:
-        FrameManager(const Device&, vk::SwapchainKHR);
+        FrameManager(const Device&, const Swapchain&);
         ~FrameManager() noexcept;
 
         FrameManager(const FrameManager&)             = delete;

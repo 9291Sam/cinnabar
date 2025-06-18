@@ -158,6 +158,7 @@ namespace gfx
 
     void VoxelWorldManager::onFrameUpdate(gfx::Camera)
     {
+        usize            totalVoxelsUpdatedThisFrame = 0;
         util::MultiTimer t {};
         this->voxel_entity_allocator.iterateThroughAllocatedElements(
             [this](const u16 entityId)
@@ -217,23 +218,28 @@ namespace gfx
 
             t.stamp("generate chunk pre dense");
 
+            usize voxelEntitiesTotalVoxelsNeededForThisChunk = 0;
             // Not a bug! remember if a handle dies and is replaced we need to clear it from the old chunk and insert it
             // into the new one
             boost::range::remove_erase_if(
                 entities,
-                [this](const u16 entityId)
+                [&, this](const u16 entityId)
                 {
-                    return !this->voxel_entity_allocator.isHandleAlive(entityId);
+                    if (this->voxel_entity_allocator.isHandleAlive(entityId))
+                    {
+                        voxelEntitiesTotalVoxelsNeededForThisChunk += this->voxel_entity_storage[entityId].model.size();
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
                 });
 
-            usize voxelEntitiesTotalVoxelsNeeded = 0;
-            for (u16 entityId : entities)
-            {
-                voxelEntitiesTotalVoxelsNeeded += this->voxel_entity_storage[entityId].model.size();
-            }
+            totalVoxelsUpdatedThisFrame += voxelEntitiesTotalVoxelsNeededForThisChunk;
 
             std::vector<std::pair<ChunkLocalPosition, Voxel>> collectedVoxelUpdateList {};
-            collectedVoxelUpdateList.reserve(voxelEntitiesTotalVoxelsNeeded);
+            collectedVoxelUpdateList.reserve(voxelEntitiesTotalVoxelsNeededForThisChunk);
 
             for (u16 entityId : entities)
             {
@@ -280,6 +286,8 @@ namespace gfx
         std::ignore = t.finish();
 
         this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
+
+        // log::trace("Uploaded {} voxels this frame", totalVoxelsUpdatedThisFrame);
     }
 
     gfx::generators::voxel::VoxelRenderer* VoxelWorldManager::getRenderer()
