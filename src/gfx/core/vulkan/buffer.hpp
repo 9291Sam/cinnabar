@@ -124,13 +124,14 @@ namespace gfx::core::vulkan
 
             if constexpr (CINNABAR_DEBUG_BUILD)
             {
-                this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eBuffer},
-                    .objectHandle {std::bit_cast<u64>(this->buffer)},
-                    .pObjectName {this->name.c_str()},
-                });
+                this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eBuffer},
+                        .objectHandle {std::bit_cast<u64>(this->buffer)},
+                        .pObjectName {this->name.c_str()},
+                    });
             }
 
             bufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
@@ -533,9 +534,10 @@ namespace gfx::core::vulkan
         {
             const std::size_t byteOffset = util::getOffsetOfPointerToMember(Ptr);
 
-            this->flushes.push_back(FlushData {
-                .offset_bytes {(offsetElements * sizeof(T)) + byteOffset},
-                .size_bytes {sizeof(util::MemberTypeT<decltype(Ptr)>)}});
+            this->flushes.push_back(
+                FlushData {
+                    .offset_bytes {(offsetElements * sizeof(T)) + byteOffset},
+                    .size_bytes {sizeof(util::MemberTypeT<decltype(Ptr)>)}});
 
             return this->cpu_buffer[offsetElements].*Ptr;
         }
@@ -547,9 +549,10 @@ namespace gfx::core::vulkan
             std::size_t elementInternalModifiedOffsetStart,
             std::size_t elementInternalModifiedSize)
         {
-            this->flushes.push_back(FlushData {
-                .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
-                .size_bytes {elementInternalModifiedSize}});
+            this->flushes.push_back(
+                FlushData {
+                    .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
+                    .size_bytes {elementInternalModifiedSize}});
 
             return this->cpu_buffer[storedArrayElement];
         }
@@ -561,9 +564,10 @@ namespace gfx::core::vulkan
             std::size_t elementInternalModifiedOffsetStart,
             std::size_t elementInternalModifiedOffsetEnd)
         {
-            this->flushes.push_back(FlushData {
-                .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
-                .size_bytes {elementInternalModifiedOffsetEnd - elementInternalModifiedOffsetStart}});
+            this->flushes.push_back(
+                FlushData {
+                    .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
+                    .size_bytes {elementInternalModifiedOffsetEnd - elementInternalModifiedOffsetStart}});
 
             return this->cpu_buffer[storedArrayElement];
         }
@@ -625,6 +629,7 @@ namespace gfx::core::vulkan
         void enqueueByteTransfer(vk::Buffer, u32 offset, std::span<const std::byte>, std::source_location) const;
         void enqueueByteTransfer(vk::Buffer, u32 offset, std::vector<std::byte>, std::source_location) const;
 
+        void cleanupCompletedTransfers() const;
         void flushTransfers(vk::CommandBuffer, std::shared_ptr<vk::UniqueFence> flushFinishFence) const;
 
         std::pair<std::size_t, std::size_t> getUsage() const;

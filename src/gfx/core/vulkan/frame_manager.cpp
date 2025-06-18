@@ -118,6 +118,11 @@ namespace gfx::core::vulkan
             panic("Failed to wait for fence: {}", vk::to_string(waitResult));
         }
 
+        stager.cleanupCompletedTransfers();
+
+        // Reset fence for this frame, ensure its visible to stager.flushTransfesr()
+        this->device->getDevice().resetFences(**this->frame_in_flight);
+
         if (maybeRenderThreadProfiler != nullptr)
         {
             maybeRenderThreadProfiler->stamp("fence wait");
@@ -190,9 +195,6 @@ namespace gfx::core::vulkan
 
         // Record user commands
         withCommandBuffer(*this->command_buffer, activeQueryPool, maybeNextImageIdx, std::move(callback));
-
-        // Reset fence for this frame, ensure its visible to stager.flushTransfesr()
-        this->device->getDevice().resetFences(**this->frame_in_flight);
 
         this->command_buffer->end();
 
