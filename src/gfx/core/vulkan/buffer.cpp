@@ -102,12 +102,13 @@ namespace gfx::core::vulkan
             this->transfers.lock(
                 [&](std::vector<BufferTransfer>& t)
                 {
-                    t.push_back(BufferTransfer {
-                        .staging_allocation {std::move(*maybeAllocation)},
-                        .output_buffer {buffer},
-                        .output_offset {offset},
-                        .size {static_cast<u32>(dataToWrite.size())},
-                    });
+                    t.push_back(
+                        BufferTransfer {
+                            .staging_allocation {std::move(*maybeAllocation)},
+                            .output_buffer {buffer},
+                            .output_offset {offset},
+                            .size {static_cast<u32>(dataToWrite.size())},
+                        });
                 });
         }
         else
@@ -127,7 +128,7 @@ namespace gfx::core::vulkan
     {
         auto [tt, bb] = this->getUsage();
 
-        log::trace("{}/{}", tt, bb);
+        // log::trace("{}/{}", tt, bb);
         // Free all allocations that have already completed.
         this->transfers_to_free.lock(
             [&](std::unordered_map<std::shared_ptr<vk::UniqueFence>, std::vector<BufferTransfer>>& toFreeMap)
@@ -160,7 +161,7 @@ namespace gfx::core::vulkan
 
         auto [t, b] = this->getUsage();
 
-        log::trace("{}/{}", t, b);
+        // log::trace("{}/{}", t, b);
     }
 
     void BufferStager::flushTransfers(
@@ -181,11 +182,12 @@ namespace gfx::core::vulkan
             }
             const u32 offset = util::RangeAllocator::getOffsetofAllocation(transfer.staging_allocation);
 
-            copies[transfer.output_buffer].push_back(vk::BufferCopy {
-                .srcOffset {offset},
-                .dstOffset {transfer.output_offset},
-                .size {transfer.size},
-            });
+            copies[transfer.output_buffer].push_back(
+                vk::BufferCopy {
+                    .srcOffset {offset},
+                    .dstOffset {transfer.output_offset},
+                    .size {transfer.size},
+                });
 
             stagingFlushes.push_back(FlushData {.offset_bytes {offset}, .size_bytes {transfer.size}});
         }

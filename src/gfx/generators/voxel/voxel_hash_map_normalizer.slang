@@ -20,11 +20,13 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     const uint samplesStatic = 8;
     const uint samplesDynamic = 64;
 
-    f32 fadeFactor = (node.isReflective() && bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame)) ? fadeFactorReflective : fadeFactorDiffuse;
-    const uint samplesForNormalization =  bool(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame) ? samplesDynamic : samplesStatic;
+    const bool moved_this_frame = reinterpret<bool>(global_gpu_data[UBO_GLOBAL_DATA].bool_moved_this_frame);
+
+    const uint samplesForNormalization = moved_this_frame ? samplesDynamic : samplesStatic;
 
     if (node.key != ~0u && node.getSamples() > samplesForNormalization)
     {
+        const f32 fadeFactor = (node.isReflective() && moved_this_frame) ? fadeFactorReflective : fadeFactorDiffuse;
         float3 colors1024 = float3(node.r_1024, node.g_1024, node.b_1024);
         f32 samples = float(node.getSamples());
     

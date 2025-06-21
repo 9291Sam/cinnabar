@@ -178,7 +178,7 @@ namespace gfx
 
         for (const auto& data : this->generated_chunk_data_cache)
         {
-            if (data.second.frames_alive > 32)
+            if (data.second.frames_alive > 120)
             {
                 chunksToCullFromCache.push_back(data.first);
             }
@@ -190,6 +190,7 @@ namespace gfx
         }
         t.stamp("cull first");
 
+        usize chunksThatGotRegenerated = 0;
         for (auto& [aC, entities] : this->chunks_that_need_regeneration_to_ids_in_each_chunk)
         {
             util::MultiTimer    t {};
@@ -208,6 +209,8 @@ namespace gfx
                              ChunkCacheEntry {
                                  .data {this->world_generator.generateChunkPreDense(aC)}, .frames_alive {0}}})
                         .first;
+
+                chunksThatGotRegenerated += 1;
             }
             else
             {
@@ -283,11 +286,15 @@ namespace gfx
 
         t.stamp("generate chunk");
 
-        std::ignore = t.finish();
+        // std::ignore = t.finish();
+
+        log::trace(
+            "Uploaded {} voxels in {} chunks this frame. {} chunks got regenerated",
+            totalVoxelsUpdatedThisFrame,
+            this->chunks_that_need_regeneration_to_ids_in_each_chunk.size(),
+            chunksThatGotRegenerated);
 
         this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
-
-        // log::trace("Uploaded {} voxels this frame", totalVoxelsUpdatedThisFrame);
     }
 
     gfx::generators::voxel::VoxelRenderer* VoxelWorldManager::getRenderer()
