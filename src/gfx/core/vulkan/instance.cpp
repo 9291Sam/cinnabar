@@ -2,6 +2,7 @@
 #include "gfx/core/window.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
+#include <cpptrace/basic.hpp>
 #include <cstring>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_handles.hpp>
@@ -133,7 +134,8 @@ namespace gfx::core::vulkan
                 log::warn("{}", message);
                 break;
             case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-                log::error("{}", message);
+
+                log::error("{}\n{}", message, cpptrace::generate_trace().to_string(true));
                 break;
             default:
                 break;

@@ -124,13 +124,16 @@ namespace gfx::core::vulkan
 
             if constexpr (CINNABAR_DEBUG_BUILD)
             {
+                const std::string bufferedName = std::format(
+                    "{} Buffer ({})", this->name, util::bytesAsSiNamed(static_cast<long double>(totalBufferSizeBytes)));
+
                 this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
                     vk::DebugUtilsObjectNameInfoEXT {
                         .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
                         .pNext {nullptr},
                         .objectType {vk::ObjectType::eBuffer},
                         .objectHandle {std::bit_cast<u64>(this->buffer)},
-                        .pObjectName {this->name.c_str()},
+                        .pObjectName {bufferedName.c_str()},
                     });
             }
 

@@ -81,13 +81,14 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eImage},
-                .objectHandle {std::bit_cast<u64>(this->image)},
-                .pObjectName {name.c_str()},
-            });
+            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eImage},
+                    .objectHandle {std::bit_cast<u64>(this->image)},
+                    .pObjectName {name.c_str()},
+                });
         }
 
         vk::ImageViewCreateInfo imageViewCreateInfo {
@@ -111,15 +112,16 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            std::string viewName = std::format("{} View", name);
+            std::string viewName = std::format("{} Image View", name);
 
-            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eImageView},
-                .objectHandle {std::bit_cast<u64>(*this->view)},
-                .pObjectName {viewName.c_str()},
-            });
+            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eImageView},
+                    .objectHandle {std::bit_cast<u64>(*this->view)},
+                    .pObjectName {viewName.c_str()},
+                });
         }
 
         if (this->usage & vk::ImageUsageFlagBits::eSampled)

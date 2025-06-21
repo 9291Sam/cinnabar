@@ -76,6 +76,18 @@ namespace gfx::generators::imgui
         this->imgui_descriptor_pool =
             this->renderer->getDevice()->getDevice().createDescriptorPoolUnique(descriptorPoolCreateInfo);
 
+        if constexpr (CINNABAR_DEBUG_BUILD)
+        {
+            this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eDescriptorPool},
+                    .objectHandle {std::bit_cast<u64>(*this->imgui_descriptor_pool)},
+                    .pObjectName {"Imgui Descriptor Pool"},
+                });
+        }
+
         ImGui::CreateContext();
         ImPlot::CreateContext();
 

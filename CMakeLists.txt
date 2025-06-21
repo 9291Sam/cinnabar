@@ -50,6 +50,7 @@ add_executable(cinnabar
     src/util/timer.cpp
     src/util/util.cpp
 
+    src/temporary_game_state.cpp
     src/main.cpp
 )
 
@@ -82,6 +83,8 @@ set(SLANG_ENABLE_EXAMPLES OFF)
 set(SLANG_ENABLE_REPLAYER OFF)
 set(SLANG_EXCLUDE_DAWN ON)
 set(SLANG_EXCLUDE_TINT ON)
+
+
 # set(SLANG_ENABLE_ASAN ON)
 
 CPMAddPackage("gh:fmtlib/fmt#11.1.3")
@@ -98,6 +101,7 @@ CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
 CPMAddPackage("gh:nvmd/libkdtree#0.7.4")
+CPMAddPackage("gh:wolfpld/tracy#v0.12.1")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS)
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
@@ -167,6 +171,7 @@ endif()
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_compile_definitions(cinnabar PRIVATE VULKAN_HPP_NO_CONSTRUCTORS=1)
 target_compile_definitions(cinnabar PRIVATE VK_NO_PROTOTYPES=1)
+target_compile_definitions(cinnabar PRIVATE TRACY_ENABLE=1)
 target_link_libraries(cinnabar PUBLIC
     fmt::fmt
     spdlog::spdlog
@@ -183,6 +188,7 @@ target_link_libraries(cinnabar PUBLIC
     Boost::pool
     Boost::geometry
     imgui_build_target
+    TracyClient
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )

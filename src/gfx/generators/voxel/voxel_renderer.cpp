@@ -19,6 +19,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <span>
+#include <tracy/Tracy.hpp>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -138,7 +139,7 @@ namespace gfx::generators::voxel
                   .color_format {vk::Format::eR32G32B32A32Sfloat},
                   .depth_format {gfx::core::Renderer::DepthFormat},
                   .blend_enable {vk::False},
-                  .name {"Voxel prepass pipeline"},
+                  .name {"Voxel Prepass pipeline"},
               })}
         , face_normalizer_pipeline {this->renderer->getPipelineManager()->createPipeline(
               core::vulkan::ComputePipelineDescriptor {
@@ -291,6 +292,8 @@ namespace gfx::generators::voxel
 
     void VoxelRenderer::preFrameUpdate()
     {
+        ZoneScoped;
+
         const bool haveAnyLightsChanged = this->light_influence_storage.pack();
 
         if (haveAnyLightsChanged)

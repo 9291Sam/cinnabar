@@ -17,28 +17,32 @@ namespace gfx::core::vulkan
 
     Frame::Frame(const Device& device_, vk::SwapchainKHR swapchain_, std::size_t number)
         : image_available {device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo)}
-        , frame_in_flight {std::make_shared<vk::UniqueFence>(device_.getDevice().createFenceUnique(vk::FenceCreateInfo {
-              .sType {vk::StructureType::eFenceCreateInfo},
-              .pNext {nullptr},
-              .flags {vk::FenceCreateFlagBits::eSignaled},
-          }))}
-        , command_pool {device_.getDevice().createCommandPoolUnique(vk::CommandPoolCreateInfo {
-              .sType {vk::StructureType::eCommandPoolCreateInfo},
-              .pNext {nullptr},
-              .flags {vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
-              .queueFamilyIndex {device_ // NOLINT
-                                     .getFamilyOfQueueType(Device::QueueType::Graphics)
-                                     .value()},
-          })}
+        , frame_in_flight {std::make_shared<vk::UniqueFence>(device_.getDevice().createFenceUnique(
+              vk::FenceCreateInfo {
+                  .sType {vk::StructureType::eFenceCreateInfo},
+                  .pNext {nullptr},
+                  .flags {vk::FenceCreateFlagBits::eSignaled},
+              }))}
+        , command_pool {device_.getDevice().createCommandPoolUnique(
+              vk::CommandPoolCreateInfo {
+                  .sType {vk::StructureType::eCommandPoolCreateInfo},
+                  .pNext {nullptr},
+                  .flags {
+                      vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer},
+                  .queueFamilyIndex {device_ // NOLINT
+                                         .getFamilyOfQueueType(Device::QueueType::Graphics)
+                                         .value()},
+              })}
         , should_profiling_query_pool_reset {true}
-        , profiling_query_pool {device_.getDevice().createQueryPoolUnique(vk::QueryPoolCreateInfo {
-              .sType {vk::StructureType::eQueryPoolCreateInfo},
-              .pNext {nullptr},
-              .flags {},
-              .queryType {vk::QueryType::eTimestamp},
-              .queryCount {MaxQueriesPerFrame},
-              .pipelineStatistics {},
-          })}
+        , profiling_query_pool {device_.getDevice().createQueryPoolUnique(
+              vk::QueryPoolCreateInfo {
+                  .sType {vk::StructureType::eQueryPoolCreateInfo},
+                  .pNext {nullptr},
+                  .flags {},
+                  .queryType {vk::QueryType::eTimestamp},
+                  .queryCount {MaxQueriesPerFrame},
+                  .pipelineStatistics {},
+              })}
         , device {&device_}
         , swapchain {swapchain_}
     {
@@ -50,46 +54,41 @@ namespace gfx::core::vulkan
             const std::string renderFinishedName = std::format("Frame #{} Render Finished Semaphore", number);
             const std::string frameInFlightName  = std::format("Frame #{} Frame In Flight Fence", number);
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eSemaphore},
-                .objectHandle {std::bit_cast<u64>(*this->image_available)},
-                .pObjectName {imageAvailableName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eSemaphore},
+                    .objectHandle {std::bit_cast<u64>(*this->image_available)},
+                    .pObjectName {imageAvailableName.c_str()},
+                });
 
-            // device->getDevice().setDebugUtilsObjectNameEXT(
-            //     vk::DebugUtilsObjectNameInfoEXT {
-            //         .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-            //         .pNext {nullptr},
-            //         .objectType {vk::ObjectType::eSemaphore},
-            //         .objectHandle {std::bit_cast<u64>(*this->render_finished)},
-            //         .pObjectName {renderFinishedName.c_str()},
-            //     });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eFence},
+                    .objectHandle {std::bit_cast<u64>(**this->frame_in_flight)},
+                    .pObjectName {frameInFlightName.c_str()},
+                });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eFence},
-                .objectHandle {std::bit_cast<u64>(**this->frame_in_flight)},
-                .pObjectName {frameInFlightName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eCommandPool},
+                    .objectHandle {std::bit_cast<u64>(*this->command_pool)},
+                    .pObjectName {commandPoolName.c_str()},
+                });
 
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eCommandPool},
-                .objectHandle {std::bit_cast<u64>(*this->command_pool)},
-                .pObjectName {commandPoolName.c_str()},
-            });
-
-            device->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eQueryPool},
-                .objectHandle {std::bit_cast<u64>(*this->profiling_query_pool)},
-                .pObjectName {queryPoolName.c_str()},
-            });
+            device->getDevice().setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eQueryPool},
+                    .objectHandle {std::bit_cast<u64>(*this->profiling_query_pool)},
+                    .pObjectName {queryPoolName.c_str()},
+                });
         }
     }
 
@@ -104,6 +103,11 @@ namespace gfx::core::vulkan
         const BufferStager&                                                               stager,
         const std::vector<vk::UniqueSemaphore>&                                           renderFinishedSemaphores)
     {
+        if (maybeRenderThreadProfiler != nullptr)
+        {
+            maybeRenderThreadProfiler->stamp("pre-fence wait");
+        }
+
         // Wait for this frame's fence to ensure we don't overwrite resources still in use
         vk::Result waitResult = this->device->getDevice().waitForFences(**this->frame_in_flight, vk::True, TimeoutNs);
         if (waitResult != vk::Result::eSuccess)
@@ -280,6 +284,20 @@ namespace gfx::core::vulkan
         for (usize i = 0; i < swapchain.getImages().size(); ++i)
         {
             this->present_ready_semaphores.push_back(device_.getDevice().createSemaphoreUnique(SemaphoreCreateInfo));
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                const std::string objectName = std::format("Present Ready Semaphore #{}", i);
+
+                this->device.setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eSemaphore},
+                        .objectHandle {std::bit_cast<u64>(*this->present_ready_semaphores.back())},
+                        .pObjectName {objectName.c_str()},
+                    });
+            }
         }
         log::debug("Created Frame Manager");
     }

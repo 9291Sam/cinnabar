@@ -2,6 +2,7 @@
 #include "gfx/core/renderer.hpp"
 #include "gfx/core/window.hpp"
 #include "gfx/frame_generator.hpp"
+#include "tracy/Tracy.hpp"
 #include "util/events.hpp"
 #include "util/task_generator.hpp"
 #include "util/timer.hpp"
@@ -86,6 +87,8 @@ namespace game
 
             util::send<std::vector<util::TimeStamp>>(
                 "RENDER_THREAD_PROFILE", frameGenerateReturn.render_thread_profile.getTasks());
+
+            FrameMark;
         }
     }
 } // namespace game

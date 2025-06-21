@@ -120,14 +120,15 @@ namespace gfx::core::vulkan
         {
             numberOfGraphicsQueues = queueFamilyProperties.at(*graphicsFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*graphicsFamily},
-                .queueCount {numberOfGraphicsQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*graphicsFamily},
+                    .queueCount {numberOfGraphicsQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
         else
         {
@@ -138,28 +139,30 @@ namespace gfx::core::vulkan
         {
             numberOfAsyncComputeQueues = queueFamilyProperties.at(*asyncComputeFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*asyncComputeFamily},
-                .queueCount {numberOfAsyncComputeQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*asyncComputeFamily},
+                    .queueCount {numberOfAsyncComputeQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
 
         if (asyncTransferFamily.has_value())
         {
             numberOfAsyncTransferQueues = queueFamilyProperties.at(*asyncTransferFamily).queueCount;
 
-            queuesToCreate.push_back(vk::DeviceQueueCreateInfo {
-                .sType {vk::StructureType::eDeviceQueueCreateInfo},
-                .pNext {nullptr},
-                .flags {},
-                .queueFamilyIndex {*asyncTransferFamily},
-                .queueCount {numberOfAsyncTransferQueues},
-                .pQueuePriorities {queuePriorities.data()},
-            });
+            queuesToCreate.push_back(
+                vk::DeviceQueueCreateInfo {
+                    .sType {vk::StructureType::eDeviceQueueCreateInfo},
+                    .pNext {nullptr},
+                    .flags {},
+                    .queueFamilyIndex {*asyncTransferFamily},
+                    .queueCount {numberOfAsyncTransferQueues},
+                    .pQueuePriorities {queuePriorities.data()},
+                });
         }
 
         log::debug(
@@ -261,13 +264,14 @@ namespace gfx::core::vulkan
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
-            this->device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                .pNext {nullptr},
-                .objectType {vk::ObjectType::eDevice},
-                .objectHandle {std::bit_cast<u64>(*this->device)},
-                .pObjectName {"Device"},
-            });
+            this->device->setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eDevice},
+                    .objectHandle {std::bit_cast<u64>(*this->device)},
+                    .pObjectName {"Vulkan Device"},
+                });
         }
 
         std::vector<util::Mutex<vk::Queue>> graphicsQueues {};
@@ -282,13 +286,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Graphics Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             graphicsQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -302,13 +307,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Async Compute Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             asyncComputeQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -322,13 +328,14 @@ namespace gfx::core::vulkan
             {
                 std::string name = std::format("Async Transfer Queue #{}", idx);
 
-                device->setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
-                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                    .pNext {nullptr},
-                    .objectType {vk::ObjectType::eQueue},
-                    .objectHandle {std::bit_cast<u64>(q)},
-                    .pObjectName {name.c_str()},
-                });
+                device->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eQueue},
+                        .objectHandle {std::bit_cast<u64>(q)},
+                        .pObjectName {name.c_str()},
+                    });
             }
 
             asyncTransferQueues.push_back(util::Mutex {std::move(q)}); // NOLINT
@@ -407,7 +414,15 @@ namespace gfx::core::vulkan
                 const bool wasLockedAndExecuted = q.tryLock(
                     [&](vk::Queue lockedQueue)
                     {
-                        accessFunc(lockedQueue);
+                        try
+                        {
+                            accessFunc(lockedQueue);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            // HACK: idk bro
+                            log::critical("Exception thrown inside of Device::acquireQueue | {}", e.what());
+                        }
                     });
 
                 if (wasLockedAndExecuted)

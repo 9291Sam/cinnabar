@@ -80,6 +80,18 @@ namespace gfx::core::vulkan
             };
 
             this->bindless_descriptor_pool = this->device.createDescriptorPoolUnique(descriptorPoolCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                d->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eDescriptorPool},
+                        .objectHandle {std::bit_cast<u64>(*this->bindless_descriptor_pool)},
+                        .pObjectName {"Global Bindless Descriptor Pool"},
+                    });
+            }
         }
 
         {
@@ -127,6 +139,18 @@ namespace gfx::core::vulkan
 
             this->bindless_descriptor_set_layout =
                 this->device.createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                d->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eDescriptorSetLayout},
+                        .objectHandle {std::bit_cast<u64>(*this->bindless_descriptor_set_layout)},
+                        .pObjectName {"Global Bindless Descriptor Set Layout"},
+                    });
+            }
         }
 
         {
@@ -147,6 +171,18 @@ namespace gfx::core::vulkan
             };
 
             this->bindless_pipeline_layout = this->device.createPipelineLayoutUnique(pipelineLayoutCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                d->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::ePipelineLayout},
+                        .objectHandle {std::bit_cast<u64>(*this->bindless_pipeline_layout)},
+                        .pObjectName {"Global Bindless Pipeline Layout"},
+                    });
+            }
         }
 
         {
@@ -164,6 +200,18 @@ namespace gfx::core::vulkan
             assert::critical(!outSets.empty(), "nvidia what the fuck");
 
             this->bindless_descriptor_set = outSets[0];
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                d->setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eDescriptorSet},
+                        .objectHandle {std::bit_cast<u64>(this->bindless_descriptor_set)},
+                        .pObjectName {"Global Bindless Descriptor Set"},
+                    });
+            }
         }
 
         {

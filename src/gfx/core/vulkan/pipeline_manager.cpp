@@ -30,7 +30,19 @@ namespace gfx::core::vulkan
         , critical_section {util::Mutex {CriticalSection {
               .pipeline_handle_allocator {util::OpaqueHandleAllocator<Pipeline> {MaxPipelines}},
               .pipeline_storage {MaxPipelines}}}}
-    {}
+    {
+        if constexpr (CINNABAR_DEBUG_BUILD)
+        {
+            this->device.setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::ePipelineCache},
+                    .objectHandle {std::bit_cast<u64>(*this->pipeline_cache)},
+                    .pObjectName {"Global Pipeline Cache"},
+                });
+        }
+    }
 
     PipelineManager::~PipelineManager() = default;
 
@@ -279,6 +291,20 @@ namespace gfx::core::vulkan
             };
 
             vertexShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                const std::string bufferedName = std::format("{} Vertex Shader Module", descriptor.name);
+
+                this->device.setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eShaderModule},
+                        .objectHandle {std::bit_cast<u64>(*vertexShader)},
+                        .pObjectName {bufferedName.c_str()},
+                    });
+            }
         }
 
         // Fragment
@@ -295,6 +321,20 @@ namespace gfx::core::vulkan
             };
 
             fragmentShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                const std::string bufferedName = std::format("{} Fragment Shader Module", descriptor.name);
+
+                this->device.setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eShaderModule},
+                        .objectHandle {std::bit_cast<u64>(*fragmentShader)},
+                        .pObjectName {bufferedName.c_str()},
+                    });
+            }
         }
 
         for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
@@ -480,6 +520,18 @@ namespace gfx::core::vulkan
         assert::critical(
             result == vk::Result::eSuccess, "Failed to create graphics pipeline | Error: {}", vk::to_string(result));
 
+        if constexpr (CINNABAR_DEBUG_BUILD)
+        {
+            this->device.setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::ePipeline},
+                    .objectHandle {std::bit_cast<u64>(*maybeUniquePipeline)},
+                    .pObjectName {descriptor.name.c_str()},
+                });
+        }
+
         return PipelineInternalStorage {
             .descriptor {std::move(descriptor)},
             .pipeline {std::move(maybeUniquePipeline)},
@@ -519,6 +571,20 @@ namespace gfx::core::vulkan
             };
 
             computeShader = this->device.createShaderModuleUnique(shaderModuleCreateInfo);
+
+            if constexpr (CINNABAR_DEBUG_BUILD)
+            {
+                const std::string bufferedName = std::format("{} Compute Shader Module", descriptor.name);
+
+                this->device.setDebugUtilsObjectNameEXT(
+                    vk::DebugUtilsObjectNameInfoEXT {
+                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                        .pNext {nullptr},
+                        .objectType {vk::ObjectType::eShaderModule},
+                        .objectHandle {std::bit_cast<u64>(*computeShader)},
+                        .pObjectName {bufferedName.c_str()},
+                    });
+            }
         }
 
         for (std::filesystem::path& p : maybeCompiledCode->dependent_files)
@@ -556,6 +622,21 @@ namespace gfx::core::vulkan
 
         auto [result, maybePipeline] =
             this->device.createComputePipelineUnique(*this->pipeline_cache, computePipelineCreateInfo);
+
+        assert::critical(
+            result == vk::Result::eSuccess, "Failed to create compute pipeline | Error: {}", vk::to_string(result));
+
+        if constexpr (CINNABAR_DEBUG_BUILD)
+        {
+            this->device.setDebugUtilsObjectNameEXT(
+                vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::ePipeline},
+                    .objectHandle {std::bit_cast<u64>(*maybePipeline)},
+                    .pObjectName {descriptor.name.c_str()},
+                });
+        }
 
         return PipelineInternalStorage {
             .descriptor {std::move(descriptor)},

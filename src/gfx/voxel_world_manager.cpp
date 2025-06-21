@@ -6,6 +6,7 @@
 #include "gfx/generators/voxel/material.hpp"
 #include "gfx/generators/voxel/shared_data_structures.slang"
 #include "gfx/generators/voxel/voxel_renderer.hpp"
+#include "tracy/Tracy.hpp"
 #include "util/logger.hpp"
 #include "util/timer.hpp"
 #include <boost/range/algorithm/remove_if.hpp>
@@ -158,6 +159,8 @@ namespace gfx
 
     void VoxelWorldManager::onFrameUpdate(gfx::Camera)
     {
+        ZoneScoped;
+
         usize            totalVoxelsUpdatedThisFrame = 0;
         util::MultiTimer t {};
         this->voxel_entity_allocator.iterateThroughAllocatedElements(
@@ -286,13 +289,13 @@ namespace gfx
 
         t.stamp("generate chunk");
 
-        // std::ignore = t.finish();
+        std::ignore = t.finish();
 
-        log::trace(
-            "Uploaded {} voxels in {} chunks this frame. {} chunks got regenerated",
-            totalVoxelsUpdatedThisFrame,
-            this->chunks_that_need_regeneration_to_ids_in_each_chunk.size(),
-            chunksThatGotRegenerated);
+        // log::trace(
+        //     "Uploaded {} voxels in {} chunks this frame. {} chunks got regenerated",
+        //     totalVoxelsUpdatedThisFrame,
+        //     this->chunks_that_need_regeneration_to_ids_in_each_chunk.size(),
+        //     chunksThatGotRegenerated);
 
         this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
     }
