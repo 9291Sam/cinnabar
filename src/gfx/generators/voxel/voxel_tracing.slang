@@ -34,10 +34,8 @@ MaybeBrickOffsetOrMaterialId tryLoadBrickFromChunkAndCoordinate(uint chunk, uint
     return MaybeBrickOffsetOrMaterialId();
 }
 
-bool loadVoxelFromBrick(BrickPointer brickPointer, int3 c)
+bool loadVoxelFromBrickUnchecked(BrickPointer brickPointer, int3 c)
 {
-    // if (all(greaterThanEqual(c, int3(0))) && all(lessThanEqual(c, int3(7))))
-    // {
     uint3 bP = c;
 
     uint       linearIndex = bP.x + (8 * bP.y) + (64 * bP.z);
@@ -139,7 +137,7 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
     // ccrazy range check maopos in 0-7
     for (i = 0; i < 27 && all(abs(mapPos - float3(3.5)) <= float3(3.5)); ++i)
     {
-        if (loadVoxelFromBrick(brick, int3(mapPos)))
+        if (loadVoxelFromBrickUnchecked(brick, int3(mapPos)))
         {
             float3  mini      = ((mapPos - rayPos) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
             f32 d         = max(mini.x, max(mini.y, mini.z));
@@ -198,6 +196,11 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, f3
     int i;
     for (i = 0; i < 32; i++)
     {
+
+        if (any(mapPos < float3(-1.1)) || any(mapPos > float3(8.1)))
+        {
+            break;
+        }
         MaybeBrickOffsetOrMaterialId brick = tryLoadBrickFromChunkAndCoordinate(chunk, int3(mapPos));
         if (brick.getMaterial() != 0)
         {
@@ -209,7 +212,7 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, f3
             if (all(mapPos == floor(rayPos))) // Handle edge case where camera origin is inside ofblock block
             {
                 uv3d = rayPos - mapPos;
-            }
+            }   
 
             VoxelTraceResult result;
             if (brick.isMaterial())
@@ -247,10 +250,6 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, f3
             }
         }
 
-        if (any(mapPos < float3(-1.1)) || any(mapPos > float3(8.1)))
-        {
-            break;
-        }
 
         mask = stepMask(sideDist);
         mapPos += mask * raySign;
@@ -260,11 +259,6 @@ VoxelTraceResult traceChunkFallible(uint chunk, float3 rayPos, float3 rayDir, f3
     return VoxelTraceResult_getMiss(i + extra_steps);
 }
 
-// VoxelTraceResult VoxelChunk_traceBoundedRay(uint chunkID, Ray ray, t_max) {}
-
-// VoxelTraceResult VoxelChunk_traceBoundedRayBetweenTwoPoints(uint chunkID, float3 start, float3 end) {}
-
-// VoxelTraceResult traceBoundedRay(uint chunkId, float3 start, float3 end) {}
 
 VoxelTraceResult traceDDARay(uint chunkId, float3 start, float3 end)
 {
@@ -551,9 +545,9 @@ VoxelTraceResult traceWorld(Ray ray, f32 max_t)
     int i;
     for (i = 0; i < 32; i++)
     {
-        const u32 maybeChunkId = tryReadChunkHashTable(int3(mapPos));
+        const MaybeChunkID maybeChunkId = tryReadChunkHashTable(int3(mapPos));
 
-        if (maybeChunkId != ~0)
+        if (!maybeChunkId.isNull())
         {
             float3  mini      = ((mapPos - ray.origin) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
             f32 d         = max(mini.x, max(mini.y, mini.z));
@@ -580,7 +574,7 @@ VoxelTraceResult traceWorld(Ray ray, f32 max_t)
             const f32 tLeft = tTotal - tTraversed;
 
             // TODO: make less shit
-            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId, Ray(uv3d * 64.0f, ray.direction), tLeft);
+            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId.maybe_chunk_id.chunk_id, Ray(uv3d * 64.0f, ray.direction), tLeft);
 
             extra_steps += result.steps;
 

@@ -4,6 +4,19 @@
 #include "temporary_game_state.hpp"
 #include "util/events.hpp"
 
+[[nodiscard]] i32 getZigZagNumber(u32 x)
+{
+    if (x == 0)
+    {
+        return 0;
+    }
+
+    const i32  halfX      = (static_cast<i32>(x) + 1) / 2;
+    const bool shouldFlip = x % 2 != 0;
+
+    return shouldFlip ? -halfX : halfX;
+}
+
 int main()
 {
     util::GlobalLoggerContext loggerContext {};
