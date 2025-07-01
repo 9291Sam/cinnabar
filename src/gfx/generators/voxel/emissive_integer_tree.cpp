@@ -5,7 +5,6 @@
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <glm/fwd.hpp>
-// #include <kdtree++/kdtree.hpp> TODO: some other time it sucks
 
 namespace gfx::generators::voxel
 {

@@ -54,6 +54,44 @@
 #endif // __cplusplus
 
 
+struct ChunkLocation
+{
+    AlignedChunkCoordinate aligned_chunk_coordinate;
+    u32 lod;
+
+    u32 getChunkWidthUnits() CONST_MEMBER_FUNCTION
+    {
+        return 64u << lod;
+    }
+
+    u32 getVoxelSizeUnits() CONST_MEMBER_FUNCTION
+    {
+        return 1u << lod;
+    }
+
+    u32 hash() CONST_MEMBER_FUNCTION
+    {
+        u32 seed = 0xE727328CU;
+
+        seed = gpu_hashCombineU32(seed, gpu_hashU32(u32(aligned_chunk_coordinate.x)));
+
+        seed = gpu_hashCombineU32(seed, gpu_hashU32(u32(aligned_chunk_coordinate.y)));
+
+        seed = gpu_hashCombineU32(seed, gpu_hashU32(u32(aligned_chunk_coordinate.z)));
+
+        seed = gpu_hashCombineU32(seed, gpu_hashU32(lod));
+
+        return seed;
+    }
+
+    int3 getCenterPosition() CONST_MEMBER_FUNCTION
+    {
+
+        return aligned_chunk_coordinate + getChunkWidthUnits() / 2;
+    }
+};
+
+
 INLINE u32 gpu_hashU32(u32 x)
 {
     x ^= x >> 17;
@@ -391,7 +429,27 @@ struct PBRVoxelMaterial
     float4 emission_metallic;
 };
 
-INLINE u32 hashAlignedChunkCoordinate(int3 c)
+struct ChunkID
+{
+    u32 chunk_id;
+};
+
+struct MaybeChunkID
+{
+    ChunkID maybe_chunk_id;
+
+    static MaybeChunkID getNull()
+    {
+        return MaybeChunkID(ChunkID(~0u));
+    }
+
+    bool isNull() CONST_MEMBER_FUNCTION
+    {
+        return maybe_chunk_id.chunk_id == ~0u;
+    }
+};
+
+INLINE u32 hashAlignedChunkCoordinate(AlignedChunkCoordinate c)
 {
     return gpu_hashCombineU32(
         gpu_hashU32(u32(c.x)),
@@ -405,7 +463,7 @@ INLINE u32 hashAlignedChunkCoordinate(int3 c)
 struct ChunkHashMapNode
 {
     u32 key = ~0u;
-    u32 id = ~0u;
+    MaybeChunkID id = MaybeChunkID::getNull();
 };
 
 const static u32 chunkHashTableCapacity = 1u << 16u;
@@ -413,7 +471,7 @@ const static u32 chunkHashTableNullHash = ~0u;
 
 #ifndef __cplusplus
 /// returns the chunk's id or ~0u
-INLINE u32 tryReadChunkHashTable(int3 c)
+INLINE MaybeChunkID tryReadChunkHashTable(AlignedChunkCoordinate c)
 {
     const u32 hash = hashAlignedChunkCoordinate(c);
     const u32 startSlot = hash % chunkHashTableCapacity;
@@ -428,15 +486,19 @@ INLINE u32 tryReadChunkHashTable(int3 c)
         {
             return thisNode.id;
         }
+        else if (thisNode.key == chunkHashTableNullHash)
+        {
+            return MaybeChunkID::getNull();
+        }
     }
 
-    return ~0u;
+    return MaybeChunkID::getNull();
 }
 #endif // __cplusplus
 
 #ifdef __cplusplus
 
-INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, int3 c, u32 chunkId)
+INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, AlignedChunkCoordinate c, ChunkID chunkId)
 {
     const u32 hash = hashAlignedChunkCoordinate(c);
     const u32 startSlot = hash % chunkHashTableCapacity;
@@ -451,24 +513,24 @@ INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkH
         {
             table.write(thisSlot, {
                 .key {hash},
-                .id {chunkId}
+                .id {chunkId.chunk_id}
             });
             return;
         }
         else if (thisNode.key == hash)
         {
-            log::warn("Unexpected duplicate insertion of chunkID {}", chunkId);
+            log::warn("Unexpected duplicate insertion of chunkID {}", chunkId.chunk_id);
             return;
         }
 
     }
 
-    log::warn("Unable to insert chunkId {}, is the table large enough? Current size is {}", chunkId, chunkHashTableCapacity);
+    log::warn("Unable to insert chunkId {}, is the table large enough? Current size is {}", chunkId.chunk_id, chunkHashTableCapacity);
 }
 
 // TODO: this is tombstoning, maybe not...
 
-INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, int3 c, u32 chunkId)
+INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, AlignedChunkCoordinate c, ChunkID chunkId)
 {
     const u32 hash = hashAlignedChunkCoordinate(c);
     const u32 startSlot = hash % chunkHashTableCapacity;
@@ -481,6 +543,7 @@ INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkH
 
         if (thisNode.key == hash)
         {
+            assert::critical(thisNode.id.maybe_chunk_id.chunk_id == chunkId.chunk_id, "Removal on colission of {}", chunkId.chunk_id);
             table.write(thisSlot, {
                 .key {hash},
                 .id {~0u}
@@ -489,13 +552,13 @@ INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkH
         }
         else if (thisNode.key == chunkHashTableNullHash)
         {
-            log::warn("Unexpected lack of chunkId {}", chunkId);
+            log::warn("Unexpected lack of chunkId {}", chunkId.chunk_id);
             return;
         }
 
     }
 
-    log::warn("Unable to remove chunkId {}, is the table large enough? Current size is {}", chunkId, chunkHashTableCapacity);
+    log::warn("Unable to remove chunkId {}, is the table large enough? Current size is {}", chunkId.chunk_id, chunkHashTableCapacity);
 }
 
 

@@ -20,9 +20,6 @@
 namespace gfx::generators::voxel
 {
 
-    namespace bg  = boost::geometry;
-    namespace bgi = boost::geometry::index;
-
     namespace
     {
         bool doesCubeIntersectSphere(glm::vec3 sphereCenter, f32 radius, glm::vec3 cubeMin, glm::vec3 cubeMax)
@@ -47,7 +44,9 @@ namespace gfx::generators::voxel
 
     LightInfluenceStorage::R3Box getAABBFromLight(GpuRaytracedLight light)
     {
-#warning this sucks, remove this?
+        // TODO: this isnt great but dont make a shitton of weak lights! use an area light
+        // TODO: add area lights :skull:
+        // TODO: generate a list of lights per chunk and then do that to get this number correctly
         const f32 maxInfluenceDistance = light.getMaxInfluenceDistance(1);
 
         const glm::vec3 lightPositionGLM = light.position_and_half_intensity_distance.xyz();

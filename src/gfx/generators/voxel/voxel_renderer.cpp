@@ -230,7 +230,7 @@ namespace gfx::generators::voxel
         assert::critical(this->cpu_chunk_data[chunkId].brick_allocation.isNull(), "should be empty");
         assert::critical(this->cpu_chunk_data[chunkId] == CpuChunkData {}, "should be default");
 
-        insertUniqueChunkHashTable(this->chunk_hash_map, coordinate.asVector(), chunkId);
+        insertUniqueChunkHashTable(this->chunk_hash_map, coordinate, {chunkId});
 
         return newChunk;
     }
@@ -245,7 +245,7 @@ namespace gfx::generators::voxel
         {
             this->brick_allocator.free(std::move(oldCpuChunkData.brick_allocation));
         }
-        removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate.asVector(), chunkId);
+        removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate, {chunkId});
         this->chunk_allocator.free(std::move(c));
 
         oldGpuChunkData = {};
