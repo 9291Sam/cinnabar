@@ -5,6 +5,7 @@ project(cinnabar VERSION 0.0.0.1)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 add_executable(cinnabar
     src/game/game.cpp

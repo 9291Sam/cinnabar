@@ -415,7 +415,10 @@ namespace gfx::generators::voxel
             this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
 
         commandBuffer.pushConstants<u32>(
-            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(), vk::ShaderStageFlagBits::eAll, 0, {1});
+            this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
+            vk::ShaderStageFlagBits::eAll,
+            0,
+            {static_cast<u32>(!this->renderer->getDevice()->isIntegrated())});
 
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 

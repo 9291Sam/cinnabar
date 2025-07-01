@@ -240,7 +240,7 @@ namespace gfx::core::vulkan
                     .pResults {nullptr},
                 };
 
-                const vk::Result presentResult = queue.presentKHR(presentInfo);
+                const vk::Result presentResult = queue.presentKHR(&presentInfo);
 
                 if (maybeRenderThreadProfiler != nullptr)
                 {

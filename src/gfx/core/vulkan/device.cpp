@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_hpp_macros.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 namespace gfx::core::vulkan
@@ -260,7 +261,7 @@ namespace gfx::core::vulkan
         };
 
         this->device = this->physical_device.createDeviceUnique(deviceCreateInfo);
-        VULKAN_HPP_DEFAULT_DISPATCHER.init(instance, *this->device);
+        vk::detail::defaultDispatchLoaderDynamic.init(instance, *this->device);
 
         if constexpr (CINNABAR_DEBUG_BUILD)
         {
