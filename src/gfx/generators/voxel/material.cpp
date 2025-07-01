@@ -1,5 +1,6 @@
 #include "material.hpp"
 #include "gfx/shader_common/bindings.slang"
+#include <vulkan/vulkan_enums.hpp>
 
 namespace gfx::generators::voxel
 {
@@ -612,13 +613,13 @@ namespace gfx::generators::voxel
 
         gfx::core::vulkan::WriteOnlyBuffer<PBRVoxelMaterial> buffer {
             renderer,
-            vk::BufferUsageFlagBits::eStorageBuffer,
-            vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+            vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
             materials.size(),
             "Voxel Material Buffer",
             SBO_VOXEL_MATERIAL_BUFFER};
 
-        buffer.uploadImmediate(0, materials);
+        renderer->getStager().enqueueTransfer(buffer, 0, {materials});
 
         return buffer;
     }

@@ -4,6 +4,7 @@
 #include "descriptor_manager.hpp"
 #include "device.hpp"
 #include "gfx/core/renderer.hpp"
+#include "gfx/core/vulkan/buffer.hpp"
 #include "util/allocators/range_allocator.hpp"
 #include "util/logger.hpp"
 #include "util/util.hpp"
@@ -80,6 +81,11 @@ namespace gfx::core::vulkan
                 log::warn("Paving over excessive Device Local {}", vk::to_string(memoryPropertyFlags));
             }
 
+            assert::warn(
+                bool(memoryPropertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal),
+                "Tried to create buffer with flags {}",
+                vk::to_string(memoryPropertyFlags));
+
             const VkBufferCreateInfo bufferCreateInfo {
                 .sType {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO},
                 .pNext {nullptr},
@@ -92,10 +98,14 @@ namespace gfx::core::vulkan
             };
 
             const VmaAllocationCreateInfo allocationCreateInfo {
-                .flags {VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+                .flags {
+                    memoryPropertyFlags & vk::MemoryPropertyFlagBits::eHostVisible
+                        ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                        : VmaAllocationCreateFlags {0}},
                 .usage {
-                    this->renderer->getDevice()->isIntegrated() ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST
-                                                                : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
+                    this->renderer->getDevice()->isIntegrated() && this->renderer->getDevice()->isAmd()
+                        ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+                        : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
                 .requiredFlags {static_cast<VkMemoryPropertyFlags>(memoryPropertyFlags)},
                 .preferredFlags {},
                 .memoryTypeBits {},
@@ -315,7 +325,7 @@ namespace gfx::core::vulkan
             other.mapped_memory = nullptr;
         }
 
-        void uploadImmediate(u32 offset, std::span<const T> payload)
+        [[depreacted]] void uploadImmediate(u32 offset, std::span<const T> payload)
             requires std::is_copy_constructible_v<T>
         {
             std::copy(payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
@@ -419,7 +429,10 @@ namespace gfx::core::vulkan
                     ::vmaMapMemory(**this->renderer->getAllocator(), this->allocation, &outputMappedMemory);
 
                 assert::critical(
-                    result == VK_SUCCESS, "Failed to map buffer memory {}", vk::to_string(vk::Result {result}));
+                    result == VK_SUCCESS,
+                    "Failed to map buffer {}'s memory {}",
+                    this->name,
+                    vk::to_string(vk::Result {result}));
 
                 assert::critical(
                     outputMappedMemory != nullptr, "Mapped ptr was nullptr! | {}", vk::to_string(vk::Result {result}));
