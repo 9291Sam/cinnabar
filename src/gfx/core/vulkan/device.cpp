@@ -2,6 +2,7 @@
 #include "util/logger.hpp"
 #include "util/util.hpp"
 #include <algorithm>
+#include <format>
 #include <functional>
 #include <magic_enum/magic_enum.hpp>
 #include <optional>
