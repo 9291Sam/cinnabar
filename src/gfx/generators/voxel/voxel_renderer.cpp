@@ -414,17 +414,22 @@ namespace gfx::generators::voxel
             vk::PipelineBindPoint::eCompute,
             this->renderer->getPipelineManager()->getPipeline(this->color_calculation_pipeline));
 
+        const bool enableQuarterRes = this->renderer->getDevice()->isIntegrated();
+
         commandBuffer.pushConstants<u32>(
             this->renderer->getDescriptorManager()->getGlobalPipelineLayout(),
             vk::ShaderStageFlagBits::eAll,
             0,
-            {static_cast<u32>(!this->renderer->getDevice()->isIntegrated())});
+            {static_cast<u32>(enableQuarterRes)});
 
         const vk::Extent2D framebufferSize = this->renderer->getWindow()->getFramebufferSize();
 
+        const u32 fbSizeDivisor = enableQuarterRes ? 2 : 1;
+
         commandBuffer.dispatch(
-            static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.width), 32) + 1),
-            static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.height), 32) + 1),
+            static_cast<u32>(util::divideEuclideani32(static_cast<i32>(framebufferSize.width / fbSizeDivisor), 32) + 1),
+            static_cast<u32>(
+                util::divideEuclideani32(static_cast<i32>(framebufferSize.height / fbSizeDivisor), 32) + 1),
             1);
     }
 
@@ -436,19 +441,4 @@ namespace gfx::generators::voxel
 
         commandBuffer.draw(3, 1, 0, 0);
     }
-
-    // void VoxelRenderer::setAnimationTime(f32 time) const
-    // {
-    //     this->last_frame_time.store(time, std::memory_order_release);
-    // }
-
-    // void VoxelRenderer::setAnimationNumber(u32 animationIndex) const
-    // {
-    //     this->demo_index.store(animationIndex, std::memory_order_release);
-    // }
-
-    // std::span<const std::string> VoxelRenderer::getAnimationNames() const
-    // {
-    //     return this->names;
-    // }
 } // namespace gfx::generators::voxel

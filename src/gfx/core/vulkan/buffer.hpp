@@ -137,14 +137,13 @@ namespace gfx::core::vulkan
                 const std::string bufferedName = std::format(
                     "{} Buffer ({})", this->name, util::bytesAsSiNamed(static_cast<long double>(totalBufferSizeBytes)));
 
-                this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(
-                    vk::DebugUtilsObjectNameInfoEXT {
-                        .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
-                        .pNext {nullptr},
-                        .objectType {vk::ObjectType::eBuffer},
-                        .objectHandle {std::bit_cast<u64>(this->buffer)},
-                        .pObjectName {bufferedName.c_str()},
-                    });
+                this->renderer->getDevice()->getDevice().setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT {
+                    .sType {vk::StructureType::eDebugUtilsObjectNameInfoEXT},
+                    .pNext {nullptr},
+                    .objectType {vk::ObjectType::eBuffer},
+                    .objectHandle {std::bit_cast<u64>(this->buffer)},
+                    .pObjectName {bufferedName.c_str()},
+                });
             }
 
             bufferBytesAllocated.fetch_add(this->elements * sizeof(T), std::memory_order_release);
@@ -325,7 +324,8 @@ namespace gfx::core::vulkan
             other.mapped_memory = nullptr;
         }
 
-        [[depreacted]] void uploadImmediate(u32 offset, std::span<const T> payload)
+        [[deprecated("Use synchronized uploads through a stager or manually muck the buffer")]]
+        void uploadImmediate(u32 offset, std::span<const T> payload)
             requires std::is_copy_constructible_v<T>
         {
             std::copy(payload.begin(), payload.end(), this->getGpuDataNonCoherent().data() + offset);
@@ -336,7 +336,9 @@ namespace gfx::core::vulkan
             this->flush({&flush, 1});
         }
 
+        [[deprecated("Use synchronized uploads through a stager or manually muck the buffer")]]
         void fillImmediate(const T& value)
+            requires std::is_copy_constructible_v<T>
         {
             const std::span<T> data = this->getGpuDataNonCoherent();
 
@@ -550,10 +552,9 @@ namespace gfx::core::vulkan
         {
             const std::size_t byteOffset = util::getOffsetOfPointerToMember(Ptr);
 
-            this->flushes.push_back(
-                FlushData {
-                    .offset_bytes {(offsetElements * sizeof(T)) + byteOffset},
-                    .size_bytes {sizeof(util::MemberTypeT<decltype(Ptr)>)}});
+            this->flushes.push_back(FlushData {
+                .offset_bytes {(offsetElements * sizeof(T)) + byteOffset},
+                .size_bytes {sizeof(util::MemberTypeT<decltype(Ptr)>)}});
 
             return this->cpu_buffer[offsetElements].*Ptr;
         }
@@ -565,10 +566,9 @@ namespace gfx::core::vulkan
             std::size_t elementInternalModifiedOffsetStart,
             std::size_t elementInternalModifiedSize)
         {
-            this->flushes.push_back(
-                FlushData {
-                    .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
-                    .size_bytes {elementInternalModifiedSize}});
+            this->flushes.push_back(FlushData {
+                .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
+                .size_bytes {elementInternalModifiedSize}});
 
             return this->cpu_buffer[storedArrayElement];
         }
@@ -580,10 +580,9 @@ namespace gfx::core::vulkan
             std::size_t elementInternalModifiedOffsetStart,
             std::size_t elementInternalModifiedOffsetEnd)
         {
-            this->flushes.push_back(
-                FlushData {
-                    .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
-                    .size_bytes {elementInternalModifiedOffsetEnd - elementInternalModifiedOffsetStart}});
+            this->flushes.push_back(FlushData {
+                .offset_bytes {(storedArrayElement * sizeof(T)) + elementInternalModifiedOffsetStart},
+                .size_bytes {elementInternalModifiedOffsetEnd - elementInternalModifiedOffsetStart}});
 
             return this->cpu_buffer[storedArrayElement];
         }

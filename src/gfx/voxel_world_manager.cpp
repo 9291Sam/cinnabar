@@ -196,7 +196,7 @@ namespace gfx
         usize chunksThatGotRegenerated = 0;
         for (auto& [aC, entities] : this->chunks_that_need_regeneration_to_ids_in_each_chunk)
         {
-            util::MultiTimer    t {};
+            util::MultiTimer    t2 {};
             const WorldPosition chunkBase = WorldPosition::assemble(aC, {});
             const VoxelChunk&   chunk     = this->chunks.at(aC);
 
@@ -222,7 +222,7 @@ namespace gfx
 
             std::pair<BrickMap, std::vector<CombinedBrick>> data = maybeCacheEntry->second.data;
 
-            t.stamp("generate chunk pre dense");
+            t2.stamp("generate chunk pre dense");
 
             usize voxelEntitiesTotalVoxelsNeededForThisChunk = 0;
             // Not a bug! remember if a handle dies and is replaced we need to clear it from the old chunk and insert it
@@ -273,29 +273,34 @@ namespace gfx
                 }
             }
 
-            t.stamp("entities pp and culling");
+            t2.stamp("entities pp and culling");
 
             auto [brickMap, bricks] = generators::voxel::appendVoxelsToDenseChunk(
                 data.first, std::move(data.second), collectedVoxelUpdateList);
 
-            t.stamp("append dense");
+            t2.stamp("append dense");
 
             this->voxel_renderer.setVoxelChunkData(chunk, brickMap, std::move(bricks));
 
-            t.stamp("upload dense");
+            t2.stamp("upload dense");
 
-            std::ignore = t.finish();
+            std::ignore = t2.finish();
         }
 
         t.stamp("generate chunk");
 
+        const bool printDebug = false;
+
         std::ignore = t.finish();
 
-        // log::trace(
-        //     "Uploaded {} voxels in {} chunks this frame. {} chunks got regenerated",
-        //     totalVoxelsUpdatedThisFrame,
-        //     this->chunks_that_need_regeneration_to_ids_in_each_chunk.size(),
-        //     chunksThatGotRegenerated);
+        if (printDebug)
+        {
+            log::trace(
+                "Uploaded {} voxels in {} chunks this frame. {} chunks got regenerated",
+                totalVoxelsUpdatedThisFrame,
+                this->chunks_that_need_regeneration_to_ids_in_each_chunk.size(),
+                chunksThatGotRegenerated);
+        }
 
         this->chunks_that_need_regeneration_to_ids_in_each_chunk.clear();
     }
