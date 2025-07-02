@@ -135,7 +135,7 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
 
     int i;
     // ccrazy range check maopos in 0-7
-    for (i = 0; i < 27 && all(abs(mapPos - float3(3.5)) <= float3(3.5)); ++i)
+    for (i = 0; i < 25 && all(abs(mapPos - float3(3.5)) <= float3(3.5)); ++i)
     {
         if (loadVoxelFromBrickUnchecked(brick, int3(mapPos)))
         {

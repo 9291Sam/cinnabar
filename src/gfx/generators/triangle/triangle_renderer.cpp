@@ -11,26 +11,25 @@ namespace gfx::generators::triangle
 
     TriangleRenderer::TriangleRenderer(const core::Renderer* renderer_)
         : renderer {renderer_}
-        , pipeline(this->renderer->getPipelineManager()->createPipeline(
-              core::vulkan::GraphicsPipelineDescriptor {
-                  .shader_path {"src/gfx/generators/triangle/triangle.slang"},
-                  .topology {vk::PrimitiveTopology::eTriangleList},
-                  .polygon_mode {vk::PolygonMode::eFill},
-                  .cull_mode {vk::CullModeFlagBits::eNone},
-                  .front_face {vk::FrontFace::eClockwise},
-                  .depth_test_enable {vk::True},
-                  .depth_write_enable {vk::True},
-                  .depth_compare_op {vk::CompareOp::eGreater},
-                  .color_format {gfx::core::Renderer::ColorFormat.format},
-                  .depth_format {gfx::core::Renderer::DepthFormat},
-                  .blend_enable {vk::True},
-                  .name {"SRGB triangle pipeline"},
-              }))
+        , pipeline(this->renderer->getPipelineManager()->createPipeline(core::vulkan::GraphicsPipelineDescriptor {
+              .shader_path {"src/gfx/generators/triangle/triangle.slang"},
+              .topology {vk::PrimitiveTopology::eTriangleList},
+              .polygon_mode {vk::PolygonMode::eFill},
+              .cull_mode {vk::CullModeFlagBits::eNone},
+              .front_face {vk::FrontFace::eClockwise},
+              .depth_test_enable {vk::True},
+              .depth_write_enable {vk::True},
+              .depth_compare_op {vk::CompareOp::eGreater},
+              .color_format {gfx::core::Renderer::ColorFormat.format},
+              .depth_format {gfx::core::Renderer::DepthFormat},
+              .blend_enable {vk::True},
+              .name {"SRGB triangle pipeline"},
+          }))
         , triangle_allocator {Triangle::MaxValidElement}
         , triangle_gpu_data {
               this->renderer,
-              vk::BufferUsageFlagBits::eStorageBuffer,
-              vk::MemoryPropertyFlagBits::eDeviceLocal | vk::MemoryPropertyFlagBits::eHostVisible,
+              vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
               Triangle::MaxValidElement,
               "SRGB Triangle Data",
               SBO_SRGB_TRIANGLE_DATA}
@@ -45,22 +44,24 @@ namespace gfx::generators::triangle
     {
         Triangle newHandle = this->triangle_allocator.allocateOrPanic();
 
-        this->triangle_gpu_data.uploadImmediate(this->triangle_allocator.getValueOfHandle(newHandle), {&position, 1});
+        this->renderer->getStager().enqueueTransfer(
+            this->triangle_gpu_data, this->triangle_allocator.getValueOfHandle(newHandle), {&position, 1});
 
         return newHandle;
     }
 
     void TriangleRenderer::destroyTriangle(Triangle t)
     {
-        this->triangle_gpu_data.uploadImmediate(
-            this->triangle_allocator.getValueOfHandle(t), {&NullTrianglePosition, 1});
+        this->renderer->getStager().enqueueTransfer(
+            this->triangle_gpu_data, this->triangle_allocator.getValueOfHandle(t), {&NullTrianglePosition, 1});
 
         this->triangle_allocator.free(std::move(t));
     }
 
     void TriangleRenderer::updateTriangle(const Triangle& t, glm::vec3 newPosition)
     {
-        this->triangle_gpu_data.uploadImmediate(this->triangle_allocator.getValueOfHandle(t), {&newPosition, 1});
+        this->renderer->getStager().enqueueTransfer(
+            this->triangle_gpu_data, this->triangle_allocator.getValueOfHandle(t), {&newPosition, 1});
     }
 
     void TriangleRenderer::renderIntoCommandBuffer(vk::CommandBuffer commandBuffer, const Camera&)
