@@ -382,7 +382,7 @@ namespace gfx::generators::voxel
         }
     }
 
-    void VoxelRenderer::recordCopyCommands(vk::CommandBuffer commandBuffer)
+    void VoxelRenderer::recordFaceNormalizer(vk::CommandBuffer commandBuffer)
     {
         if (this->renderer->getFrameNumber() == 0 || util::receive<bool>("CLEAR_FACE_HASH_MAP").value_or(false))
         {

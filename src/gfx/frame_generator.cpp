@@ -202,7 +202,7 @@ namespace gfx
                         {this->renderer->getDescriptorManager()->getGlobalDescriptorSet()},
                         {});
 
-                    generators.maybe_voxel_renderer->recordCopyCommands(commandBuffer);
+                    generators.maybe_voxel_renderer->recordFaceNormalizer(commandBuffer);
                 }
 
                 commandBuffer.pipelineBarrier(
@@ -231,7 +231,7 @@ namespace gfx
                     {},
                     {});
 
-                writeTimeStamp("voxel copy commands");
+                writeTimeStamp("voxel face normalizer");
 
                 if (this->has_resize_occurred)
                 {

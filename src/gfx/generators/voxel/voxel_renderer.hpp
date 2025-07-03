@@ -35,6 +35,11 @@ namespace gfx::generators::voxel
         using VoxelLight = util::OpaqueHandle<"Voxel Light", u16>;
         static_assert(VoxelLight::MaxValidElement > MaxVoxelLights);
 
+        void destroyVoxelChunk(VoxelChunk);
+        void destroyVoxelLight(VoxelLight);
+
+        using UniqueVoxelChunk = util::UniqueOpaqueHandle<VoxelChunk, &VoxelRenderer::destroyVoxelChunk>;
+        using UniqueVoxelLight = util::UniqueOpaqueHandle<VoxelLight, &VoxelRenderer::destroyVoxelLight>;
     public:
 
         explicit VoxelRenderer(const core::Renderer*);
@@ -45,24 +50,16 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        void destroyVoxelChunk(VoxelChunk);
-
-        using UniqueVoxelChunk = util::UniqueOpaqueHandle<VoxelChunk, &VoxelRenderer::destroyVoxelChunk>;
-
         [[nodiscard]] UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
         [[nodiscard]] VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
         void setVoxelChunkData(const VoxelChunk&, const BrickMap&, std::span<const CombinedBrick>);
 
-        void destroyVoxelLight(VoxelLight);
-
-        using UniqueVoxelLight = util::UniqueOpaqueHandle<VoxelLight, &VoxelRenderer::destroyVoxelLight>;
         [[nodiscard]] UniqueVoxelLight createVoxelLightUnique(GpuRaytracedLight);
         [[nodiscard]] VoxelLight       createVoxelLight(GpuRaytracedLight);
         void                           updateVoxelLight(const VoxelLight&, GpuRaytracedLight);
 
         void preFrameUpdate();
-
-        void recordCopyCommands(vk::CommandBuffer);
+        void recordFaceNormalizer(vk::CommandBuffer);
         void recordPrepass(vk::CommandBuffer, const Camera&);
         void recordColorCalculation(vk::CommandBuffer);
         void recordColorTransfer(vk::CommandBuffer);

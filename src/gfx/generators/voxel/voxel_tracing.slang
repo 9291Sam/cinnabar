@@ -172,6 +172,33 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
                 true, intersect, int3(mapPos), normal, uv3d, d, i + 1, thisMaterial);
         }
 
+
+        // if (sideDist.x < sideDist.y) {
+        //     if (sideDist.x < sideDist.z) {
+        //         sideDist.x += raySign.x * deltaDist.x;
+        //         mapPos.x += raySign.x;
+        //         mask = stepMask(sideDist);
+        //     }
+        //     else {
+        //         sideDist.z += raySign.z * deltaDist.z;
+        //         mapPos.z += raySign.z;
+        //         mask = stepMask(sideDist);
+        //     }
+        // }
+        // else {
+        //     if (sideDist.y < sideDist.z) {
+        //         sideDist.y += raySign.y * deltaDist.y;
+        //         mapPos.y += raySign.y;
+        //         mask = stepMask(sideDist);
+        //     }
+        //     else {
+        //         sideDist.z += raySign.z * deltaDist.z;
+        //         mapPos.z += raySign.z;
+        //         mask = stepMask(sideDist);
+        //     }
+        // }
+
+        
         mask = stepMask(sideDist);
         mapPos += mask * raySign;
         sideDist += mask * raySign * deltaDist;
