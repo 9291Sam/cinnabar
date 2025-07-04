@@ -53,12 +53,5 @@ float4 fragmentMain(float4 pos : SV_Position) : COLOR0
         }
     }
 
-    const float3 cameraPos = global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz;
-    const float3 dir = normalize(worldStrikePosition - cameraPos);
-
-    const Ray r = Ray(cameraPos, dir);
-
-    const VoxelTraceResult res = traceWorld(r, 256);
-
-    return float4(res.material.albedo_roughness.xyz, 1.0);
+    return float4(loaded, 1.0);
 }
