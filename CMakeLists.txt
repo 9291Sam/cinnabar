@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.0)
 project(cinnabar VERSION 0.0.0.1)
 
 
@@ -101,20 +101,19 @@ CPMAddPackage("gh:epezent/implot#v0.16")
 CPMAddPackage("gh:sammycage/plutovg#v0.0.13")
 CPMAddPackage("gh:jpaver/opengametools#1c185fe9ce7217df814ec51482a030d7aa66324d")
 CPMAddPackage("gh:Auburn/FastNoise2#f8facbad699a51f0b5a0800223d0813cca1d34be")
-CPMAddPackage("gh:nvmd/libkdtree#0.7.4")
 CPMAddPackage("gh:wolfpld/tracy#v0.12.1")
 CPMAddPackage(NAME plutosvg GITHUB_REPOSITORY "sammycage/plutosvg" VERSION 0.0.6 DOWNLOAD_ONLY TRUE)
 find_package(Vulkan REQUIRED COMPONENTS)
 set(FREETYPE_DIR "$ENV{FREETYPE_DIR}")
 if (WIN32 AND NOT FREETYPE_DIR)
-    message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable")
+    message(FATAL_ERROR "You need to install freetype and set the FREETYPE_DIR environment variable https://github.com/ubawurinna/freetype-windows-binaries")
 endif()
 find_package(Freetype REQUIRED)
 
 add_library(imgui_build_target STATIC
     ${imgui_SOURCE_DIR}/imgui_demo.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp    
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/imgui.cpp
 
