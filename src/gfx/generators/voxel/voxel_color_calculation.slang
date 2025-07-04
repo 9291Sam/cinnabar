@@ -96,7 +96,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
                         );
                     }
 
-                    const float3 calculatedColor =                   
+                    const float3 calculatedColor =                
                     calculateWorldColor(
                         worldStrikePosition,
                         material,

@@ -173,31 +173,6 @@ VoxelTraceResult traceBlock(BrickPointer brick, float3 rayPos, float3 rayDir, fl
         }
 
 
-        // if (sideDist.x < sideDist.y) {
-        //     if (sideDist.x < sideDist.z) {
-        //         sideDist.x += raySign.x * deltaDist.x;
-        //         mapPos.x += raySign.x;
-        //         mask = stepMask(sideDist);
-        //     }
-        //     else {
-        //         sideDist.z += raySign.z * deltaDist.z;
-        //         mapPos.z += raySign.z;
-        //         mask = stepMask(sideDist);
-        //     }
-        // }
-        // else {
-        //     if (sideDist.y < sideDist.z) {
-        //         sideDist.y += raySign.y * deltaDist.y;
-        //         mapPos.y += raySign.y;
-        //         mask = stepMask(sideDist);
-        //     }
-        //     else {
-        //         sideDist.z += raySign.z * deltaDist.z;
-        //         mapPos.z += raySign.z;
-        //         mask = stepMask(sideDist);
-        //     }
-        // }
-
         
         mask = stepMask(sideDist);
         mapPos += mask * raySign;
@@ -494,64 +469,66 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
     const float3 dir = normalize(end - start);
     const f32 len = distance(end, start);
 
-    float3 calculatedColor = float3(0.0);
+    // float3 calculatedColor = float3(0.0);
 
-    if (light.canInfluencePoint(firstWorldStrikePosition, numberOfNearbyLights))
-    {
-        const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
-        const float3 worldStrikePosition = shadowResult.t * dir + start;
+    // if (light.canInfluencePoint(firstWorldStrikePosition, numberOfNearbyLights))
+    // {
+    //     const VoxelTraceResult shadowResult = traceWorld(Ray(start, dir), len);
+    //     const float3 worldStrikePosition = shadowResult.t * dir + start;
         
-        const bool isThisVoxelEmissiveAndCloseEnoughToBeTransparent = all(shadowResult.material.emission_metallic.xyz != float3(0.0)) && 
-            distance(worldStrikePosition, light.position_and_half_intensity_distance.xyz) < 1.0;
+    //     const bool isThisVoxelEmissiveAndCloseEnoughToBeTransparent = all(shadowResult.material.emission_metallic.xyz != float3(0.0)) && 
+    //         distance(worldStrikePosition, light.position_and_half_intensity_distance.xyz) < 1.0;
 
-        if (!shadowResult.intersect_occur || isThisVoxelEmissiveAndCloseEnoughToBeTransparent)
-        {
-            calculatedColor += lightColor / approxProbability;
-        }
-    }
+    //     if (!shadowResult.intersect_occur || isThisVoxelEmissiveAndCloseEnoughToBeTransparent)
+    //     {
+    //         calculatedColor += lightColor / approxProbability;
+    //     }
+    // }
 
-    if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
-    {
-        const float3 toFragmentDir = normalize(firstWorldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
+    return lightColor / approxProbability;
 
-        Ray bounceRay = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
+    // if (shouldDoReflect && firstMaterial.albedo_roughness.w != 1.0)
+    // {
+    //     const float3 toFragmentDir = normalize(firstWorldStrikePosition - global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz);
 
-        const VoxelTraceResult bounceResult = traceWorld(bounceRay, 128.0f);
+    //     Ray bounceRay = Ray(firstWorldStrikePosition + 0.05 * unpacked.normal, normalize(reflect(toFragmentDir, unpacked.normal)));
 
-        if (bounceResult.intersect_occur)
-        {
-            const float3 secondWorldStrikePosition = bounceRay.origin + bounceResult.t * bounceRay.direction;
-            const float3 L = normalize(light.position_and_half_intensity_distance.xyz - secondWorldStrikePosition);
+    //     const VoxelTraceResult bounceResult = traceWorld(bounceRay, 128.0f);
 
-            const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
+    //     if (bounceResult.intersect_occur)
+    //     {
+    //         const float3 secondWorldStrikePosition = bounceRay.origin + bounceResult.t * bounceRay.direction;
+    //         const float3 L = normalize(light.position_and_half_intensity_distance.xyz - secondWorldStrikePosition);
 
-            if (light.canInfluencePoint(shadowRay.origin, numberOfNearbyLights))
-            {
-                const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
+    //         const Ray shadowRay = Ray(secondWorldStrikePosition + 0.05 * bounceResult.voxel_normal, L);
 
-                if (!bounceShadow.intersect_occur || all(bounceShadow.material.emission_metallic.xyz != float3(0.0)))
-                {
-                    float3 reflectionColor = calculateSampleColor(
-                        secondWorldStrikePosition,
-                        bounceResult.voxel_normal,
-                        -bounceRay.direction,
-                        L,
-                        light,
-                        bounceResult.material,
-                        true,
-                        true) * firstMaterial.albedo_roughness.xyz;
+    //         if (light.canInfluencePoint(shadowRay.origin, numberOfNearbyLights))
+    //         {
+    //             const VoxelTraceResult bounceShadow = traceWorld(shadowRay, distance(light.position_and_half_intensity_distance.xyz, secondWorldStrikePosition));
 
-                    calculatedColor += min(float3(1.0), (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / approxProbability);
-                }
-            }
-        }
-        else
-        {
-            calculatedColor += totalSkybox(bounceRay.direction, false) * firstMaterial.albedo_roughness.xyz;
-        }
-    }
+    //             if (!bounceShadow.intersect_occur || all(bounceShadow.material.emission_metallic.xyz != float3(0.0)))
+    //             {
+    //                 float3 reflectionColor = calculateSampleColor(
+    //                     secondWorldStrikePosition,
+    //                     bounceResult.voxel_normal,
+    //                     -bounceRay.direction,
+    //                     L,
+    //                     light,
+    //                     bounceResult.material,
+    //                     true,
+    //                     true) * firstMaterial.albedo_roughness.xyz;
 
-    return calculatedColor;
+    //                 calculatedColor += min(float3(1.0), (reflectionColor * (1.0 - firstMaterial.albedo_roughness.w)) / approxProbability);
+    //             }
+    //         }
+    //     }
+    //     else
+    //     {
+    //         calculatedColor += totalSkybox(bounceRay.direction, false) * firstMaterial.albedo_roughness.xyz;
+    //     }
+    // }
+
+    // return calculatedColor;
 
 }
 
@@ -572,7 +549,7 @@ VoxelTraceResult traceWorld(Ray ray, f32 max_t)
     int i;
     for (i = 0; i < 32; i++)
     {
-        const MaybeChunkID maybeChunkId = tryReadChunkHashTable(int3(mapPos));
+        const MaybeChunkID maybeChunkId = tryReadChunkHashTable(ChunkLocation(int3(mapPos), 0));
 
         if (!maybeChunkId.isNull())
         {

@@ -479,9 +479,9 @@ const static u32 chunkHashTableNullHash = ~0u;
 
 #ifndef __cplusplus
 /// returns the chunk's id or ~0u
-INLINE MaybeChunkID tryReadChunkHashTable(AlignedChunkCoordinate c)
+INLINE MaybeChunkID tryReadChunkHashTable(ChunkLocation c)
 {
-    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 hash = c.hash();
     const u32 startSlot = hash % chunkHashTableCapacity;
 
     for (u32 i = 0; i < 32; ++i)
