@@ -120,12 +120,6 @@ struct ChunkLocation
 
         return seed;
     }
-
-    // int3 getCenterPosition() CONST_MEMBER_FUNCTION
-    // {
-
-    //     return 64 * aligned_chunk_coordinate + (i32(getChunkWidthUnits() / 2));
-    // }
 };
 
 

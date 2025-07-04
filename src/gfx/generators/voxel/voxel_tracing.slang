@@ -533,84 +533,284 @@ float3 calculateWorldColor(float3 firstWorldStrikePosition, PBRVoxelMaterial fir
 }
 
 
-VoxelTraceResult traceWorld(Ray ray, f32 max_t)
-{
-    ray.origin /= 64.0f;
-    max_t /= 64.0f;
+// VoxelTraceResult traceWorld(Ray ray, f32 max_t)
+// {
+//     ray.origin /= 64.0f;
+//     max_t /= 64.0f;
 
-    float3 mapPos    = floor(ray.origin);
-    float3 raySign   = sign(ray.direction);
-    float3 deltaDist = 1.0 / ray.direction;
-    float3 sideDist  = ((mapPos - ray.origin) + 0.5 + raySign * 0.5) * deltaDist;
-    float3 mask      = stepMask(sideDist);
+//     float3 mapPos    = floor(ray.origin);
+//     float3 raySign   = sign(ray.direction);
+//     float3 deltaDist = 1.0 / ray.direction;
+//     float3 sideDist  = ((mapPos - ray.origin) + 0.5 + raySign * 0.5) * deltaDist;
+//     float3 mask      = stepMask(sideDist);
 
-    uint extra_steps = 0;
+//     uint extra_steps = 0;
 
-    int i;
-    for (i = 0; i < 32; i++)
-    {
-        const MaybeChunkID maybeChunkId = tryReadChunkHashTable(ChunkLocation(int3(mapPos), 0));
+//     int i;
+//     for (i = 0; i < 32; i++)
+//     {
+//         const MaybeChunkID maybeChunkId = tryReadChunkHashTable(ChunkLocation(int3(mapPos), 0));
 
-        if (!maybeChunkId.isNull())
-        {
-            float3  mini      = ((mapPos - ray.origin) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
-            f32 d         = max(mini.x, max(mini.y, mini.z));
-            float3  intersect = ray.origin + ray.direction * d;
-            float3  uv3d      = intersect - mapPos;
+//         if (!maybeChunkId.isNull())
+//         {
+//             float3  mini      = ((mapPos - ray.origin) + 0.5 - 0.5 * float3(raySign)) * deltaDist;
+//             f32 d         = max(mini.x, max(mini.y, mini.z));
+//             float3  intersect = ray.origin + ray.direction * d;
+//             float3  uv3d      = intersect - mapPos;
 
-            if (all(mapPos == floor(ray.origin))) // Handle edge case where camera origin is inside ofblock block
-            {
-                uv3d = ray.origin - mapPos;
-            }
+//             if (all(mapPos == floor(ray.origin))) // Handle edge case where camera origin is inside ofblock block
+//             {
+//                 uv3d = ray.origin - mapPos;
+//             }
 
-            const float3 worldPositionStartStrike = uv3d * 64.0f + floor(mapPos) * 64.0f;
-            if (distance(ray.origin * 64.0f, worldPositionStartStrike) > max_t * 64.0f)
-            {
-                break;
-            }
+//             const float3 worldPositionStartStrike = uv3d * 64.0f + floor(mapPos) * 64.0f;
+//             if (distance(ray.origin * 64.0f, worldPositionStartStrike) > max_t * 64.0f)
+//             {
+//                 break;
+//             }
 
-            // TODO;
-            // max_t
-            // comp between start and worldPosition start strike along the dir
-            // subtract that to get the t
-            const f32 tTraversed = distance(worldPositionStartStrike, ray.origin * 64.0f);
-            const f32 tTotal = max_t * 64.0f;
-            const f32 tLeft = tTotal - tTraversed;
+//             // TODO;
+//             // max_t
+//             // comp between start and worldPosition start strike along the dir
+//             // subtract that to get the t
+//             const f32 tTraversed = distance(worldPositionStartStrike, ray.origin * 64.0f);
+//             const f32 tTotal = max_t * 64.0f;
+//             const f32 tLeft = tTotal - tTraversed;
 
-            // TODO: make less shit
-            const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId.maybe_chunk_id.chunk_id, Ray(uv3d * 64.0f, ray.direction), tLeft);
+//             // TODO: make less shit
+//             const VoxelTraceResult result = traceSingleRayInChunk(maybeChunkId.maybe_chunk_id.chunk_id, Ray(uv3d * 64.0f, ray.direction), tLeft);
 
-            extra_steps += result.steps;
+//             extra_steps += result.steps;
 
-            if (result.intersect_occur)
-            {
-                // const f32 strikeT =
-                //     distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
-
-                const f32 strikeT = distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
+//             if (result.intersect_occur)
+//             {
+//                 const f32 strikeT = distance(ray.origin * 64.0f, floor(mapPos) * 64.0f + result.chunk_local_fragment_position);
 
 
-                if (strikeT > max_t * 64.0f)
-                {
-                    break;
-                }
+//                 if (strikeT > max_t * 64.0f)
+//                 {
+//                     break;
+//                 }
 
-                return VoxelTraceResult(
-                    true,
-                    result.chunk_local_fragment_position,
-                    result.chunk_local_voxel_position,
-                    result.voxel_normal,
-                    result.local_voxel_uvw,
-                    strikeT,
-                    extra_steps + i + 1,
-                    result.material);
-            }
-        }
+//                 return VoxelTraceResult(
+//                     true,
+//                     result.chunk_local_fragment_position,
+//                     result.chunk_local_voxel_position,
+//                     result.voxel_normal,
+//                     result.local_voxel_uvw,
+//                     strikeT,
+//                     extra_steps + i + 1,
+//                     result.material);
+//             }
+//         }
 
-        mask = stepMask(sideDist);
-        mapPos += mask * raySign;
-        sideDist += mask * raySign * deltaDist;
-    }
+//         mask = stepMask(sideDist);
+//         mapPos += mask * raySign;
+//         sideDist += mask * raySign * deltaDist;
+//     }
 
-    return VoxelTraceResult_getMiss(i + extra_steps);
-}
+//     return VoxelTraceResult_getMiss(i + extra_steps);
+// }
+
+/**
+ * @brief A helper struct to return the result of a chunk lookup.
+ */
+ struct FoundChunk
+ {
+     bool exists;
+     ChunkLocation location;
+     ChunkID id;
+ };
+ 
+ /**
+  * @brief Finds the highest-resolution (lowest LOD number) chunk at a given world position.
+  *
+  * This function iterates from LOD 0 upwards. For any given point in space, there could
+  * be multiple overlapping chunks of different LODs (e.g., a point is in an LOD 0 chunk,
+  * which is inside an LOD 1 chunk, etc.). By searching from LOD 0 up, we guarantee that
+  * we find the most detailed chunk available at that position, which is the one the
+  * ray should interact with first.
+  *
+  * @param worldPos The world-space position to query.
+  * @return A FoundChunk struct containing the chunk data if found, or an empty result otherwise.
+  */
+ FoundChunk findBestChunkAt(float3 worldPos)
+ {
+     // Iterate from highest resolution (LOD 0) to lowest resolution.
+     // We assume a maximum of 8 LOD levels, which is a practical limit.
+     for (uint lod = 0; lod < 8; ++lod)
+     {
+         // The "stride" of a chunk at this LOD, in terms of LOD 0 chunk coordinates.
+         // LOD 0 has stride 1, LOD 1 has stride 2, LOD 2 has stride 4, etc.
+         const int lod_stride = 1 << lod;
+ 
+         // The width of a chunk at this LOD in world-space units.
+         const float chunk_width_world = 64.0f * float(lod_stride);
+ 
+         // Calculate the aligned_chunk_coordinate for the chunk at this LOD that would
+         // contain the worldPos. The coordinate is calculated and then multiplied by the
+         // stride to ensure it aligns to the correct grid for this LOD.
+         const int3 aligned_chunk_coordinate = int3(floor(worldPos / chunk_width_world)) * lod_stride;
+ 
+         const ChunkLocation loc = {aligned_chunk_coordinate, lod};
+         const MaybeChunkID maybeChunk = tryReadChunkHashTable(loc);
+ 
+         if (!maybeChunk.isNull())
+         {
+             // Found the highest-resolution chunk at this position. Return it immediately.
+             return {true, loc, maybeChunk.maybe_chunk_id.chunk_id};
+         }
+     }
+ 
+     // No chunk found at any LOD for the given position.
+     return {false, {}, {}};
+ }
+ 
+ /**
+  * @brief Calculates the ray's exit distance (t) from an Axis-Aligned Bounding Box (AABB).
+  *
+  * This is used to fast-forward the ray to the other side of a chunk's volume after an
+  * internal trace has already been performed and resulted in a miss.
+  *
+  * @param ray The ray being traced.
+  * @param bmin The minimum corner of the AABB.
+  * @param bmax The maximum corner of the AABB.
+  * @return The distance 't' along the ray to the exit point.
+  */
+ float rayAABBIntersect_exit(Ray ray, float3 bmin, float3 bmax)
+ {
+     // Using the slab method for ray-AABB intersection.
+     const float3 invDir = 1.0f / ray.direction;
+     const float3 t0s = (bmin - ray.origin) * invDir;
+     const float3 t1s = (bmax - ray.origin) * invDir;
+     const float3 tmax = max(t0s, t1s);
+     return min(tmax.x, min(tmax.y, tmax.z));
+ }
+ 
+ 
+ /**
+  * @brief Traces a ray through a hierarchical multi-LOD voxel world.
+  *
+  * This function implements a hierarchical ray marching algorithm. It advances the ray through
+  * space, and at each point, it checks for the highest-detail chunk available.
+  * - If inside a chunk's volume, it calls a detailed inner-chunk tracer. On a miss, it skips
+  * the ray to the chunk's exit point.
+  * - If in empty space, it uses a DDA algorithm on the base LOD 0 grid to efficiently
+  * step to the next potential chunk boundary.
+  *
+  * @param ray The ray to trace, in world coordinates.
+  * @param max_t The maximum distance the ray is allowed to travel.
+  * @return A VoxelTraceResult struct containing hit information or a miss result.
+  */
+ VoxelTraceResult traceWorld(Ray ray, f32 max_t)
+ {
+     float current_t = 0.0f;
+     uint steps = 0;
+     const uint MAX_STEPS = 256; // Safety break to prevent infinite loops.
+ 
+     while (current_t < max_t)
+     {
+         if (steps++ > MAX_STEPS) break;
+ 
+         const float3 current_pos = ray.origin + ray.direction * current_t;
+ 
+         // 1. Probe for a chunk at the current ray position.
+         const FoundChunk found = findBestChunkAt(current_pos);
+ 
+         if (found.exists)
+         {
+             // --- STATE: We are inside a chunk's domain ---
+ 
+             // 2. Perform a detailed trace inside this chunk.
+             const float3 chunkMin = found.location.getChunkNegativeCornerLocation();
+             const float voxelSize = found.location.getVoxelSizeUnits();
+ 
+             // The origin for the sub-trace is the current position, transformed into the
+             // chunk's local space (scaled from 0-64).
+             const float3 localRayOrigin = (current_pos - chunkMin) / voxelSize;
+             const Ray chunkRay = Ray(localRayOrigin, ray.direction);
+ 
+             // The remaining distance the ray can travel.
+             const float t_left = max_t - current_t;
+ 
+             const VoxelTraceResult result = traceSingleRayInChunk(found.id.chunk_id, chunkRay, t_left);
+ 
+             if (result.intersect_occur)
+             {
+                 // 3a. HIT! A voxel was struck inside the chunk.
+                 // The result.t is relative to the start of the sub-trace (current_pos).
+                 const float final_t = current_t + result.t;
+ 
+                 if (final_t <= max_t)
+                 {
+                     // Transform the local hit position back to world space.
+                     const float3 worldFragmentPos = chunkMin + result.chunk_local_fragment_position * voxelSize;
+                     
+                     // Construct the final result and return.
+                     return VoxelTraceResult(
+                         true,
+                         worldFragmentPos, // This is now in world space
+                         result.chunk_local_voxel_position,
+                         result.voxel_normal,
+                         result.local_voxel_uvw,
+                         final_t,
+                         steps, // Return the number of macro steps taken
+                         result.material);
+                 }
+             }
+ 
+             // 3b. MISS! The ray passed completely through the chunk without hitting a voxel.
+             // We must advance the ray to the chunk's exit boundary to continue traversal.
+             const float chunkWidth = found.location.getChunkWidthUnits();
+             const float3 chunkMax = chunkMin + float3(chunkWidth, chunkWidth, chunkWidth);
+             const float t_exit = rayAABBIntersect_exit(ray, chunkMin, chunkMax);
+ 
+             if (t_exit <= current_t)
+             {
+                 // This case should be rare, but as a safeguard against getting stuck,
+                 // advance t by a small fixed amount.
+                 current_t += 0.1f;
+             }
+             else
+             {
+                 // Set t to the exit point.
+                 current_t = t_exit;
+             }
+             // Add a small epsilon to push the ray just outside the chunk's boundary
+             // to avoid floating point precision issues on the next iteration.
+             current_t += 0.001f;
+         }
+         else
+         {
+             // --- STATE: We are in empty space ---
+             // 4. Use a DDA on the base LOD 0 grid to find the next potential chunk.
+ 
+             // DDA setup is relative to the current position.
+             // The grid cells for this DDA are the size of LOD 0 chunks (64x64x64).
+             const float3 grid_origin = current_pos / 64.0f;
+             const float3 mapPos = floor(grid_origin);
+             const float3 raySign = sign(ray.direction);
+             const float3 deltaDist = abs(1.0f / ray.direction);
+ 
+             float3 sideDist;
+             sideDist.x = (raySign.x > 0) ? (mapPos.x + 1.0f - grid_origin.x) : (grid_origin.x - mapPos.x);
+             sideDist.y = (raySign.y > 0) ? (mapPos.y + 1.0f - grid_origin.y) : (grid_origin.y - mapPos.y);
+             sideDist.z = (raySign.z > 0) ? (mapPos.z + 1.0f - grid_origin.z) : (grid_origin.z - mapPos.z);
+             sideDist = sideDist * deltaDist;
+ 
+             // Find smallest sideDist to get the distance (in local grid units) to the next boundary.
+             const float t_step_grid = min(sideDist.x, min(sideDist.y, sideDist.z));
+ 
+             // Convert the step distance from grid units back to world units.
+             const float t_step_world = t_step_grid * 64.0f;
+ 
+             // Advance t to the next grid line.
+             current_t += t_step_world;
+             // Add epsilon to push past the boundary.
+             current_t += 0.001f;
+         }
+     }
+ 
+     // The ray traveled beyond max_t without hitting anything.
+     return VoxelTraceResult_getMiss(steps);
+ }
