@@ -122,12 +122,11 @@ namespace gfx::generators::voxel
         return didPackOccur;
     }
 
-    std::vector<u16> LightInfluenceStorage::poll(AlignedChunkCoordinate aC)
+    std::vector<u16> LightInfluenceStorage::poll(ChunkLocation cL)
     {
-        const glm::i32vec3 integerMinimum = WorldPosition::assemble(aC, {}).asVector();
-
-        const glm::vec3 glmMinimum = static_cast<glm::vec3>(integerMinimum);
-        const glm::vec3 glmMaximum = static_cast<glm::vec3>(integerMinimum + static_cast<i32>(ChunkSizeVoxels));
+        const glm::vec3 glmMinimum = static_cast<glm::vec3>(cL.getChunkNegativeCornerLocation());
+        const glm::vec3 glmMaximum =
+            static_cast<glm::vec3>(cL.getChunkNegativeCornerLocation() + static_cast<i32>(cL.getChunkWidthUnits()));
 
         const R3Point minimum {glmMinimum.x, glmMinimum.y, glmMinimum.z};
         const R3Point maximum {glmMaximum.x, glmMaximum.y, glmMaximum.z};

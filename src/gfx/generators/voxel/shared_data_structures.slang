@@ -7,6 +7,7 @@
     // #include <glm/gtx/string_cast.hpp.hpp>
     // #include "util/allocators/range_allocator.hpp"
     
+    #define float2 glm::vec2
     #define float3 glm::vec3
     #define float4 glm::vec4
     #define int3 glm::ivec3
@@ -90,6 +91,11 @@ struct ChunkLocation
     AlignedChunkCoordinate aligned_chunk_coordinate;
     u32 lod;
 
+    int3 getChunkNegativeCornerLocation() CONST_MEMBER_FUNCTION
+    {
+        return 64 * aligned_chunk_coordinate;
+    }
+
     u32 getChunkWidthUnits() CONST_MEMBER_FUNCTION
     {
         return 64u << lod;
@@ -115,11 +121,11 @@ struct ChunkLocation
         return seed;
     }
 
-    int3 getCenterPosition() CONST_MEMBER_FUNCTION
-    {
+    // int3 getCenterPosition() CONST_MEMBER_FUNCTION
+    // {
 
-        return aligned_chunk_coordinate + (i32(getChunkWidthUnits() / 2));
-    }
+    //     return 64 * aligned_chunk_coordinate + (i32(getChunkWidthUnits() / 2));
+    // }
 };
 
 
@@ -408,16 +414,16 @@ typedef Array<Array<Array<MaybeBrickOffsetOrMaterialId, 8>, 8>, 8> BrickMap;
 
 struct GpuChunkData
 {
-    AlignedChunkCoordinate aligned_chunk_coordinate;
-    u32 offset = ~0u;
+    ChunkLocation chunk_location; // 4
+    u32 offset = ~0u; // 1
+    u16 number_of_nearby_lights = 0; // .5 (1)
+    float2 padding; // 2
     BrickMap brick_map = {};
-    float3 padding;
-    u16 number_of_nearby_lights = 0;
     Array<u16, 1024> nearby_light_ids;
 
     float3 getWorldChunkCorner()
     {
-        return float3(aligned_chunk_coordinate * 64);
+        return float3(chunk_location.aligned_chunk_coordinate * 64);
     }
 };
 
@@ -500,9 +506,9 @@ INLINE MaybeChunkID tryReadChunkHashTable(AlignedChunkCoordinate c)
 
 #ifdef __cplusplus
 
-INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, AlignedChunkCoordinate c, ChunkID chunkId)
+INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, ChunkLocation c, ChunkID chunkId)
 {
-    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 hash = c.hash();
     const u32 startSlot = hash % chunkHashTableCapacity;
 
     for (u32 i = 0; i < 32; ++i)
@@ -532,9 +538,9 @@ INLINE void insertUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkH
 
 // TODO: this is tombstoning, maybe not...
 
-INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, AlignedChunkCoordinate c, ChunkID chunkId)
+INLINE void removeUniqueChunkHashTable(gfx::core::vulkan::CpuCachedBuffer<ChunkHashMapNode>& table, ChunkLocation c, ChunkID chunkId)
 {
-    const u32 hash = hashAlignedChunkCoordinate(c);
+    const u32 hash = c.hash();
     const u32 startSlot = hash % chunkHashTableCapacity;
 
     for (u32 i = 0; i < 32; ++i)

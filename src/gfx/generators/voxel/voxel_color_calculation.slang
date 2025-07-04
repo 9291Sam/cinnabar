@@ -37,6 +37,7 @@ struct PushConstant
 [numthreads(32, 32, 1)]
 void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_GroupIndex, [vk_push_constant] uniform PushConstant pushConstant)
 {
+    // return;
     const u32 rdSeed = gpu_hashU32(reinterpret<u32>(global_gpu_data[UBO_GLOBAL_DATA].time_alive));
     int2 thisPixel           = int2(threadId.xy);
 
@@ -54,7 +55,12 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
         const u32  uniqueFaceId        = reinterpret<uint>(rawPixelData.w);
         const UnpackUniqueFaceIdResult unpacked = UnpackUniqueFaceIdResult::unpack(uniqueFaceId);
 
-        const uint3 positionInChunk = uint3(-0.01 * unpacked.normal + worldStrikePosition - float3(in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner()));
+        const float3 chunkNegativeCorner = float3(in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner());
+        const float chunkVoxelSize = in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].chunk_location.getVoxelSizeUnits();
+
+        
+        const uint3 positionInChunk = uint3(-0.01 * unpacked.normal + (worldStrikePosition - float3(in_global_chunk_data[SBO_CHUNK_DATA][unpacked.chunk_id].getWorldChunkCorner())) / chunkVoxelSize);
+
 
         if (uniqueFaceId != ~0u )
         {   
@@ -90,7 +96,8 @@ void computeMain(uint3 threadId : SV_DispatchThreadID, uint workgroup : SV_Group
                         );
                     }
 
-                    const float3 calculatedColor = calculateWorldColor(
+                    const float3 calculatedColor =                   
+                    calculateWorldColor(
                         worldStrikePosition,
                         material,
                         unpacked,

@@ -29,7 +29,7 @@ namespace gfx::generators::voxel
         // returns true if any lights changed
         bool pack();
 
-        std::vector<u16> poll(AlignedChunkCoordinate aC);
+        std::vector<u16> poll(ChunkLocation);
 
     private:
 

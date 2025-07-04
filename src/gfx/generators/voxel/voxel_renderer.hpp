@@ -50,8 +50,8 @@ namespace gfx::generators::voxel
         VoxelRenderer& operator= (const VoxelRenderer&) = delete;
         VoxelRenderer& operator= (VoxelRenderer&&)      = delete;
 
-        [[nodiscard]] UniqueVoxelChunk createVoxelChunkUnique(AlignedChunkCoordinate);
-        [[nodiscard]] VoxelChunk       createVoxelChunk(AlignedChunkCoordinate);
+        [[nodiscard]] UniqueVoxelChunk createVoxelChunkUnique(ChunkLocation);
+        [[nodiscard]] VoxelChunk       createVoxelChunk(ChunkLocation);
         void setVoxelChunkData(const VoxelChunk&, const BrickMap&, std::span<const CombinedBrick>);
 
         [[nodiscard]] UniqueVoxelLight createVoxelLightUnique(GpuRaytracedLight);

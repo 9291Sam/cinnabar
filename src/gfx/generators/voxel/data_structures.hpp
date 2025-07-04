@@ -158,6 +158,9 @@ namespace gfx::generators::voxel
     {
         using VoxelCoordinateBase::VoxelCoordinateBase;
 
+#warning wtf??
+        WorldPosition(AlignedChunkCoordinate) = delete;
+
         static WorldPosition assemble(AlignedChunkCoordinate aC, ChunkLocalPosition cP)
         {
             return WorldPosition {

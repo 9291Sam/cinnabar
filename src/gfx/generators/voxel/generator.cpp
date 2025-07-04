@@ -214,69 +214,66 @@ namespace gfx::generators::voxel
         this->fractal->SetOctaveCount(1);
         this->fractal->SetGain(1.024f);
         this->fractal->SetLacunarity(2.534f);
+
+        std::minstd_rand0               gen {static_cast<u32>(this->seed)};
+        std::uniform_int_distribution<> dist {-1024, 1024};
     }
 
-    std::pair<BrickMap, std::vector<CombinedBrick>>
-    WorldGenerator::generateChunkPreDense(AlignedChunkCoordinate chunkRoot) const
+    std::pair<BrickMap, std::vector<CombinedBrick>> WorldGenerator::generateChunkPreDense(ChunkLocation chunkRoot) const
     {
-        if (chunkRoot == AlignedChunkCoordinate {0, 0, 1})
-        {
-            std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
-                newVoxels {};
+        // if (chunkRoot.aligned_chunk_coordinate == AlignedChunkCoordinate {0, 0, 1} && chunkRoot.lod == 0)
+        // {
+        //     std::vector<std::pair<gfx::generators::voxel::ChunkLocalPosition, gfx::generators::voxel::Voxel>>
+        //         newVoxels {};
 
-            gfx::generators::voxel::StaticVoxelModel cornelBox =
-                gfx::generators::voxel::StaticVoxelModel::createCornelBox();
+        //     gfx::generators::voxel::StaticVoxelModel cornelBox =
+        //         gfx::generators::voxel::StaticVoxelModel::createCornelBox();
 
-            const glm::u32vec3 extents = cornelBox.getExtent();
-            const auto         voxels  = cornelBox.getModel();
+        //     const glm::u32vec3 extents = cornelBox.getExtent();
+        //     const auto         voxels  = cornelBox.getModel();
 
-            assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
+        //     assert::critical(extents == glm::u32vec3 {64, 64, 64}, "no");
 
-            for (u32 x = 0; x < extents.x; ++x)
-            {
-                for (u32 y = 0; y < extents.y; ++y)
-                {
-                    for (u32 z = 0; z < extents.z; ++z)
-                    {
-                        const gfx::generators::voxel::Voxel v = voxels[x, y, z];
+        //     for (u32 x = 0; x < extents.x; ++x)
+        //     {
+        //         for (u32 y = 0; y < extents.y; ++y)
+        //         {
+        //             for (u32 z = 0; z < extents.z; ++z)
+        //             {
+        //                 const gfx::generators::voxel::Voxel v = voxels[x, y, z];
 
-                        if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
-                        {
-                            newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
-                        }
-                    }
-                }
-            }
+        //                 if (v != gfx::generators::voxel::Voxel::NullAirEmpty)
+        //                 {
+        //                     newVoxels.push_back({gfx::generators::voxel::ChunkLocalPosition {63 - x, y, z}, v});
+        //                 }
+        //             }
+        //         }
+        //     }
 
-            return createDenseChunk(newVoxels);
-        }
+        //     return createDenseChunk(newVoxels);
+        // }
 
-        const u32                       randomSeed = hashAlignedChunkCoordinate(chunkRoot);
-        std::minstd_rand                gen {randomSeed};
-        std::uniform_int_distribution<> dist {0, 1024};
+        // const u32                       randomSeed = chunkRoot.hash();
+        // std::minstd_rand                gen {randomSeed};
+        // std::uniform_int_distribution<> dist {0, 1024};
 
-        // const u32                  lod = 0;
-        const voxel::WorldPosition root {voxel::WorldPosition::assemble(chunkRoot, {})};
-        const i32                  lodres = 1; // gpu_calculateChunkVoxelSizeUnits(lod)
+        // const i32 integerScale = static_cast<i32>(chunkRoot.getVoxelSizeUnits());
 
-        // const i32 integerScale = static_cast<i32>(gpu_calculateChunkVoxelSizeUnits(lod));
-        const i32 integerScale = lodres;
+        // auto gen2D = [&](f32 scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<f32, 64>, 64>>
+        // {
+        //     std::unique_ptr<std::array<std::array<f32, 64>, 64>> res {new std::array<std::array<f32, 64>, 64>};
 
-        auto gen2D = [&](f32 scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<f32, 64>, 64>>
-        {
-            std::unique_ptr<std::array<std::array<f32, 64>, 64>> res {new std::array<std::array<f32, 64>, 64>};
+        //     this->fractal->GenUniformGrid2D(
+        //         res->data()->data(),
+        //         (chunkRoot.getChunkNegativeCornerLocation().x),
+        //         (chunkRoot.getChunkNegativeCornerLocation().z),
+        //         64,
+        //         64,
+        //         scale,
+        //         static_cast<int>(localSeed));
 
-            this->fractal->GenUniformGrid2D(
-                res->data()->data(),
-                root.x / integerScale,
-                root.z / integerScale,
-                64,
-                64,
-                scale,
-                static_cast<int>(localSeed));
-
-            return res;
-        };
+        //     return res;
+        // };
 
         // auto gen3D =
         //     [&](f32       scale,
@@ -291,92 +288,194 @@ namespace gfx::generators::voxel
         //     return res;
         // };
 
-        auto height     = gen2D(static_cast<f32>(integerScale) * 0.001f, this->seed + 487484);
-        auto bumpHeight = gen2D(static_cast<f32>(integerScale) * 0.01f, this->seed + 7373834);
-        // auto mountainHeight = gen2D(static_cast<f32>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
-        // auto mainRock    = gen3D(static_cast<f32>(integerScale) * 0.001f, this->seed - 747875);
-        // auto pebblesRock = gen3D(static_cast<f32>(integerScale) * 0.01f, this->seed -
-        // 52649274); auto pebbles        = gen3D(static_cast<f32>(integerScale) * 0.05f, this->seed - 948);
+        // const f32 baseScale = static_cast<f32>(chunkRoot.getVoxelSizeUnits());
 
-        BrickMap                   brickMap {};
-        std::vector<CombinedBrick> combinedBricks;
-        u16                        nextFreeBrickIndex = 0;
+        // auto height     = gen2D(baseScale * 0.001f, this->seed + 487484);
+        // auto bumpHeight = gen2D(baseScale * 0.01f, this->seed + 7373834);
 
-        for (u8 bCX = 0; bCX < 8; ++bCX)
+        // // auto mountainHeight = gen2D(static_cast<f32>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) -
+        // 83483);
+        // // auto mainRock    = gen3D(static_cast<f32>(integerScale) * 0.001f, this->seed - 747875);
+        // // auto pebblesRock = gen3D(static_cast<f32>(integerScale) * 0.01f, this->seed -
+        // // 52649274); auto pebbles        = gen3D(static_cast<f32>(integerScale) * 0.05f, this->seed - 948);
+
+        // BrickMap                   brickMap {};
+        // std::vector<CombinedBrick> combinedBricks;
+        // u16                        nextFreeBrickIndex = 0;
+
+        // for (u8 bCX = 0; bCX < 8; ++bCX)
+        // {
+        //     for (u8 bCY = 0; bCY < 8; ++bCY)
+        //     {
+        //         for (u8 bCZ = 0; bCZ < 8; ++bCZ)
+        //         {
+        //             CombinedBrick workingBrick {};
+
+        //             for (u8 bPX = 0; bPX < 8; ++bPX)
+        //             {
+        //                 for (u8 bPZ = 0; bPZ < 8; ++bPZ)
+        //                 {
+        //                     const std::size_t i = static_cast<std::size_t>((bCX * 8) + bPX);
+        //                     const std::size_t j = static_cast<std::size_t>((bCZ * 8) + bPZ);
+
+        //                     const i32 unscaledWorldHeight =
+        //                         static_cast<i32>(((*height)[j][i] * 96.0f) + ((*bumpHeight)[j][i] * 64.0f));
+
+        //                     for (u8 bPY = 0; bPY < 8; ++bPY)
+        //                     {
+        //                         const i32 h = (bCY * 8) + bPY;
+
+        //                         const i32 worldHeightOfVoxel =
+        //                             static_cast<i32>(h * chunkRoot.getVoxelSizeUnits()) + chunkRoot.y;
+
+        //                         const i32 relativeDistanceToHeight =
+        //                             (worldHeightOfVoxel - unscaledWorldHeight) + (4 * integerScale);
+
+        //                         const BrickLocalPosition pos {
+        //                             BrickLocalPosition::VectorType {bPX, bPY, bPZ}, UncheckedInDebugTag {}};
+
+        //                         if (relativeDistanceToHeight < 0 * integerScale)
+        //                         {
+        //                             workingBrick.write(pos, std::to_underlying(Voxel::Marble));
+        //                         }
+        //                         else if (relativeDistanceToHeight < 2 * integerScale)
+        //                         {
+        //                             workingBrick.write(pos, std::to_underlying(Voxel::Dirt));
+        //                         }
+        //                         else if (relativeDistanceToHeight < 3 * integerScale)
+        //                         {
+        //                             if (dist(gen) == 0)
+        //                             {
+        //                                 const BrickLocalPosition pos2 {
+        //                                     BrickLocalPosition::VectorType {bPX, std::min({7, bPY + 6}), bPZ},
+        //                                     UncheckedInDebugTag {}};
+
+        //                                 workingBrick.write(pos2, std::to_underlying(Voxel::EmissiveWhite));
+        //                             }
+        //                             else
+        //                             {
+        //                                 workingBrick.write(pos, std::to_underlying(Voxel::Grass));
+        //                             }
+        //                         }
+        //                     }
+        //                 }
+        //             }
+
+        //             MaybeBrickOffsetOrMaterialId& brickPointer = brickMap[bCX][bCY][bCZ];
+
+        //             const CombinedBrickReadResult brickCompactResult = workingBrick.isCompact();
+
+        //             if (brickCompactResult.solid)
+        //             {
+        //                 brickPointer = MaybeBrickOffsetOrMaterialId::fromMaterial(brickCompactResult.voxel);
+        //             }
+        //             else
+        //             {
+        //                 brickPointer = MaybeBrickOffsetOrMaterialId::fromOffset(nextFreeBrickIndex);
+        //                 combinedBricks.push_back(workingBrick);
+        //                 nextFreeBrickIndex += 1;
+        //             }
+        //         }
+        //     }
+        // }
+
+        // return std::make_tuple(brickMap, std::move(combinedBricks));
+
+        const voxel::WorldPosition root {chunkRoot.getChunkNegativeCornerLocation()};
+
+        const i32 integerScale = static_cast<i32>(chunkRoot.getVoxelSizeUnits());
+
+        auto gen2D = [&](float scale, std::size_t localSeed) -> std::unique_ptr<std::array<std::array<float, 64>, 64>>
         {
-            for (u8 bCY = 0; bCY < 8; ++bCY)
+            std::unique_ptr<std::array<std::array<float, 64>, 64>> res {new std::array<std::array<float, 64>, 64>};
+
+            this->fractal->GenUniformGrid2D(
+                res->data()->data(),
+                root.x / integerScale,
+                root.z / integerScale,
+                64,
+                64,
+                scale,
+                static_cast<int>(localSeed));
+
+            return res;
+        };
+
+        auto gen3D =
+            [&](float       scale,
+                std::size_t localSeed) -> std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>>
+        {
+            std::unique_ptr<std::array<std::array<std::array<float, 64>, 64>, 64>> res {
+                new std::array<std::array<std::array<float, 64>, 64>, 64>};
+
+            this->fractal->GenUniformGrid3D(
+                res->data()->data()->data(), root.x, root.z, root.y, 64, 64, 64, scale, static_cast<int>(localSeed));
+
+            return res;
+        };
+
+        auto height         = gen2D(static_cast<float>(integerScale) * 0.001f, this->seed + 487484);
+        auto bumpHeight     = gen2D(static_cast<float>(integerScale) * 0.01f, this->seed + 7373834);
+        auto mountainHeight = gen2D(static_cast<float>(integerScale) * 1.0f / 16384.0f, (this->seed * 3884) - 83483);
+        // auto mainRock    = gen3D(static_cast<float>(integerScale) * 0.001f, this->seed - 747875);
+        // auto pebblesRock = gen3D(static_cast<float>(integerScale) * 0.01f, this->seed -
+        // 52649274); auto pebbles     = gen3D(static_cast<float>(integerScale) * 0.05f, this->seed
+        // - 948);
+
+        std::vector<std::pair<ChunkLocalPosition, Voxel>> out {};
+        out.reserve(32768);
+
+        for (u8 j = 0; j < 64; ++j)
+        {
+            for (u8 i = 0; i < 64; ++i)
             {
-                for (u8 bCZ = 0; bCZ < 8; ++bCZ)
+                // const i32 unscaledWorldHeight =
+                //     static_cast<i32>(std::exp2((*height)[j][i] * 12.0f));
+
+                const i32 unscaledWorldHeight = static_cast<i32>(
+                    (*height)[j][i] * 32.0f + (*bumpHeight)[j][i] * 2.0f + (*mountainHeight)[j][i] * 1024.0f);
+
+                for (u8 h = 0; h < 64; ++h)
                 {
-                    CombinedBrick workingBrick {};
+                    const i32 worldHeightOfVoxel = static_cast<i32>(h * chunkRoot.getVoxelSizeUnits()) + root.y;
+                    const i32 relativeDistanceToHeight =
+                        (worldHeightOfVoxel - unscaledWorldHeight) + (4 * integerScale);
 
-                    for (u8 bPX = 0; bPX < 8; ++bPX)
+                    if (relativeDistanceToHeight < 0 * integerScale)
                     {
-                        for (u8 bPZ = 0; bPZ < 8; ++bPZ)
-                        {
-                            const std::size_t i = static_cast<std::size_t>((bCX * 8) + bPX);
-                            const std::size_t j = static_cast<std::size_t>((bCZ * 8) + bPZ);
-
-                            const i32 unscaledWorldHeight =
-                                static_cast<i32>(((*height)[j][i] * 32.0f) + ((*bumpHeight)[j][i] * 2.0f));
-
-                            for (u8 bPY = 0; bPY < 8; ++bPY)
-                            {
-                                const i32 h = (bCY * 8) + bPY;
-
-                                const i32 worldHeightOfVoxel = static_cast<i32>(h * lodres) + root.y;
-                                const i32 relativeDistanceToHeight =
-                                    (worldHeightOfVoxel - unscaledWorldHeight) + (4 * integerScale);
-
-                                const BrickLocalPosition pos {
-                                    BrickLocalPosition::VectorType {bPX, bPY, bPZ}, UncheckedInDebugTag {}};
-
-                                if (relativeDistanceToHeight < 0 * integerScale)
-                                {
-                                    workingBrick.write(pos, std::to_underlying(Voxel::Marble));
-                                }
-                                else if (relativeDistanceToHeight < 2 * integerScale)
-                                {
-                                    workingBrick.write(pos, std::to_underlying(Voxel::Dirt));
-                                }
-                                else if (relativeDistanceToHeight < 3 * integerScale)
-                                {
-                                    if (dist(gen) == 0)
-                                    {
-                                        const BrickLocalPosition pos2 {
-                                            BrickLocalPosition::VectorType {bPX, std::min({7, bPY + 6}), bPZ},
-                                            UncheckedInDebugTag {}};
-
-                                        workingBrick.write(pos2, std::to_underlying(Voxel::EmissiveWhite));
-                                    }
-                                    else
-                                    {
-                                        workingBrick.write(pos, std::to_underlying(Voxel::Grass));
-                                    }
-                                }
-                            }
-                        }
+                        out.push_back(
+                            std::pair {
+                                voxel::ChunkLocalPosition {{i, h, j}},
+                                static_cast<voxel::Voxel>(util::map<float>(
+                                    0.76f,
+                                    -1.0f,
+                                    1.0f,
+                                    14.0f,
+                                    18.0f)), // NOLINT
+                            });
                     }
-
-                    MaybeBrickOffsetOrMaterialId& brickPointer = brickMap[bCX][bCY][bCZ];
-
-                    const CombinedBrickReadResult brickCompactResult = workingBrick.isCompact();
-
-                    if (brickCompactResult.solid)
+                    else if (relativeDistanceToHeight < 2 * integerScale)
                     {
-                        brickPointer = MaybeBrickOffsetOrMaterialId::fromMaterial(brickCompactResult.voxel);
+                        out.push_back(
+                            std::pair {
+                                voxel::ChunkLocalPosition {{i, h, j}},
+                                voxel::Voxel::Dirt,
+                            });
                     }
-                    else
+                    else if (relativeDistanceToHeight < 3 * integerScale)
+
                     {
-                        brickPointer = MaybeBrickOffsetOrMaterialId::fromOffset(nextFreeBrickIndex);
-                        combinedBricks.push_back(workingBrick);
-                        nextFreeBrickIndex += 1;
+                        out.push_back(
+                            std::pair {
+                                voxel::ChunkLocalPosition {{i, h, j}},
+                                voxel::Voxel::Grass,
+                            });
                     }
                 }
             }
         }
 
-        return std::make_tuple(brickMap, std::move(combinedBricks));
+        return createDenseChunk(out);
     }
 
 } // namespace gfx::generators::voxel

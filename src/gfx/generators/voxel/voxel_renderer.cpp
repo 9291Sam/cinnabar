@@ -215,22 +215,22 @@ namespace gfx::generators::voxel
         this->renderer->getPipelineManager()->destroyPipeline(std::move(this->color_transfer_pipeline));
     }
 
-    VoxelRenderer::UniqueVoxelChunk VoxelRenderer::createVoxelChunkUnique(AlignedChunkCoordinate ac)
+    VoxelRenderer::UniqueVoxelChunk VoxelRenderer::createVoxelChunkUnique(ChunkLocation location)
     {
-        return UniqueVoxelChunk {this->createVoxelChunk(ac), this};
+        return UniqueVoxelChunk {this->createVoxelChunk(location), this};
     }
 
-    VoxelRenderer::VoxelChunk VoxelRenderer::createVoxelChunk(AlignedChunkCoordinate coordinate)
+    VoxelRenderer::VoxelChunk VoxelRenderer::createVoxelChunk(ChunkLocation location)
     {
         VoxelChunk newChunk = this->chunk_allocator.allocateOrPanic();
         const u32  chunkId  = this->chunk_allocator.getValueOfHandle(newChunk);
 
-        this->gpu_chunk_data.write<&GpuChunkData::aligned_chunk_coordinate>(chunkId, coordinate);
+        this->gpu_chunk_data.write<&GpuChunkData::chunk_location>(chunkId, location);
         this->gpu_chunk_data.write<&GpuChunkData::offset>(chunkId, ~0u);
         assert::critical(this->cpu_chunk_data[chunkId].brick_allocation.isNull(), "should be empty");
         assert::critical(this->cpu_chunk_data[chunkId] == CpuChunkData {}, "should be default");
 
-        insertUniqueChunkHashTable(this->chunk_hash_map, coordinate, {chunkId});
+        insertUniqueChunkHashTable(this->chunk_hash_map, location, {chunkId});
 
         return newChunk;
     }
@@ -245,7 +245,7 @@ namespace gfx::generators::voxel
         {
             this->brick_allocator.free(std::move(oldCpuChunkData.brick_allocation));
         }
-        removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.aligned_chunk_coordinate, {chunkId});
+        removeUniqueChunkHashTable(this->chunk_hash_map, oldGpuChunkData.chunk_location, {chunkId});
         this->chunk_allocator.free(std::move(c));
 
         oldGpuChunkData = {};
@@ -304,7 +304,7 @@ namespace gfx::generators::voxel
                 [this](u32 chunkId)
                 {
                     std::vector<u16> polledLightIds =
-                        this->light_influence_storage.poll(this->gpu_chunk_data.read(chunkId).aligned_chunk_coordinate);
+                        this->light_influence_storage.poll(this->gpu_chunk_data.read(chunkId).chunk_location);
 
                     std::ranges::sort(polledLightIds);
 

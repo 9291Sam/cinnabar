@@ -64,14 +64,14 @@ struct VertexOutput
 VertexOutput vertexMain(uint vertexIndex : SV_VertexID)
 {
     const uint chunkId = vertexIndex / 36;
-    const f32 voxel_size      = 64.0;
+    const f32 chunk_size      = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getChunkWidthUnits();
 
-    const float3 box_corner_negative = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].getWorldChunkCorner();
-    const float3 center_location = box_corner_negative + voxel_size / 2.0;
-    const float3 box_corner_positive = box_corner_negative + float3(voxel_size);
+    const float3 box_corner_negative = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getChunkNegativeCornerLocation();
+    const float3 center_location = box_corner_negative + chunk_size / 2.0;
+    const float3 box_corner_positive = box_corner_negative + float3(chunk_size);
 
     const float3 cube_vertex    = CUBE_TRIANGLE_LIST[vertexIndex % 36];
-    const float3 world_location = center_location + voxel_size * cube_vertex;
+    const float3 world_location = center_location + chunk_size * cube_vertex;
 
     VertexOutput o;
 
@@ -98,7 +98,10 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
         discard;
     }
 
-    const Cube chunkBoundingCube = Cube(in_cube_negative_corner + 32, 64);
+    const u32 chunk_size = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getChunkWidthUnits();
+    const u32 chunk_voxel_size = in_const_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getVoxelSizeUnits();
+
+    const Cube chunkBoundingCube = Cube(in_cube_negative_corner + chunk_size/2, chunk_size);
     const float3 camera_position = global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz;
     const float3 dir             = normalize(world_position - camera_position);
 
@@ -111,20 +114,25 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
     }
 
     const float3 box_corner_negative = in_cube_negative_corner;
-    const float3 box_corner_positive = in_cube_negative_corner + 64;
+    const float3 box_corner_positive = in_cube_negative_corner + chunk_size;
 
     const bool is_camera_inside_box = chunkBoundingCube.contains(camera_position);
 
-    const float3 traversalRayStart = is_camera_inside_box
-                                     ? (camera_position - box_corner_negative)
-                                     : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
 
-    // TODO: hone this further and see if you can get rid of some bounds checks in the traversal shader
-    const float3 traversalRayEnd = traversalRayStart + dir * WorldBoundingCubeIntersection.t_far;
+    const float3 traversalRayStart_local = is_camera_inside_box
+    ? (camera_position - box_corner_negative)
+    : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
+
+const float3 traversalRayEnd_local = traversalRayStart_local + dir * WorldBoundingCubeIntersection.t_far;
+
+    
+    const float3 traversalRayStart = (traversalRayStart_local / chunk_size) * 64.0;
+    const float3 traversalRayEnd = (traversalRayEnd_local / chunk_size) * 64.0;
+
 
     const VoxelTraceResult result = traceDDARay(chunkId, traversalRayStart, traversalRayEnd);
 
-    float3 worldStrikePosition = result.chunk_local_fragment_position + in_cube_negative_corner;
+    float3 worldStrikePosition = result.chunk_local_fragment_position * chunk_voxel_size + in_cube_negative_corner;
   
     if (!result.intersect_occur)
     {
