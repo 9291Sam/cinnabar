@@ -43,13 +43,9 @@
 
 
 [[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
-
 [[vk::binding(4)]] RWStructuredBuffer<GpuChunkData> in_global_chunk_data[];
-[[vk::binding(4)]] StructuredBuffer<GpuChunkData> in_const_global_chunk_data[];
-
 [[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
 [[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
-
 [[vk::binding(4)]] RWStructuredBuffer<ChunkHashMapNode> in_chunk_hash_map[];
 
 #endif // __cplusplus
@@ -83,8 +79,6 @@ INLINE u32 gpu_hashCombineU32(u32 a, u32 h)
     h = rotate_right(h, 19u);
     return h * 5u + 0xe6546b64u;
 }
-
-
 
 struct ChunkLocation
 {
