@@ -2,6 +2,8 @@
 
 #define CINNABAR_EPSILON 0.00001
 
+#include "globals.slang"
+
 bool isApproxEqual(const f32 a, const f32 b)
 {
     const f32 maxMagnitude = max(abs(a), abs(b));

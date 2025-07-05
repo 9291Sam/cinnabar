@@ -285,5 +285,5 @@ float3 totalSkybox(float3 rayDir, bool includeExpensive)
     const float3 cloudColor      = Sky(float3(0.0), rayDir, global_gpu_data[UBO_GLOBAL_DATA].time_alive, sunDir);
     const float3 atmosphereColor = atmosphere(float3(0.0), rayDir, sunDir);
 
-    return cloudColor * (includeExpensive ? atmosphereColor : float3(1));
+    return cloudColor * (false ? atmosphereColor : float3(1));
 }

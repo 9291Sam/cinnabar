@@ -42,12 +42,13 @@
     }
 
 
-[[vk::binding(4)]] RWStructuredBuffer<CombinedBrick> in_combined_bricks[];
-[[vk::binding(4)]] RWStructuredBuffer<GpuChunkData> in_global_chunk_data[];
-[[vk::binding(4)]] RWStructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
-[[vk::binding(4)]] RWStructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
+[[vk::binding(4)]] StructuredBuffer<CombinedBrick> in_combined_bricks[];
+[[vk::binding(4)]] StructuredBuffer<GpuChunkData> in_global_chunk_data[];
+[[vk::binding(4)]] StructuredBuffer<PBRVoxelMaterial> in_voxel_materials[];
+[[vk::binding(4)]] StructuredBuffer<GpuRaytracedLight> in_raytraced_lights[];
 [[vk::binding(4)]] RWStructuredBuffer<ChunkHashMapNode> in_chunk_hash_map[];
 
+#define GlobalChunkData in_global_chunk_data[SBO_CHUNK_DATA]
 #endif // __cplusplus
 
 

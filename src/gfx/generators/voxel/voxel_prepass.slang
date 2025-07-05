@@ -98,10 +98,8 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
         discard;
     }
 
-    // GpuChunkData* GlobalChunkData = &in_global_chunk_data[SBO_CHUNK_DATA][chunkId];
-
-    const u32 chunk_size = in_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getChunkWidthUnits();
-    const u32 chunk_voxel_size = in_global_chunk_data[SBO_CHUNK_DATA][chunkId].chunk_location.getVoxelSizeUnits();
+    const u32 chunk_size = GlobalChunkData[chunkId].chunk_location.getChunkWidthUnits();
+    const u32 chunk_voxel_size = GlobalChunkData[chunkId].chunk_location.getVoxelSizeUnits();
 
     const Cube chunkBoundingCube = Cube(in_cube_negative_corner + chunk_size/2, chunk_size);
     const float3 camera_position = global_gpu_data[UBO_GLOBAL_DATA].camera_position.xyz;
@@ -125,7 +123,7 @@ FragmentOutput fragmentMain(float3 world_position : COLOR0, float3 in_cube_negat
     ? (camera_position - box_corner_negative)
     : (WorldBoundingCubeIntersection.maybe_hit_point - box_corner_negative);
 
-const float3 traversalRayEnd_local = traversalRayStart_local + dir * WorldBoundingCubeIntersection.t_far;
+    const float3 traversalRayEnd_local = traversalRayStart_local + dir * WorldBoundingCubeIntersection.t_far;
 
     
     const float3 traversalRayStart = (traversalRayStart_local / chunk_size) * 64.0;
